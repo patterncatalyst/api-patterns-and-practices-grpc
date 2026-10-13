@@ -52,7 +52,8 @@ prose_wordcount() {
     fm == 1 { next }
     /^[[:space:]]*(```|~~~)/ { fence = !fence; next }
     fence == 1 { next }
-    /^[[:space:]]*</ { next }          # HTML block lines (callouts, includes)
+    /^[[:space:]]*</ { next }          # HTML block lines (callouts)
+    /^[[:space:]]*{%/ { next }         # Liquid include lines (figure alt-text/caption, codetabs) — not prose
     /^[[:space:]]*\|/ { next }         # markdown table rows
     /^[[:space:]]*>/ { next }          # blockquoted output
     { n = split($0, a, /[[:space:]]+/); for (i = 1; i <= n; i++) if (a[i] != "") words++ }

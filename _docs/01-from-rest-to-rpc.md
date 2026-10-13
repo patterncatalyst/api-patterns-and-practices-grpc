@@ -40,6 +40,8 @@ Each axis explains part of why a team reaches for one paradigm over another, and
 
 The mechanism behind a gRPC call is worth tracing once, because it differs most sharply from how a REST or GraphQL call gets made, and it explains both gRPC's biggest strengths and its sharpest limitation.
 
+{% include excalidraw.html file="01-stub-to-stub-path" alt="A single .proto contract for RoutingService.GetQuote feeds one compile step, protoc or buf generate, which produces two outputs from the same source: a client stub and a server skeleton, neither hand-written. On every call, the client stub sends a typed call in, which becomes protobuf on the wire — a binary encoding using numbered tags only, framed by HTTP/2, with no field names on the wire — which arrives at the server skeleton as a typed call out. A dashed line leads from the wire encoding down to a callout stating that no textual form of this request exists, and that curl -X POST routing:9000/GetQuote never works, because there is no request line to type." caption="Figure 1.2 — One .proto compiles into a client stub and a server skeleton; every call travels typed call in, protobuf on the wire, typed call out — with no textual form to hand-write or curl." %}
+
 Everything starts with the `.proto` file. `shipping/routing/v1/routing.proto` declares `RoutingService` and its methods, `GetQuoteRequest` and `GetQuoteResponse` among them:
 
 ```proto

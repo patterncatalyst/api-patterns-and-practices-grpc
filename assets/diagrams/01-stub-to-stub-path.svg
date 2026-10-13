@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="90" width="1160" height="250" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="110" font-size="12" font-weight="700" fill="#1d1d1d">Compile once, from one .proto</text>
+<rect x="20" y="360" width="1160" height="320" rx="12" fill="#fffaf2" stroke="#ddd"/>
+<text x="32" y="380" font-size="12" font-weight="700" fill="#1d1d1d">Every call, stub to stub — no hand-written wire code</text>
+<rect x="420" y="10" width="360" height="65" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="600.0" y="40.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">.proto contract</text>
+<text x="600.0" y="57.5" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService.GetQuote</text>
+<rect x="440" y="115" width="320" height="70" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="600.0" y="148.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">protoc / buf generate</text>
+<text x="600.0" y="165.0" font-size="11.5" fill="#555555" text-anchor="middle">one compile step, two outputs</text>
+<rect x="50" y="230" width="330" height="90" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="215.0" y="265.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client stub</text>
+<text x="215.0" y="282.5" font-size="11.5" fill="#555555" text-anchor="middle">typed method call</text>
+<text x="215.0" y="297.5" font-size="11.5" fill="#555555" text-anchor="middle">neither side hand-written</text>
+<rect x="820" y="230" width="330" height="90" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="985.0" y="265.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server skeleton</text>
+<text x="985.0" y="282.5" font-size="11.5" fill="#555555" text-anchor="middle">abstract method to override</text>
+<text x="985.0" y="297.5" font-size="11.5" fill="#555555" text-anchor="middle">neither side hand-written</text>
+<rect x="430" y="450" width="340" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="600.0" y="490.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Protobuf on the wire</text>
+<text x="600.0" y="507.5" font-size="11.5" fill="#555555" text-anchor="middle">binary, numbered tags only</text>
+<text x="600.0" y="522.5" font-size="11.5" fill="#555555" text-anchor="middle">HTTP/2 framed — no field names</text>
+<rect x="300" y="590" width="600" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="600.0" y="628.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">No textual form of this request exists</text>
+<text x="600.0" y="645.0" font-size="11.5" fill="#555555" text-anchor="middle">curl -X POST routing:9000/GetQuote never works</text>
+<path d="M600,75 L600,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M480,185 L215,230" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="317.5" y="203.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="317.5" y="203.5" font-size="11" fill="#b8650a" text-anchor="middle">generates</text>
+<path d="M720,185 L985,230" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="882.5" y="203.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="882.5" y="203.5" font-size="11" fill="#b8650a" text-anchor="middle">generates</text>
+<path d="M215,320 L430,490" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="312.5" y="395.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">typed call in</text>
+<text x="312.5" y="395.0" font-size="11" fill="#555" text-anchor="middle">typed call in</text>
+<path d="M770,490 L985,320" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="887.5" y="395.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">typed call out</text>
+<text x="887.5" y="395.0" font-size="11" fill="#555" text-anchor="middle">typed call out</text>
+<path d="M600,550 L600,590" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="690.0" y="572.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">no text form on the wire</text>
+<text x="690.0" y="572.0" font-size="11" fill="#555" text-anchor="middle">no text form on the wire</text>
+<text x="600" y="678" font-size="12" fill="#555555" text-anchor="middle">One .proto compiles into both sides; nothing on this path is hand-written or typed as text.</text>
+</svg>
