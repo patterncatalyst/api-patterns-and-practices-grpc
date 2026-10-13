@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch15 backend-io-concurrency ANCHOR — Quarkus side.
+
+  Implements shipping.routing.v1.RoutingService.FindOptimalRoute behind
+  ~400ms of simulated blocking DB+file I/O (PricingCache.lookup), served in
+  the CORRECT non-starving model (the default gRPC worker pool, the same
+  pool @Blocking dispatches onto) with two further execution models reachable
+  behind the same RPC via a demo-only request flag: a STARVING path that
+  blocks the Vert.x event loop directly, and a @RunOnVirtualThread-style path
+  that runs the lookup on a fresh virtual thread. See RoutingServiceImpl.java
+  for how one method demonstrates all three, and README.md for the flag.
+  The other seven RoutingService RPCs return UNIMPLEMENTED, same discipline
+  as every prior chapter's example.
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs
+  the two proto files this service needs into src/main/proto/ as part of the
+  image build, where the quarkus-grpc extension's code-generation picks them
+  up automatically. For a local, non-container `mvn package`, run the copy
+  by hand first (see README.md).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch15-quarkus-concurrency</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <!-- `quarkus` packaging (not plain `jar`) binds the quarkus-grpc extension's
+       proto-to-Mutiny code generation to the generate-sources phase, before
+       compile — same reason as every prior anchor. -->
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches every prior anchor's pin: Quarkus latest stable LTS (3.40.x). -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates Mutiny stubs from src/main/proto/**.proto at build time
+         and runs the gRPC server, including the @Blocking worker-pool
+         dispatch FindOptimalRoute relies on for its correct, default model. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+    <!-- Explicit (quarkus-grpc already pulls this in transitively, since the
+         gRPC server itself runs on Vert.x): RoutingServiceImpl injects
+         io.vertx.core.Context directly to hop the STARVING path back onto
+         the event loop it was dispatched from. Declared here rather than
+         relied on transitively, per this project's house style of spelling
+         out what a chapter's code actually uses. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-vertx</artifactId>
+    </dependency>
+    <!-- Automatically instruments the gRPC server so FindOptimalRoute calls
+         produce spans once an OTLP endpoint is reachable (the opt-in
+         `observability` compose profile). Fails soft with no collector
+         listening. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
