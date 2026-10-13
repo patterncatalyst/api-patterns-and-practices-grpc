@@ -26,6 +26,8 @@ rpc NegotiateRoute(stream NegotiateRouteRequest) returns (stream NegotiateRouteR
 
 Picking the shape first matters because the remaining four axes behave differently depending on it. A deadline on a unary call bounds one round trip; a deadline on a streaming call bounds how long the stream may stay open — a different number entirely.
 
+{% include excalidraw.html file="02-four-rpc-shapes" alt="A two-by-two grid crossing request cardinality against response cardinality to produce the four RPC shapes. Top-left, single request and single response, is unary, tagged with RoutingService.GetQuote. Top-right, single request and a stream of responses, is server-streaming, tagged with TrackingService.WatchShipment. Bottom-left, a stream of requests and a single response, is client-streaming, tagged with TrackingService.ReportPositions. Bottom-right, a stream of requests and a stream of responses, is bidirectional, tagged with RoutingService.NegotiateRoute." caption="Figure 2.1 — request cardinality crossed with response cardinality resolves to the four RPC shapes." %}
+
 ## Sync call vs. stream
 
 RPC shape answers *what pattern* the interaction follows; this axis asks a narrower, operational question: does the caller block waiting for one value, or hold a connection open and consume values as they arrive? The cost of each should drive the choice, not a preference for one style.
@@ -56,7 +58,7 @@ On Quarkus, a blocking model — one thread per in-flight call — is simplest t
 
 On Python the same question is framed by the GIL: a synchronous `grpcio` server on a thread pool gets real concurrency for I/O-bound work, since threads release the GIL while waiting on a socket, but gains nothing from more threads than cores for CPU-bound work. `grpc.aio`'s asyncio server avoids the thread-pool ceiling entirely, running many concurrent calls on one thread as long as none block in-line. Real computation — scoring route candidates against live capacity — needs a worker pool regardless, because no async or virtual-thread trick makes CPU-bound work run faster by waiting less. Chapter 15 covers each stack's concurrency story; the decision here is whether a method's bottleneck is waiting or computing.
 
-{% include excalidraw.html file="02-decision-framework" alt="Five labeled axes — RPC shape, sync call vs. stream, deadline and budget, failure class and retryability, and concurrency model — each feeding into a central decision box, which resolves to concrete example calls: RoutingService.GetQuote as a unary call with a tight deadline, TrackingService.WatchShipment as server-streaming, TrackingService.ReportPositions as client-streaming, and RoutingService.RecomputeRoutes as an async call returning an Operation." caption="Figure 2.1 — The five decision axes, reused in every Decision callout that follows." %}
+{% include excalidraw.html file="02-decision-framework" alt="Five labeled axes — RPC shape, sync call vs. stream, deadline and budget, failure class and retryability, and concurrency model — each feeding into a central decision box, which resolves to concrete example calls: RoutingService.GetQuote as a unary call with a tight deadline, TrackingService.WatchShipment as server-streaming, TrackingService.ReportPositions as client-streaming, and RoutingService.RecomputeRoutes as an async call returning an Operation." caption="Figure 2.2 — The five decision axes, reused in every Decision callout that follows." %}
 
 ## The REST→gRPC seam, and the cross-protocol question
 
