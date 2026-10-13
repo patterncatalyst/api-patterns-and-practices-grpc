@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 560" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="60" width="900" height="190" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="80" font-size="12" font-weight="700" fill="#1d1d1d">STARVING -- 8 calls queued on ONE thread (~3.2s total)</text>
+<rect x="20" y="280" width="900" height="260" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="300" font-size="12" font-weight="700" fill="#1d1d1d">OFFLOADED -- 8 calls overlap across worker threads (~0.45s total)</text>
+<rect x="40" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="91.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 1</text>
+<text x="91.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="147" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="198.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 2</text>
+<text x="198.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="254" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="305.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 3</text>
+<text x="305.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="361" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="412.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 4</text>
+<text x="412.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="468" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="519.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 5</text>
+<text x="519.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="575" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="626.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 6</text>
+<text x="626.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="682" y="100" width="103" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="733.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 7</text>
+<text x="733.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="789" y="100" width="103" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="840.5" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 8</text>
+<text x="840.5" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">~0.4s</text>
+<rect x="40" y="310" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="327.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 1</text>
+<rect x="40" y="337" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="354.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 2</text>
+<rect x="40" y="364" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="381.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 3</text>
+<rect x="40" y="391" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="408.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 4</text>
+<rect x="40" y="418" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="435.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 5</text>
+<rect x="40" y="445" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="462.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 6</text>
+<rect x="40" y="472" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="489.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 7</text>
+<rect x="40" y="499" width="120" height="24" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="516.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">call 8</text>
+<rect x="230" y="350" width="650" height="160" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="555.0" y="398.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Every call starts at roughly the same moment and</text>
+<text x="555.0" y="415.0" font-size="11.5" fill="#555555" text-anchor="middle">blocks its OWN worker thread independently --</text>
+<text x="555.0" y="430.0" font-size="11.5" fill="#555555" text-anchor="middle">no thread waits on another thread&#x27;s I/O.</text>
+<text x="555.0" y="445.0" font-size="11.5" fill="#555555" text-anchor="middle">Total wall-clock time tracks ONE call&#x27;s ~400ms,</text>
+<text x="555.0" y="460.0" font-size="11.5" fill="#555555" text-anchor="middle">not 8 calls&#x27; combined 3.2s.</text>
+<text x="555.0" y="475.0" font-size="11.5" fill="#555555" text-anchor="middle">This is the overlap verify.sh&#x27;s &lt; 2.5s bound checks for.</text>
+<path d="M40,185 L900,185" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="476.0" y="179.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">elapsed ~3.2s</text>
+<text x="476.0" y="179.0" font-size="11" fill="#555" text-anchor="middle">elapsed ~3.2s</text>
+<path d="M40,510 L160,510" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="106.0" y="504.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">elapsed ~0.45s</text>
+<text x="106.0" y="504.0" font-size="11" fill="#b8650a" text-anchor="middle">elapsed ~0.45s</text>
+<text x="40" y="48" font-size="12" fill="#1d1d1d" text-anchor="start" font-weight="700">Same 8 concurrent FindOptimalRoute calls, same ~400ms of blocking I/O each --</text>
+<text x="470" y="550" font-size="12" fill="#1d1d1d" text-anchor="middle">The work never gets cheaper; only where it runs decides whether 8 callers wait in line or finish together.</text>
+</svg>

@@ -1,0 +1,16 @@
+# Ch15 backend-io-concurrency demo — simulated historical-pricing cache.
+#
+# A real service would read this from a shared cache or object store over
+# the network; here it's a small file bundled into the image so the
+# "file I/O" half of FindOptimalRoute's ~400ms blocking step is a genuine
+# blocking read, not merely a sleep standing in for one. Same five routes as
+# the Ch13 schema-design catalog, copied (not shared — this example has no
+# code dependency on Ch13) so verify.sh's expected values line up with a
+# shape readers of this book have already seen.
+#
+# route_id,carrier,origin_un_locode,destination_un_locode,price_amount_usd
+rte_001,MAERSK,USNYC,NLRTM,1200.00
+rte_002,MSC,USLAX,CNSHA,2400.00
+rte_003,HMM,DEHAM,SGSIN,1800.50
+rte_004,MAERSK,NLRTM,USNYC,1150.75
+rte_005,COSCO,CNSHA,USLAX,2600.25
