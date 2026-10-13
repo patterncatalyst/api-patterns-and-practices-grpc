@@ -11,8 +11,7 @@ shipping and cargo domain. gRPC here is the internal, latency-sensitive routing 
 tracking service that the sibling REST booking service calls. Every hands-on chapter
 ships the same example in **both Quarkus and Python**, generated from the same proto,
 and CI asserts each response against the contract so the two stacks never drift. The
-full arc is below; the build &amp; iteration plan, coverage matrix and domain glossary
-(linked in the footer) carry the detail.
+full arc is below.
 
 ## Part 0 — Prerequisites & the Lab
 - [Ch0 · Prerequisites & the lab](../00-prerequisites-and-the-lab/)
