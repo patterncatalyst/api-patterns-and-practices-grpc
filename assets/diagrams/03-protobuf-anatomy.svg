@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 620" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="1080" height="170" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">the .proto source</text>
+<rect x="20" y="210" width="1080" height="260" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="230" font-size="12" font-weight="700" fill="#1d1d1d">serialized bytes on the wire (14 bytes total)</text>
+<rect x="20" y="490" width="1080" height="110" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="510" font-size="12" font-weight="700" fill="#1d1d1d">wire types (the low 3 bits of every key byte)</text>
+<rect x="760" y="75" width="300" height="36" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="910.0" y="91.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">tag 1 → key 0x0A</text>
+<text x="910.0" y="108.0" font-size="11.5" fill="#555555" text-anchor="middle">field 1, wire type 2 (LEN)</text>
+<rect x="760" y="118" width="300" height="36" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="910.0" y="134.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">tag 2 → key 0x12</text>
+<text x="910.0" y="151.0" font-size="11.5" fill="#555555" text-anchor="middle">field 2, wire type 2 (LEN)</text>
+<rect x="40" y="270" width="56" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="68.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x0A</text>
+<text x="68.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">f1 key</text>
+<rect x="102" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="130.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x03</text>
+<text x="130.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">len=3</text>
+<rect x="164" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="192.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x55</text>
+<text x="192.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">U</text>
+<rect x="226" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="254.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x53</text>
+<text x="254.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">S</text>
+<rect x="288" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="316.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x44</text>
+<text x="316.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">D</text>
+<rect x="350" y="270" width="56" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="378.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x12</text>
+<text x="378.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">f2 key</text>
+<rect x="412" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="440.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x07</text>
+<text x="440.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">len=7</text>
+<rect x="474" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="502.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x31</text>
+<text x="502.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">1</text>
+<rect x="536" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="564.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x32</text>
+<text x="564.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">2</text>
+<rect x="598" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="626.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x35</text>
+<text x="626.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">5</text>
+<rect x="660" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="688.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x30</text>
+<text x="688.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">0</text>
+<rect x="722" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="750.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x2E</text>
+<text x="750.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">.</text>
+<rect x="784" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="812.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x30</text>
+<text x="812.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">0</text>
+<rect x="846" y="270" width="56" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="874.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0x30</text>
+<text x="874.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">0</text>
+<rect x="44" y="520" width="230" height="64" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="159.0" y="550.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">0  VARINT</text>
+<text x="159.0" y="567.0" font-size="11.5" fill="#555555" text-anchor="middle">int32/64, uint*, bool, enum</text>
+<rect x="290" y="520" width="230" height="64" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="405.0" y="550.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">1  I64</text>
+<text x="405.0" y="567.0" font-size="11.5" fill="#555555" text-anchor="middle">fixed64, double</text>
+<rect x="536" y="520" width="230" height="64" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="651.0" y="550.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">2  LEN</text>
+<text x="651.0" y="567.0" font-size="11.5" fill="#555555" text-anchor="middle">string, bytes, message, repeated</text>
+<rect x="782" y="520" width="230" height="64" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="897.0" y="550.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">5  I32</text>
+<text x="897.0" y="567.0" font-size="11.5" fill="#555555" text-anchor="middle">fixed32, float</text>
+<path d="M762,93 L100,272" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<path d="M762,136 L428,272" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="44" y="62" font-size="14" fill="#1a1a1a" text-anchor="start" font-weight="700">message Money {</text>
+<text x="64" y="92" font-size="14" fill="#1a1a1a" text-anchor="start">string currency = 1;</text>
+<text x="64" y="122" font-size="14" fill="#1a1a1a" text-anchor="start">string amount = 2;</text>
+<text x="44" y="152" font-size="14" fill="#1a1a1a" text-anchor="start" font-weight="700">}</text>
+<text x="44" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">key</text>
+<text x="116" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">len</text>
+<text x="260" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">value — “USD”</text>
+<text x="404" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">key</text>
+<text x="476" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">len</text>
+<text x="764" y="248" font-size="11" fill="#1d1d1d" text-anchor="middle">value — “1250.00”</text>
+<text x="44" y="440" font-size="12.5" fill="#1a1a1a" text-anchor="start" font-weight="700">key byte = (field_number &lt;&lt; 3) | wire_type</text>
+<text x="44" y="462" font-size="12" fill="#555555" text-anchor="start">0x0A = (1 &lt;&lt; 3) | 2  →  field 1, wire type 2 (LEN)       0x12 = (2 &lt;&lt; 3) | 2  →  field 2, wire type 2 (LEN)</text>
+</svg>
