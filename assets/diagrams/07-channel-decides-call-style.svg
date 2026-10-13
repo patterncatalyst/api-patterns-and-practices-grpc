@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 620" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="30" y="90" width="680" height="480" rx="12" fill="#f4f8fc" stroke="#ddd"/>
+<text x="42" y="110" font-size="12" font-weight="700" fill="#1d1d1d">Quarkus — type-level split</text>
+<rect x="740" y="90" width="630" height="480" rx="12" fill="#f4f8fc" stroke="#ddd"/>
+<text x="752" y="110" font-size="12" font-weight="700" fill="#1d1d1d">Python — channel-level split</text>
+<rect x="470" y="10" width="460" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="700.0" y="36.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">GetQuote(request)</text>
+<text x="700.0" y="53.0" font-size="11.5" fill="#555555" text-anchor="middle">same .proto, same RPC — call style decided two different ways</text>
+<rect x="50" y="120" width="640" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="370.0" y="146.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Three generated stub types</text>
+<text x="370.0" y="163.0" font-size="11.5" fill="#555555" text-anchor="middle">quarkus-grpc emits BlockingStub, MutinyStub, and the service interface from one .proto</text>
+<rect x="50" y="200" width="200" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="150.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">BlockingStub</text>
+<text x="150.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingServiceBlockingStub</text>
+<rect x="50" y="290" width="200" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="150.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">getQuote(request)</text>
+<text x="150.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">blocks calling thread</text>
+<rect x="50" y="390" width="200" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="150.0" y="423.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">GetQuoteResponse</text>
+<text x="150.0" y="440.0" font-size="11.5" fill="#dddddd" text-anchor="middle">returned directly</text>
+<rect x="270" y="200" width="200" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="370.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">MutinyStub</text>
+<text x="370.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">MutinyRoutingServiceStub</text>
+<rect x="270" y="290" width="200" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="370.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">getQuote(request)</text>
+<text x="370.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">non-blocking, composable</text>
+<rect x="270" y="390" width="200" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="370.0" y="423.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Uni&lt;GetQuoteResponse&gt;</text>
+<text x="370.0" y="440.0" font-size="11.5" fill="#dddddd" text-anchor="middle">composable pipeline</text>
+<rect x="490" y="200" width="200" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="590.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService</text>
+<text x="590.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">injected service interface</text>
+<rect x="490" y="290" width="200" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="590.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">getQuote(request)</text>
+<text x="590.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">non-blocking, same as Mutiny</text>
+<rect x="490" y="390" width="200" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="590.0" y="423.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Uni&lt;GetQuoteResponse&gt;</text>
+<text x="590.0" y="440.0" font-size="11.5" fill="#dddddd" text-anchor="middle">same shape as Mutiny stub</text>
+<rect x="50" y="490" width="640" height="56" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="370.0" y="516.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Type chosen at injection</text>
+<text x="370.0" y="533.0" font-size="11.5" fill="#555555" text-anchor="middle">blocking vs Mutiny vs interface — fixed in code, not at runtime</text>
+<rect x="760" y="120" width="590" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="1055.0" y="146.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingServiceStub</text>
+<text x="1055.0" y="163.0" font-size="11.5" fill="#555555" text-anchor="middle">one generated class — channel.unary_unary() picks the behavior</text>
+<rect x="760" y="200" width="280" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="900.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpc.insecure_channel(target)</text>
+<text x="900.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">ordinary grpc.Channel</text>
+<rect x="760" y="290" width="280" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="900.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">stub.GetQuote(request)</text>
+<text x="900.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">blocks the calling thread</text>
+<rect x="760" y="390" width="280" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="900.0" y="423.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">GetQuoteResponse</text>
+<text x="900.0" y="440.0" font-size="11.5" fill="#dddddd" text-anchor="middle">returned directly from the call</text>
+<rect x="1070" y="200" width="280" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="1210.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpc.aio.insecure_channel(target)</text>
+<text x="1210.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">asyncio-native grpc.aio.Channel</text>
+<rect x="1070" y="290" width="280" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="1210.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">await stub.GetQuote(request)</text>
+<text x="1210.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">suspends the coroutine</text>
+<rect x="1070" y="390" width="280" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="1210.0" y="423.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">GetQuoteResponse</text>
+<text x="1210.0" y="440.0" font-size="11.5" fill="#dddddd" text-anchor="middle">awaited out of the coroutine</text>
+<rect x="760" y="490" width="590" height="56" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="1055.0" y="516.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">channel.unary_unary() decides</text>
+<text x="1055.0" y="533.0" font-size="11.5" fill="#555555" text-anchor="middle">grpc.Channel vs grpc.aio.Channel — not the generated code</text>
+<path d="M600,66 L370,120" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="491.0" y="87.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">quarkus-grpc: 3 stub types</text>
+<text x="491.0" y="87.0" font-size="11" fill="#b8650a" text-anchor="middle">quarkus-grpc: 3 stub types</text>
+<path d="M800,66 L1055,120" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="933.5" y="87.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">grpcio-tools: 1 stub class</text>
+<text x="933.5" y="87.0" font-size="11" fill="#b8650a" text-anchor="middle">grpcio-tools: 1 stub class</text>
+<path d="M370,176 L150,200" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M370,176 L370,200" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M370,176 L590,200" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M150,260 L150,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M150,360 L150,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M370,260 L370,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M370,360 L370,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M590,260 L590,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M590,360 L590,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1055,176 L900,200" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1055,176 L1210,200" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M900,260 L900,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M900,360 L900,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1210,260 L1210,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M1210,360 L1210,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="700" y="605" font-size="12" fill="#555555" text-anchor="middle">Same GetQuote call, same generated stub class on Python — the channel object decides blocking vs. async, not the code.</text>
+</svg>
