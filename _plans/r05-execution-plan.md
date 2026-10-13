@@ -40,7 +40,7 @@ lgtm-professional-voice 0 ban-tier. Emphasis boxes light `accent`, never dark.
 
 ## Figures
 `13-message-granularity` (nest vs reference) · `13-pagination-page-tokens` · `13-fieldmask-projection` ·
-`14-evolution-compatibility` (field-number contract, wire-compat matrix, v1→v2 + the breaking gate).
+`14-evolution-compatibility` (safe/breaking matrix) · `14-package-versioning-v2` (v1/v2 rolling deploy) · `14-buf-breaking-gate` (the gate flow verify.sh runs).
 
 ## Examples (UNIQUE ports + compose project names)
 - `examples/13-schema-design` — ports 9130/9131, project `ch13-schema`. Each stack implements
