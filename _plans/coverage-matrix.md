@@ -32,8 +32,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T12 | Interceptors | Ch12 | `_docs/12-interceptors.md` | verified |
 | T13 | Schema design + pagination + FieldMask | Ch13 | `_docs/13-schema-design.md` | verified |
 | T14 | Evolution / versioning + buf breaking + BSR | Ch14 | `_docs/14-evolution-and-versioning.md` | verified |
-| T15 | Backend I/O concurrency | Ch15 | `_docs/15-backend-io-concurrency.md` | draft |
-| T16 | Async / long-running jobs | Ch16 | `_docs/16-async-long-running-jobs.md` | draft |
+| T15 | Backend I/O concurrency | Ch15 | `_docs/15-backend-io-concurrency.md` | verified |
+| T16 | Async / long-running jobs | Ch16 | `_docs/16-async-long-running-jobs.md` | verified |
 | T17 | Streaming at scale + flow control / backpressure | Ch17 | `_docs/17-streaming-at-scale.md` | planned |
 | T18 | Performance tuning + ghz | Ch18 | `_docs/18-performance-tuning.md` | planned |
 | T19 | TLS / mTLS | Ch19 | `_docs/19-tls-mtls.md` | planned |
@@ -73,8 +73,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 12 | `_docs/12-interceptors.md` | Part 4 | verified |
 | 13 | `_docs/13-schema-design.md` | Part 5 | verified |
 | 14 | `_docs/14-evolution-and-versioning.md` | Part 5 | verified |
-| 15 | `_docs/15-backend-io-concurrency.md` | Part 6 | draft |
-| 16 | `_docs/16-async-long-running-jobs.md` | Part 6 | draft |
+| 15 | `_docs/15-backend-io-concurrency.md` | Part 6 | verified |
+| 16 | `_docs/16-async-long-running-jobs.md` | Part 6 | verified |
 | 17 | `_docs/17-streaming-at-scale.md` | Part 7 | planned |
 | 18 | `_docs/18-performance-tuning.md` | Part 7 | planned |
 | 19 | `_docs/19-tls-mtls.md` | Part 8 | planned |
