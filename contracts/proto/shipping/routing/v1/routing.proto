@@ -1,0 +1,82 @@
+// The RoutingService — the internal, latency-sensitive routing hot-path the REST
+// booking service calls. GetQuote is the unary ANCHOR implemented in Phase 1;
+// the streaming and async methods are declared here and implemented in later
+// chapters (an unimplemented method returns UNIMPLEMENTED, which Ch26 uses).
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+import "google/protobuf/field_mask.proto";
+import "shipping/type/v1/types.proto";
+
+// --- GetQuote (unary, the Phase-1 anchor) -----------------------------------
+
+message GetQuoteRequest {
+  shipping.type.v1.Location origin = 1;
+  shipping.type.v1.Location destination = 2;
+  repeated shipping.type.v1.Cargo cargo = 3;
+}
+
+message GetQuoteResponse {
+  shipping.type.v1.Money quote = 1;
+  shipping.type.v1.Route route = 2;
+}
+
+// --- FindOptimalRoute (unary) -----------------------------------------------
+
+message FindOptimalRouteRequest {
+  shipping.type.v1.Location origin = 1;
+  shipping.type.v1.Location destination = 2;
+  bool prefer_speed = 3;  // else prefer price
+}
+
+message FindOptimalRouteResponse {
+  shipping.type.v1.Route route = 1;
+}
+
+// --- ListRoutes (unary, pagination + field mask) ----------------------------
+
+message ListRoutesRequest {
+  int32 page_size = 1;
+  string page_token = 2;
+  google.protobuf.FieldMask field_mask = 3;
+}
+
+message ListRoutesResponse {
+  repeated shipping.type.v1.Route routes = 1;
+  string next_page_token = 2;
+}
+
+// --- NegotiateRoute (bidirectional streaming) -------------------------------
+
+message NegotiateRouteRequest {
+  shipping.type.v1.Route proposal = 1;
+}
+
+message NegotiateRouteResponse {
+  shipping.type.v1.Route counter = 1;
+  bool accepted = 2;
+}
+
+// --- RecomputeRoutes (async / long-running) ---------------------------------
+
+message RecomputeRoutesRequest {
+  string reason = 1;
+}
+
+message RecomputeRoutesResponse {
+  shipping.type.v1.Operation operation = 1;
+}
+
+service RoutingService {
+  // Unary anchor: quote the cost + route for a shipment.
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+  // Unary: choose the best route for origin -> destination.
+  rpc FindOptimalRoute(FindOptimalRouteRequest) returns (FindOptimalRouteResponse);
+  // Unary: paginated catalog of routes with field-mask projection.
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse);
+  // Bidirectional: negotiate a route by exchanging proposals and counters.
+  rpc NegotiateRoute(stream NegotiateRouteRequest) returns (stream NegotiateRouteResponse);
+  // Async: kick off a background route recomputation, returning an Operation.
+  rpc RecomputeRoutes(RecomputeRoutesRequest) returns (RecomputeRoutesResponse);
+}
