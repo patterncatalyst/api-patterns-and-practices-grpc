@@ -29,7 +29,7 @@ def _read_cache_rows() -> list[tuple[str, str, str, str, str]]:
 
 
 def blocking_lookup(origin_code: str, dest_code: str) -> types_pb2.Route:
-    """Performs the chapter's ~400ms of genuinely blocking, thread-occupying
+    """Performs the chapter's ~400ms of blocking, thread-occupying
     work: time.sleep standing in for a database round trip, then a REAL
     blocking read of the bundled cache file, padded with a second
     time.sleep standing in for a slow, network-attached store. The two
@@ -39,7 +39,7 @@ def blocking_lookup(origin_code: str, dest_code: str) -> types_pb2.Route:
     prose refers to visible in the code. time.sleep and a blocking file read
     both release the GIL for their duration (CPython has always done this
     for I/O-bound calls), which is why the correct, offloaded mode in
-    app/routing_service.py genuinely overlaps eight concurrent calls rather
+    app/routing_service.py overlaps eight concurrent calls rather
     than only *looking* concurrent — see the chapter's GIL section. Falls
     back to the cache's first row when no exact origin/destination match
     exists — a simplification: this demo's subject is WHERE the blocking

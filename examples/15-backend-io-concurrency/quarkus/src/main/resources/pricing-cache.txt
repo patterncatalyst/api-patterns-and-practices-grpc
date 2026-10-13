@@ -2,7 +2,7 @@
 #
 # A real service would read this from a shared cache or object store over
 # the network; here it's a small file bundled into the image so the
-# "file I/O" half of FindOptimalRoute's ~400ms blocking step is a genuine
+# "file I/O" half of FindOptimalRoute's ~400ms blocking step is a real
 # blocking read, not merely a sleep standing in for one. Same five routes as
 # the Ch13 schema-design catalog, copied (not shared — this example has no
 # code dependency on Ch13) so verify.sh's expected values line up with a
