@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch11 error-handling ANCHOR — Quarkus side.
+
+  Implements shipping.routing.v1.RoutingService.GetQuote returning
+  deterministic RICH errors (google.rpc.Status + typed details) by input —
+  see RoutingServiceImpl.java. The other four RoutingService RPCs return
+  UNIMPLEMENTED, as in Ch5.
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs
+  the two proto files this service needs into src/main/proto/ as part of the
+  image build, where the quarkus-grpc extension's code-generation picks them
+  up automatically. For a local, non-container `mvn package`, run the copy
+  by hand first (see README.md).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch11-quarkus-error-handling</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <!-- `quarkus` packaging (not plain `jar`) binds the quarkus-grpc extension's
+       proto-to-Mutiny code generation to the generate-sources phase, before
+       compile — same reason as the Ch5 anchor. -->
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches the Ch5 anchor's pin: Quarkus latest stable LTS (3.40.x). -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates Mutiny stubs from src/main/proto/**.proto at build time
+         and runs the gRPC server; also brings grpc-protobuf on the classpath
+         (io.grpc.protobuf.StatusProto), which this chapter's rich errors
+         depend on to pack a google.rpc.Status into the trailers. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+    <!-- The rich-error detail TYPES (ErrorInfo, BadRequest, RetryInfo,
+         google.rpc.Status, google.rpc.Code) are NOT generated from this
+         chapter's .proto — they come from this runtime library, the same
+         one io.grpc.protobuf.StatusProto expects its Any-packed details to
+         be built from. Not managed by the Quarkus BOM, so pinned here
+         directly; its protobuf-java dependency is overridden by the BOM's
+         managed version at build time, which protobuf-java's wire-compatible
+         minor-version evolution tolerates fine. -->
+    <dependency>
+      <groupId>com.google.api.grpc</groupId>
+      <artifactId>proto-google-common-protos</artifactId>
+      <version>2.71.0</version>
+    </dependency>
+    <!-- Automatically instruments the gRPC server so GetQuote calls produce
+         spans once an OTLP endpoint is reachable (the opt-in `observability`
+         compose profile). Fails soft with no collector listening. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="960" height="200" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Contract (single source of truth)</text>
+<rect x="20" y="240" width="440" height="300" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Quarkus container — host :9100 -&gt; :9000</text>
+<rect x="540" y="240" width="440" height="300" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="552" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Python container — host :9101 -&gt; :9000</text>
+<rect x="60" y="90" width="400" height="90" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="260.0" y="133.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">contracts/proto/shipping/{type,routing,quote}/v1/*.proto</text>
+<text x="260.0" y="150.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService.GetQuote calls QuoteService.GetQuote</text>
+<rect x="540" y="90" width="400" height="90" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="740.0" y="125.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpcurl / any client</text>
+<text x="740.0" y="142.5" font-size="11.5" fill="#555555" text-anchor="middle">-max-time sets the deadline</text>
+<text x="740.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">server reflection enabled</text>
+<rect x="60" y="290" width="360" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="240.0" y="328.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingServiceImpl (Mutiny)</text>
+<text x="240.0" y="345.0" font-size="11.5" fill="#555555" text-anchor="middle">withDeadlineAfter(remaining budget)</text>
+<rect x="60" y="400" width="360" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="240.0" y="438.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteServiceImpl (Mutiny)</text>
+<text x="240.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — Uni.onItem().delayIt()</text>
+<rect x="580" y="290" width="360" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="760.0" y="328.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingServiceServicer (grpc.aio)</text>
+<text x="760.0" y="345.0" font-size="11.5" fill="#555555" text-anchor="middle">timeout=context.time_remaining()</text>
+<rect x="580" y="400" width="360" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="760.0" y="438.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteServiceServicer (grpc.aio)</text>
+<text x="760.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — asyncio.sleep()</text>
+<path d="M460,135 L540,135" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="506.0" y="129.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates stubs for both stacks</text>
+<text x="506.0" y="129.0" font-size="11" fill="#555" text-anchor="middle">generates stubs for both stacks</text>
+<path d="M700,180 L240,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="476.0" y="229.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote :9100</text>
+<text x="476.0" y="229.0" font-size="11" fill="#555" text-anchor="middle">GetQuote :9100</text>
+<path d="M820,180 L780,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="806.0" y="229.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote :9101</text>
+<text x="806.0" y="229.0" font-size="11" fill="#555" text-anchor="middle">GetQuote :9101</text>
+<path d="M240,370 L240,400" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="335.0" y="385.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">loopback :9000, remaining budget</text>
+<text x="335.0" y="385.0" font-size="11" fill="#555" text-anchor="middle">loopback :9000, remaining budget</text>
+<path d="M760,370 L760,400" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="855.0" y="385.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">loopback :9000, remaining budget</text>
+<text x="855.0" y="385.0" font-size="11" fill="#555" text-anchor="middle">loopback :9000, remaining budget</text>
+<text x="500" y="555" font-size="12" fill="#555555" text-anchor="middle">One container per stack; RoutingService dials QuoteService over a loopback channel so the deadline crosses a real gRPC hop.</text>
+</svg>
