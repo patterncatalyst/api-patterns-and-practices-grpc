@@ -68,6 +68,20 @@ message RecomputeRoutesResponse {
   shipping.type.v1.Operation operation = 1;
 }
 
+// --- Operation lookup (Ch16): poll, watch, or cancel an Operation by id -----
+
+message GetOperationRequest {
+  string operation_id = 1;
+}
+
+message WatchOperationRequest {
+  string operation_id = 1;
+}
+
+message CancelOperationRequest {
+  string operation_id = 1;
+}
+
 service RoutingService {
   // Unary anchor: quote the cost + route for a shipment.
   rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
@@ -79,4 +93,24 @@ service RoutingService {
   rpc NegotiateRoute(stream NegotiateRouteRequest) returns (stream NegotiateRouteResponse);
   // Async: kick off a background route recomputation, returning an Operation.
   rpc RecomputeRoutes(RecomputeRoutesRequest) returns (RecomputeRoutesResponse);
+}
+
+// OperationsService (Ch16): the server-owned long-running-operation lookup surface,
+// kept on its own service rather than on RoutingService so that adding these RPCs
+// is source-compatible for every existing RoutingService implementor (quarkus-grpc
+// generates a fully abstract service interface). Mirrors Google AIP-151 / the
+// dedicated google.longrunning.Operations service.
+service OperationsService {
+  // Re-fetch an Operation by id (poll).
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc GetOperation(GetOperationRequest) returns (shipping.type.v1.Operation);
+  // Watch an Operation's progress as a stream of snapshots.
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc WatchOperation(WatchOperationRequest) returns (stream shipping.type.v1.Operation);
+  // Cancel an in-flight Operation (server-owned, outlives the starting call).
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc CancelOperation(CancelOperationRequest) returns (shipping.type.v1.Operation);
 }

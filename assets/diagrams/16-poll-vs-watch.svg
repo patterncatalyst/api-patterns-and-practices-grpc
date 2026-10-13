@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="410" height="310" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Poll — GetOperation (client-paced)</text>
+<rect x="470" y="30" width="410" height="310" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="482" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Watch — WatchOperation (server-paced stream)</text>
+<rect x="40" y="70" width="150" height="230" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="115.0" y="190.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<rect x="260" y="70" width="150" height="230" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="335.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Operation</text>
+<text x="335.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">(server-owned)</text>
+<rect x="490" y="70" width="150" height="230" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="565.0" y="190.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<rect x="710" y="70" width="150" height="230" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="785.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Operation</text>
+<text x="785.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">(server-owned)</text>
+<path d="M190,110 L260,110" fill="none" stroke="#555" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="231.0" y="104.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetOperation -&gt; 0%</text>
+<text x="231.0" y="104.0" font-size="11" fill="#555" text-anchor="middle">GetOperation -&gt; 0%</text>
+<path d="M190,185 L260,185" fill="none" stroke="#555" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="231.0" y="179.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetOperation -&gt; 40%</text>
+<text x="231.0" y="179.0" font-size="11" fill="#555" text-anchor="middle">GetOperation -&gt; 40%</text>
+<path d="M190,260 L260,260" fill="none" stroke="#555" stroke-width="2" marker-start="url(#a)" marker-end="url(#a)"/>
+<text x="231.0" y="254.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetOperation -&gt; 100%</text>
+<text x="231.0" y="254.0" font-size="11" fill="#555" text-anchor="middle">GetOperation -&gt; 100%</text>
+<path d="M640,110 L710,110" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="681.0" y="104.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">WatchOperation (opened once)</text>
+<text x="681.0" y="104.0" font-size="11" fill="#555" text-anchor="middle">WatchOperation (opened once)</text>
+<path d="M710,155 L640,155" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="681.0" y="149.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">snapshot: 0%</text>
+<text x="681.0" y="149.0" font-size="11" fill="#555" text-anchor="middle">snapshot: 0%</text>
+<path d="M710,200 L640,200" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="681.0" y="194.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">snapshot: 40%</text>
+<text x="681.0" y="194.0" font-size="11" fill="#555" text-anchor="middle">snapshot: 40%</text>
+<path d="M710,245 L640,245" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="681.0" y="239.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">snapshot: 100%, done</text>
+<text x="681.0" y="239.0" font-size="11" fill="#555" text-anchor="middle">snapshot: 100%, done</text>
+<text x="225" y="360" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">REST seam: GET /operations/{id}</text>
+<text x="675" y="360" font-size="11" fill="#1d1d1d" text-anchor="middle">No REST analog without SSE or websockets</text>
+</svg>
