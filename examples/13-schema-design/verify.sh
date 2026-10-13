@@ -4,8 +4,8 @@
 # Ch13 schema-design ANCHOR — both the Quarkus and the Python stack
 # implement shipping.routing.v1.RoutingService.ListRoutes over the SAME
 # 5-route in-memory catalog (contracts/proto/shipping/routing/v1/routing.proto,
-# contracts/proto/shipping/type/v1/types.proto). This asserts three things,
-# the load-bearing claims this chapter exists to teach:
+# contracts/proto/shipping/type/v1/types.proto). It asserts the three claims
+# this chapter teaches:
 #
 #   1. page 1 (page_size=3) returns exactly 3 routes and a non-empty
 #      next_page_token.
