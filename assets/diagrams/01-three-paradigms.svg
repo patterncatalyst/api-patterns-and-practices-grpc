@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="110" width="370" height="610" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="130" font-size="12" font-weight="700" fill="#1d1d1d">REST — resource-oriented</text>
+<rect x="415" y="110" width="370" height="610" rx="12" fill="#fffaf2" stroke="#ddd"/>
+<text x="427" y="130" font-size="12" font-weight="700" fill="#1d1d1d">gRPC — procedure-oriented</text>
+<rect x="810" y="110" width="370" height="610" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="822" y="130" font-size="12" font-weight="700" fill="#1d1d1d">GraphQL — graph-oriented</text>
+<rect x="380" y="20" width="440" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="600.0" y="48.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client intent</text>
+<text x="600.0" y="65.0" font-size="11.5" fill="#555555" text-anchor="middle">Get a quote: cargo USNYC → NLRTM</text>
+<rect x="35" y="160" width="340" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="205.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Mental model</text>
+<text x="205.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">Nouns + HTTP verbs</text>
+<text x="205.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">transfer resource state</text>
+<rect x="35" y="275" width="340" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="205.0" y="320.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">POST /bookings/{id}/quote-request</text>
+<text x="205.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">or GET /routes?origin=...&amp;dest=...</text>
+<text x="205.0" y="352.5" font-size="11.5" fill="#555555" text-anchor="middle">JSON body, HTTP/1.1 or h2</text>
+<rect x="35" y="400" width="340" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="205.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Fetching &amp; round trips</text>
+<text x="205.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">1 call = 1 resource</text>
+<text x="205.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">related data = more calls</text>
+<rect x="430" y="160" width="340" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="600.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Mental model</text>
+<text x="600.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">Call a typed method</text>
+<text x="600.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">behavior, not state</text>
+<rect x="430" y="275" width="340" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="600.0" y="320.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.GetQuote(req)</text>
+<text x="600.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">generated stub → skeleton</text>
+<text x="600.0" y="352.5" font-size="11.5" fill="#555555" text-anchor="middle">HTTP/2 binary protobuf</text>
+<rect x="430" y="400" width="340" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="600.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Fetching &amp; round trips</text>
+<text x="600.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">1 call = 1 typed method</text>
+<text x="600.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">streaming cuts more</text>
+<rect x="430" y="515" width="340" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="600.0" y="558.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">.proto is the contract</text>
+<text x="600.0" y="575.0" font-size="11.5" fill="#555555" text-anchor="middle">compiles to client + server code</text>
+<rect x="825" y="160" width="340" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="995.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Mental model</text>
+<text x="995.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">One graph, client traverses</text>
+<text x="995.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">shape the response per query</text>
+<rect x="825" y="275" width="340" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="995.0" y="320.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">POST /graphql</text>
+<text x="995.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">{ quote(origin, dest, cargo) }</text>
+<text x="995.0" y="352.5" font-size="11.5" fill="#555555" text-anchor="middle">JSON body over HTTP POST</text>
+<rect x="825" y="400" width="340" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="995.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Fetching &amp; round trips</text>
+<text x="995.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">1 request, client-shaped</text>
+<text x="995.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">server resolves the graph</text>
+<path d="M600,80 L205,160" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M600,80 L600,160" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="606.0" y="114.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">same intent</text>
+<text x="606.0" y="114.0" font-size="11" fill="#555" text-anchor="middle">same intent</text>
+<path d="M600,80 L995,160" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M600,500 L600,515" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+</svg>
