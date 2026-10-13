@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 460" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="940" height="420" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">examples/00-prerequisites — compose stack (ch00-prereq)</text>
+<rect x="50" y="180" width="170" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="135.0" y="213.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpcurl / grpcui</text>
+<text x="135.0" y="230.0" font-size="11.5" fill="#555555" text-anchor="middle">client</text>
+<rect x="300" y="90" width="230" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="415.0" y="123.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">quarkus</text>
+<text x="415.0" y="140.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService</text>
+<text x="415.0" y="155.0" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote -&gt; canned</text>
+<text x="415.0" y="170.0" font-size="11.5" fill="#555555" text-anchor="middle">:9000 -&gt; host :9000</text>
+<rect x="300" y="260" width="230" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="415.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">python</text>
+<text x="415.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService</text>
+<text x="415.0" y="325.0" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote -&gt; canned</text>
+<text x="415.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">:9000 -&gt; host :9001</text>
+<rect x="610" y="90" width="190" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="705.0" y="123.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">contracts/proto/</text>
+<text x="705.0" y="140.0" font-size="11.5" fill="#555555" text-anchor="middle">shipping/type/v1</text>
+<text x="705.0" y="155.0" font-size="11.5" fill="#555555" text-anchor="middle">shipping/routing/v1</text>
+<text x="705.0" y="170.0" font-size="11.5" fill="#555555" text-anchor="middle">(single source)</text>
+<rect x="830" y="175" width="110" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="885.0" y="213.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">otel-lgtm</text>
+<text x="885.0" y="230.0" font-size="11.5" fill="#555555" text-anchor="middle">(opt-in profile)</text>
+<path d="M220,200 L300,140" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="266.0" y="164.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote</text>
+<text x="266.0" y="164.0" font-size="11" fill="#555" text-anchor="middle">GetQuote</text>
+<path d="M220,230 L300,300" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="266.0" y="259.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote</text>
+<text x="266.0" y="259.0" font-size="11" fill="#555" text-anchor="middle">GetQuote</text>
+<path d="M610,130 L530,130" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="576.0" y="124.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">codegen</text>
+<text x="576.0" y="124.0" font-size="11" fill="#555" text-anchor="middle">codegen</text>
+<path d="M610,160 L530,300" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="576.0" y="224.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">codegen</text>
+<text x="576.0" y="224.0" font-size="11" fill="#555" text-anchor="middle">codegen</text>
+<path d="M530,130 L830,200" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="686.0" y="159.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTLP</text>
+<text x="686.0" y="159.0" font-size="11" fill="#b8650a" text-anchor="middle">OTLP</text>
+<path d="M530,300 L830,220" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="686.0" y="254.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTLP</text>
+<text x="686.0" y="254.0" font-size="11" fill="#b8650a" text-anchor="middle">OTLP</text>
+<text x="50" y="410" font-size="11" fill="#555555" text-anchor="start">One proto, two independent server implementations, one canned quote — the toolchain is the thing under test here.</text>
+</svg>

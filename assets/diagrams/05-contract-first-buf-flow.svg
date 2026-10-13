@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 520" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="150" width="160" height="110" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="100.0" y="195.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">routing.proto + types.proto</text>
+<text x="100.0" y="212.5" font-size="11.5" fill="#555555" text-anchor="middle">contracts/proto/</text>
+<text x="100.0" y="227.5" font-size="11.5" fill="#555555" text-anchor="middle">single source of truth</text>
+<rect x="215" y="150" width="175" height="110" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="302.5" y="195.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">buf lint (STANDARD)</text>
+<text x="302.5" y="212.5" font-size="11.5" fill="#555555" text-anchor="middle">buf build (-o /dev/null)</text>
+<text x="302.5" y="227.5" font-size="11.5" fill="#555555" text-anchor="middle">buf breaking (vs main)</text>
+<rect x="425" y="40" width="175" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="512.5" y="70.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Quarkus: Mutiny stubs</text>
+<text x="512.5" y="87.5" font-size="11.5" fill="#555555" text-anchor="middle">quarkus-maven-plugin</text>
+<text x="512.5" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">packaging = quarkus</text>
+<rect x="425" y="250" width="175" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="512.5" y="280.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Python: pb2 / pb2_grpc</text>
+<text x="512.5" y="297.5" font-size="11.5" fill="#555555" text-anchor="middle">grpcio-tools (dev-only)</text>
+<text x="512.5" y="312.5" font-size="11.5" fill="#555555" text-anchor="middle">grpc_tools.protoc</text>
+<rect x="635" y="40" width="175" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="722.5" y="70.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Quarkus server :9005</text>
+<text x="722.5" y="87.5" font-size="11.5" fill="#555555" text-anchor="middle">RoutingServiceImpl</text>
+<text x="722.5" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">Uni&lt;GetQuoteResponse&gt;</text>
+<rect x="635" y="250" width="175" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="722.5" y="280.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Python server :9006</text>
+<text x="722.5" y="297.5" font-size="11.5" fill="#555555" text-anchor="middle">RoutingServiceServicer</text>
+<text x="722.5" y="312.5" font-size="11.5" fill="#555555" text-anchor="middle">async def GetQuote</text>
+<rect x="845" y="150" width="175" height="110" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="932.5" y="195.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">verify.sh (CI)</text>
+<text x="932.5" y="212.5" font-size="11.5" fill="#555555" text-anchor="middle">asserts response fields</text>
+<text x="932.5" y="227.5" font-size="11.5" fill="#555555" text-anchor="middle">one gate, both stacks</text>
+<rect x="635" y="410" width="175" height="80" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="722.5" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">REST booking service</text>
+<text x="722.5" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">calls GetQuote</text>
+<text x="722.5" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">same nouns, proto messages</text>
+<rect x="845" y="410" width="175" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="932.5" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grafana/otel-lgtm</text>
+<text x="932.5" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">--profile observability</text>
+<text x="932.5" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">OTLP :4317 (opt-in)</text>
+<path d="M180,196 L215,196" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="203.5" y="190.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">the contract</text>
+<text x="203.5" y="190.0" font-size="11" fill="#b8650a" text-anchor="middle">the contract</text>
+<path d="M390,175 L425,80" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="413.5" y="121.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="413.5" y="121.5" font-size="11" fill="#b8650a" text-anchor="middle">generates</text>
+<path d="M390,225 L425,290" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="413.5" y="251.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="413.5" y="251.5" font-size="11" fill="#b8650a" text-anchor="middle">generates</text>
+<path d="M600,80 L635,80" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="623.5" y="74.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">implements</text>
+<text x="623.5" y="74.0" font-size="11" fill="#555" text-anchor="middle">implements</text>
+<path d="M600,290 L635,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="623.5" y="284.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">implements</text>
+<text x="623.5" y="284.0" font-size="11" fill="#555" text-anchor="middle">implements</text>
+<path d="M810,75 L845,180" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="833.5" y="121.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote</text>
+<text x="833.5" y="121.5" font-size="11" fill="#b8650a" text-anchor="middle">GetQuote</text>
+<path d="M810,295 L845,230" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="833.5" y="256.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote</text>
+<text x="833.5" y="256.5" font-size="11" fill="#b8650a" text-anchor="middle">GetQuote</text>
+<path d="M815,410 L815,120" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="821.0" y="259.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote :9005</text>
+<text x="821.0" y="259.0" font-size="11" fill="#555" text-anchor="middle">GetQuote :9005</text>
+<path d="M822,410 L822,330" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="828.0" y="364.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote :9006</text>
+<text x="828.0" y="364.0" font-size="11" fill="#555" text-anchor="middle">GetQuote :9006</text>
+<path d="M810,120 L845,410" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="833.5" y="259.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTLP (opt-in)</text>
+<text x="833.5" y="259.0" font-size="11" fill="#555" text-anchor="middle">OTLP (opt-in)</text>
+<path d="M810,300 L845,430" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="20" y="24" font-size="13" fill="#1d1d1d" text-anchor="start" font-weight="700">One .proto. Buf gates it. Two stacks generate stubs from it and serve the identical RPC.</text>
+<text x="20" y="505" font-size="11" fill="#555555" text-anchor="start">contracts/ is read-only to both services at build time; neither stack hand-writes or copies a stub.</text>
+</svg>
