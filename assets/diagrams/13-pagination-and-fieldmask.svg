@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 420" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="900" height="170" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Pagination — next_page_token chains calls</text>
+<rect x="20" y="220" width="900" height="170" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="240" font-size="12" font-weight="700" fill="#1d1d1d">FieldMask — projecting the response</text>
+<rect x="40" y="65" width="180" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="130.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Call 1</text>
+<text x="130.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">page_size=3</text>
+<text x="130.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">page_token=&quot;&quot;</text>
+<rect x="250" y="65" width="210" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="355.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Response 1</text>
+<text x="355.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">routes[0..2]</text>
+<text x="355.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">next_page_token=&quot;3&quot;</text>
+<rect x="500" y="65" width="180" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="590.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Call 2</text>
+<text x="590.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">page_size=3</text>
+<text x="590.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">page_token=&quot;3&quot;</text>
+<rect x="710" y="65" width="210" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="815.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Response 2</text>
+<text x="815.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">routes[3..4]</text>
+<text x="815.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">next_page_token=&quot;&quot; (done)</text>
+<rect x="40" y="265" width="230" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="155.0" y="305.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ListRoutesRequest</text>
+<text x="155.0" y="322.5" font-size="11.5" fill="#555555" text-anchor="middle">field_mask.paths =</text>
+<text x="155.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">[&quot;id&quot;, &quot;price&quot;]</text>
+<rect x="340" y="265" width="220" height="100" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="450.0" y="305.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Catalog Route</text>
+<text x="450.0" y="322.5" font-size="11.5" fill="#555555" text-anchor="middle">id, legs[], price</text>
+<text x="450.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">(full object)</text>
+<rect x="630" y="265" width="270" height="100" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="765.0" y="305.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Projected Route</text>
+<text x="765.0" y="322.5" font-size="11.5" fill="#555555" text-anchor="middle">id, price set</text>
+<text x="765.0" y="337.5" font-size="11.5" fill="#555555" text-anchor="middle">legs: absent (unmasked)</text>
+<path d="M220,115 L250,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="241.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">ListRoutes</text>
+<text x="241.0" y="109.0" font-size="11" fill="#555" text-anchor="middle">ListRoutes</text>
+<path d="M460,115 L500,115" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="486.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">token carried forward</text>
+<text x="486.0" y="109.0" font-size="11" fill="#b8650a" text-anchor="middle">token carried forward</text>
+<path d="M680,115 L710,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="701.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">ListRoutes</text>
+<text x="701.0" y="109.0" font-size="11" fill="#555" text-anchor="middle">ListRoutes</text>
+<path d="M270,315 L340,315" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="311.0" y="309.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">server computes</text>
+<text x="311.0" y="309.0" font-size="11" fill="#555" text-anchor="middle">server computes</text>
+<path d="M560,315 L630,315" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="601.0" y="309.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">FieldMaskUtil.merge</text>
+<text x="601.0" y="309.0" font-size="11" fill="#b8650a" text-anchor="middle">FieldMaskUtil.merge</text>
+</svg>
