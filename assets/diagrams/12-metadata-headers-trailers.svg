@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="60" y="60" width="180" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="150.0" y="88.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="150.0" y="105.0" font-size="11.5" fill="#555555" text-anchor="middle">originates the call</text>
+<rect x="720" y="60" width="180" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="810.0" y="88.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingServiceImpl.getQuote /</text>
+<text x="810.0" y="105.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingServiceServicer.GetQuote</text>
+<rect x="760" y="290" width="100" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="810.0" y="328.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Handler</text>
+<text x="810.0" y="345.0" font-size="11.5" fill="#555555" text-anchor="middle">runs</text>
+<rect x="330" y="185" width="300" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="480.0" y="210.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">sent before the first message</text>
+<text x="480.0" y="227.5" font-size="11.5" fill="#555555" text-anchor="middle">= what the caller already knew</text>
+<rect x="330" y="465" width="300" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="480.0" y="490.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">sent at close(status, trailers)</text>
+<text x="480.0" y="507.5" font-size="11.5" fill="#555555" text-anchor="middle">= what the callee only learned by the end</text>
+<path d="M150,120 L150,560" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M810,120 L810,290" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M810,370 L810,560" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M150,170 L810,170" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="486.0" y="164.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">HEADERS: authorization, request-id</text>
+<text x="486.0" y="164.0" font-size="11" fill="#555" text-anchor="middle">HEADERS: authorization, request-id</text>
+<path d="M150,260 L810,260" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="486.0" y="254.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuoteRequest</text>
+<text x="486.0" y="254.0" font-size="11" fill="#555" text-anchor="middle">GetQuoteRequest</text>
+<path d="M810,390 L150,390" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="486.0" y="384.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuoteResponse</text>
+<text x="486.0" y="384.0" font-size="11" fill="#b8650a" text-anchor="middle">GetQuoteResponse</text>
+<path d="M810,450 L150,450" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="486.0" y="444.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">TRAILERS: status, counts, timing</text>
+<text x="486.0" y="444.0" font-size="11" fill="#b8650a" text-anchor="middle">TRAILERS: status, counts, timing</text>
+<text x="20" y="30" font-size="11" fill="#1d1d1d" text-anchor="start" font-weight="700">Call timeline — HEADERS arrive before the first message, TRAILERS arrive at close(status, trailers)</text>
+<text x="20" y="545" font-size="11" fill="#1d1d1d" text-anchor="start">A header carries what the caller knew in advance: authorization, request-id, anything decided before the call started.</text>
+<text x="20" y="562" font-size="11" fill="#1d1d1d" text-anchor="start">A trailer carries what the callee only learned by the end: final status, counts, timing — set only when close(status, trailers) runs.</text>
+<text x="20" y="579" font-size="11" fill="#1d1d1d" text-anchor="start">Metadata (Java) / invocation_metadata (Python) is the map that carries both — the one thing an interceptor reads on the way in and writes on the way out.</text>
+</svg>
