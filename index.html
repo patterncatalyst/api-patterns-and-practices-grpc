@@ -1,0 +1,85 @@
+---
+layout: default
+title: Home
+---
+
+<section class="hero">
+  <div class="container">
+    <span class="hero__eyebrow">gRPC · Protocol Buffers · HTTP/2 · Quarkus · Python</span>
+    <h1 class="hero__title">{{ site.title }}</h1>
+    <p class="hero__lead">{{ site.description }}</p>
+    <div class="hero__cta">
+      <a class="btn btn--primary"
+         href="{{ '/docs/00-outline/' | relative_url }}">Start reading →</a>
+      <a class="btn btn--secondary"
+         href="{{ '/plans/iteration-plan/' | relative_url }}">Build &amp; iteration plan</a>
+      <a class="btn btn--secondary"
+         href="https://github.com/{{ site.github_username }}/{{ site.github_repo }}"
+         rel="noopener">View on GitHub ↗</a>
+    </div>
+  </div>
+</section>
+
+<section class="section-tight">
+  <div class="container">
+    <div class="stats">
+      <div class="stat"><span class="stat__value">📐</span><span class="stat__label">One Protobuf contract, enforced by Buf, as the single source of truth</span></div>
+      <div class="stat"><span class="stat__value">🔗</span><span class="stat__label">Every example in both Quarkus and Python</span></div>
+      <div class="stat"><span class="stat__value">✅</span><span class="stat__label">CI asserts response semantics against the proto — a wrong field fails the build</span></div>
+      <div class="stat"><span class="stat__value">📊</span><span class="stat__label">Traced end to end through the Grafana LGTM stack</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <h2 class="section-heading">What this site is</h2>
+    <p class="section-sub">
+      A chapter-based, hands-on path to designing gRPC APIs well, built around a
+      single <a href="https://protobuf.dev">Protocol Buffers</a> contract — linted
+      and breaking-change-gated by <a href="https://buf.build">Buf</a> — for a
+      shipping and cargo domain. gRPC here is the internal, latency-sensitive
+      routing and tracking service that the sibling
+      <a href="https://github.com/patterncatalyst/api-patterns-and-practices-rest">REST</a>
+      booking service calls. Every hands-on chapter ships the same example in
+      <strong>both</strong> Quarkus and Python, generated from that one proto, and
+      CI asserts each response against it — an <code>OK</code> that carries a
+      contract-violating message fails the build. You work through the four RPC
+      types, deadlines and the rich error model, schema evolution, backend
+      concurrency, streaming and backpressure, performance tuning, security,
+      observability, the Kubernetes load-balancing problem, gRPC-Web and
+      transcoding. It assumes you can read Java and Python; it is not a tutorial in
+      either language. The code tabs are built to admit Go and C++ later. All
+      container images are UBI-based, and the stack runs on Docker Compose,
+      minikube, and OpenShift Local.
+    </p>
+
+    {%- comment -%}
+      Two-level navigation: the homepage shows one card per Part. Each Part
+      card links to its own page (the _parts collection) which lists that
+      part's chapters. New chapters appear under their part automatically;
+      new parts appear here just by adding a file to _parts/.
+    {%- endcomment -%}
+    <div class="cards">
+      {% assign parts_sorted = site.parts | sort: "order" %}
+      {% for part in parts_sorted %}
+      {% assign part_docs = site.docs | where: "part", part.part_name %}
+      <a class="card" href="{{ part.url | relative_url }}">
+        <div class="card__eyebrow">Part {{ part.order }}</div>
+        <h3 class="card__title">{{ part.title }}</h3>
+        {% if part.blurb %}
+        <p class="card__desc">{{ part.blurb }}</p>
+        {% endif %}
+        <div class="card__meta">
+          {% if part_docs.size > 0 %}
+            <span>{{ part_docs.size }} chapter{% if part_docs.size != 1 %}s{% endif %}</span>
+          {% else %}
+            <span>Coming soon</span>
+          {% endif %}
+          <span>Explore →</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>

@@ -1,0 +1,83 @@
+// Shared domain types for the shipping/cargo gRPC contract.
+//
+// These messages are defined ONCE here and imported by every service package
+// (routing, tracking, quote) — the single-source-of-truth analog of the shared
+// JSON Schema components in the sibling REST contract. The domain nouns match
+// the REST site's glossary so the two sites tell one continuous story.
+syntax = "proto3";
+
+package shipping.type.v1;
+
+import "google/protobuf/timestamp.proto";
+
+// Money as decimal strings, to avoid binary float drift (mirrors the REST
+// contract's `{ currency, amount }` with amount as a decimal string).
+message Money {
+  string currency = 1;  // ISO 4217, e.g. "USD"
+  string amount = 2;    // decimal string, e.g. "1250.00"
+}
+
+// A port or terminal, identified by UN/LOCODE (e.g. "USNYC", "NLRTM", "SGSIN").
+message Location {
+  string un_locode = 1;
+  string name = 2;
+}
+
+// The lifecycle state of a booking (the FSM behind the REST site's HATEOAS).
+enum BookingState {
+  BOOKING_STATE_UNSPECIFIED = 0;
+  BOOKING_STATE_PENDING = 1;
+  BOOKING_STATE_CONFIRMED = 2;
+  BOOKING_STATE_IN_TRANSIT = 3;
+  BOOKING_STATE_DELIVERED = 4;
+  BOOKING_STATE_CANCELLED = 5;
+}
+
+// The goods carried under a booking.
+message Cargo {
+  string id = 1;            // "crg_" prefix, ULID-shaped
+  string description = 2;
+  string cargo_type = 3;
+  double weight_kg = 4;
+  double volume_m3 = 5;
+  bool hazardous = 6;
+}
+
+// A customer's request to ship cargo from an origin to a destination. The
+// aggregate root.
+message Booking {
+  string id = 1;            // "bkg_" prefix, ULID-shaped
+  Location origin = 2;
+  Location destination = 3;
+  repeated Cargo cargo = 4;
+  BookingState state = 5;
+  Money quote = 6;
+  google.protobuf.Timestamp created_at = 7;
+  map<string, string> labels = 8;
+}
+
+// One hop of a route (one carrier, one departure -> arrival).
+message Leg {
+  string carrier = 1;
+  Location origin = 2;
+  Location destination = 3;
+  google.protobuf.Timestamp departs_at = 4;
+  google.protobuf.Timestamp arrives_at = 5;
+}
+
+// The planned sequence of legs that moves a booking's cargo origin -> destination.
+message Route {
+  string id = 1;            // "rte_" prefix
+  repeated Leg legs = 2;
+  Money price = 3;
+}
+
+// A server-owned record of long-running work (reroute, reconcile), returned by
+// the async methods and polled/streamed for status.
+message Operation {
+  string id = 1;            // "op_" prefix
+  string kind = 2;
+  bool done = 3;
+  int32 progress_pct = 4;
+  string message = 5;
+}
