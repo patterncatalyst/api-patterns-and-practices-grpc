@@ -1,4 +1,4 @@
-"""Ch16 async/long-running-jobs example — Python side.
+"""Ch16 async/long-running-jobs example — Python side, RoutingService.
 
 RecomputeRoutes returns almost instantly: it creates an OperationState (see
 app/operations.py) and schedules the actual work with `asyncio.create_task`,
@@ -6,10 +6,17 @@ a SEPARATE task on the SAME event loop that keeps running after this
 coroutine's `return` — the asyncio analog of handing the job to Mutiny's
 worker pool on the Quarkus side (see
 ../../quarkus/src/main/java/com/patterncatalyst/shipping/routing/RoutingServiceImpl.java).
-GetOperation polls the record, WatchOperation streams it as an async
-generator (each `yield` is one DATA frame, the same mechanic Ch8's
-WatchShipment uses), and CancelOperation moves it to a terminal state before
-the job notices on its own.
+
+GetOperation, WatchOperation, and CancelOperation are NOT on this servicer —
+they live on OperationsServiceServicer (see app/operations_service.py),
+registered as a separate grpc.aio service sharing the SAME OperationRegistry
+instance this servicer is constructed with. Splitting them out mirrors the
+Quarkus side's two-bean structure: quarkus-grpc's fully abstract per-service
+interface is what forces that split there, and keeping both language stacks
+on the identical RoutingService/OperationsService boundary is the point —
+the lesson doesn't change shape just because Python's stub base classes
+default every unoverridden method to UNIMPLEMENTED rather than refusing to
+compile.
 
 The other four RoutingService methods are declared in the proto for other
 chapters' examples. They are left unoverridden here: the generated
@@ -42,14 +49,21 @@ _NORMAL_STEP_S = 0.2
 _SLOW_STEPS = 20
 _SLOW_STEP_S = 0.2
 
-# WatchOperation's poll interval — how often a snapshot is yielded onto the
-# stream while the operation is still running.
-_WATCH_POLL_S = 0.15
-
 
 class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
-    def __init__(self) -> None:
-        self._registry = OperationRegistry()
+    def __init__(self, registry: OperationRegistry) -> None:
+        # Injected rather than created here, so OperationsServiceServicer
+        # (registered separately on the same grpc.aio server in app/main.py)
+        # reads and writes the identical records this servicer creates.
+        self._registry = registry
+        # Strong references to in-flight background jobs. asyncio.create_task
+        # does not keep its Task alive on its own — the event loop only holds
+        # a WEAK reference, so a Task with nothing else referencing it can be
+        # garbage-collected mid-flight, silently killing the job. Keeping
+        # each Task in this set (and discarding it via the done-callback once
+        # it finishes) is the fix asyncio's own docs recommend for exactly
+        # this fire-and-forget pattern.
+        self._background_tasks: set[asyncio.Task] = set()
 
     async def RecomputeRoutes(
         self,
@@ -74,8 +88,12 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
         # asyncio.create_task schedules the job as an independent task on the
         # SAME event loop; it is not awaited here, so this coroutine returns
         # — and the caller gets its response — without waiting for even the
-        # job's first step.
-        asyncio.create_task(self._run_job(state, steps, step_s))
+        # job's first step. Add it to _background_tasks before this method
+        # returns, so nothing can collect it between scheduling and its first
+        # await point.
+        task = asyncio.create_task(self._run_job(state, steps, step_s))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         return routing_pb2.RecomputeRoutesResponse(operation=state.snapshot())
 
@@ -94,47 +112,3 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
             else:
                 state.advance(pct, f"recomputing routes ({pct}%)")
         logger.info("RecomputeRoutes: id=%s job finished", state.id)
-
-    async def GetOperation(
-        self,
-        request: routing_pb2.GetOperationRequest,
-        context: grpc.aio.ServicerContext,
-    ):
-        state = self._registry.get(request.operation_id)
-        if state is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"no such operation: {request.operation_id}")
-        return state.snapshot()
-
-    async def WatchOperation(
-        self,
-        request: routing_pb2.WatchOperationRequest,
-        context: grpc.aio.ServicerContext,
-    ):
-        state = self._registry.get(request.operation_id)
-        if state is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"no such operation: {request.operation_id}")
-            return
-
-        # Each yield sends one Operation snapshot as a DATA frame on the one
-        # HTTP/2 stream this call opened; returning from the loop (once a
-        # snapshot comes back done=True) sends grpc.aio's half-close — the
-        # same mechanic Ch8's WatchShipment uses for a fixed event sequence,
-        # here driven by the operation's own terminal state instead.
-        while True:
-            snapshot = state.snapshot()
-            yield snapshot
-            if snapshot.done:
-                return
-            await asyncio.sleep(_WATCH_POLL_S)
-
-    async def CancelOperation(
-        self,
-        request: routing_pb2.CancelOperationRequest,
-        context: grpc.aio.ServicerContext,
-    ):
-        state = self._registry.get(request.operation_id)
-        if state is None:
-            await context.abort(grpc.StatusCode.NOT_FOUND, f"no such operation: {request.operation_id}")
-        cancelled_now = state.cancel()
-        logger.info("CancelOperation: id=%s cancelled_now=%s", state.id, cancelled_now)
-        return state.snapshot()

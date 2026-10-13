@@ -2,12 +2,14 @@
 # examples/16-async-long-running-jobs/verify.sh
 #
 # Ch16 async/long-running-jobs example — the reference both-stack
-# implementation of the server-owned Operation pattern on
-# shipping.routing.v1.RoutingService: RecomputeRoutes starts background work
-# and returns an Operation{id, done=false, progress_pct=0} immediately;
-# GetOperation polls it; WatchOperation server-streams its progress;
-# CancelOperation stops the server-owned job early. See README.md for the
-# full story.
+# implementation of the server-owned Operation pattern, split across two
+# services: shipping.routing.v1.RoutingService.RecomputeRoutes starts
+# background work and returns an Operation{id, done=false, progress_pct=0}
+# immediately; shipping.routing.v1.OperationsService.GetOperation polls it,
+# WatchOperation server-streams its progress, and CancelOperation stops the
+# server-owned job early. See README.md for the full story, and the chapter
+# for why the three lookups live on their own OperationsService rather than
+# on RoutingService itself.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -17,12 +19,13 @@ source "$SCRIPT_DIR/../_lib/lib.sh"
 PROJECT="ch16-operation"
 COMPOSE_FILE="$SCRIPT_DIR/compose.yaml"
 
-SVC="shipping.routing.v1.RoutingService"
-M_RECOMPUTE="$SVC/RecomputeRoutes"
-M_GET="$SVC/GetOperation"
-M_WATCH="$SVC/WatchOperation"
-M_CANCEL="$SVC/CancelOperation"
-M_GETQUOTE="$SVC/GetQuote"
+SVC_ROUTING="shipping.routing.v1.RoutingService"
+SVC_OPERATIONS="shipping.routing.v1.OperationsService"
+M_RECOMPUTE="$SVC_ROUTING/RecomputeRoutes"
+M_GET="$SVC_OPERATIONS/GetOperation"
+M_WATCH="$SVC_OPERATIONS/WatchOperation"
+M_CANCEL="$SVC_OPERATIONS/CancelOperation"
+M_GETQUOTE="$SVC_ROUTING/GetQuote"
 
 # ---------------------------------------------------------------------------
 # verify.sh-local helpers (examples/_lib/lib.sh is shared and frozen; these

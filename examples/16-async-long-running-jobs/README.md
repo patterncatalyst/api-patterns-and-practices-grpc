@@ -1,22 +1,44 @@
-# Ch16 — Async/long-running jobs: the Operation lifecycle on RoutingService
+# Ch16 — Async/long-running jobs: the Operation lifecycle on two services
 
-The reference both-stack implementation of the server-owned `Operation` pattern
-on `shipping.routing.v1.RoutingService`:
+The reference both-stack implementation of the server-owned `Operation`
+pattern, split across two gRPC services:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — `RecomputeRoutes`
-  (starts the job, returns an `Operation`), and the three Ch16 lookup RPCs
-  added to the contract this iteration: `GetOperation` (poll),
-  `WatchOperation` (server-stream), `CancelOperation` (server-owned cancel) —
-  all three return `shipping.type.v1.Operation` directly, under the two scoped
-  `buf:lint:ignore` exceptions visible above each declaration.
+- `contracts/proto/shipping/routing/v1/routing.proto` — `RoutingService`
+  keeps its original five RPCs, including `RecomputeRoutes` (starts the job,
+  returns an `Operation`). The three Ch16 lookup RPCs added to the contract
+  this iteration — `GetOperation` (poll), `WatchOperation` (server-stream),
+  `CancelOperation` (server-owned cancel) — live on a SEPARATE service in the
+  same file, `OperationsService`, all three returning
+  `shipping.type.v1.Operation` directly under the two scoped
+  `buf:lint:ignore` exceptions visible above each declaration. They're on
+  their own service rather than three more `RoutingService` RPCs because
+  quarkus-grpc generates a fully abstract interface per service: adding RPCs
+  to `RoutingService` is wire-safe (`buf breaking` passes) but
+  SOURCE-breaking for every other chapter's `RoutingServiceImpl`, which would
+  suddenly have to override methods it has no routing-specific reason to
+  implement. A dedicated `OperationsService` is also the AIP-151 /
+  `google.longrunning.Operations` shape — see the chapter for the full
+  argument.
 - `contracts/proto/shipping/type/v1/types.proto` — `Operation` itself (`id`,
   `kind`, `done`, `progress_pct`, `message`).
 
 Quarkus (`quarkus/`, host port 9160) and Python (`python/`, host port 9161)
-each independently implement an in-memory `Operation` registry and the same
-bounded, fast job schedule, so the identical sequence of calls against either
-stack produces the identical shape of answers. `verify.sh` drives both stacks
-through all six claims this chapter makes.
+each independently implement an in-memory `Operation` registry shared by two
+implementations — one per service — and the same bounded, fast job schedule,
+so the identical sequence of calls against either stack produces the
+identical shape of answers. `verify.sh` drives both stacks through all six
+claims this chapter makes.
+
+**Quarkus** has two `@GrpcService` beans in the same package:
+`RoutingServiceImpl` (implements all five `RoutingService` RPCs —
+`RecomputeRoutes` implemented, the other four `UNIMPLEMENTED`) and
+`OperationsServiceImpl` (implements `OperationsService`'s three RPCs). Both
+are CDI-injected the same `@ApplicationScoped` `OperationRegistry` singleton.
+
+**Python** registers two servicers on the same `grpc.aio` server:
+`RoutingServiceServicer` (`RecomputeRoutes`) and `OperationsServiceServicer`
+(`GetOperation`/`WatchOperation`/`CancelOperation`), both constructed with
+the same `OperationRegistry` instance in `app/main.py`.
 
 ## Run it
 
@@ -29,24 +51,26 @@ This brings both services up with `docker compose`, waits for each gRPC
 server to answer reflection's `list`, then against **each** of
 `localhost:9160` (Quarkus) and `localhost:9161` (Python):
 
-1. **Start** — `RecomputeRoutes{reason:"reconcile"}` returns an `Operation`
-   with a non-empty `op_`-prefixed id and `done` not yet `true`.
-2. **Poll** — a bounded `GetOperation` loop (25 tries x 0.2s = 5s, well over
-   this example's ~1s normal job) converges on `done=true`,
-   `progress_pct=100`.
-3. **Watch** — a *fresh* operation, watched immediately via `WatchOperation`,
-   yields at least two `Operation` snapshots; the last one is terminal
-   (`done=true`, `progress_pct=100`).
+1. **Start** — `RoutingService.RecomputeRoutes{reason:"reconcile"}` returns
+   an `Operation` with a non-empty `op_`-prefixed id and `done` not yet
+   `true`.
+2. **Poll** — a bounded `OperationsService.GetOperation` loop (25 tries x
+   0.2s = 5s, well over this example's ~1s normal job) converges on
+   `done=true`, `progress_pct=100`.
+3. **Watch** — a *fresh* operation, watched immediately via
+   `OperationsService.WatchOperation`, yields at least two `Operation`
+   snapshots; the last one is terminal (`done=true`, `progress_pct=100`).
 4. **Cancel** — the `"slow"` variant (`reason` containing `slow`) runs for
-   several seconds; `CancelOperation` sent 0.3s after starting it lands well
-   before natural completion. The follow-up `GetOperation` shows `done=true`,
-   a `message` containing "cancelled" (case-insensitive), and
-   `progress_pct < 100` — the server-owned job actually stopped, not merely a
-   client that stopped asking.
-5. **Rerunnable reconcile** — two sequential `RecomputeRoutes{reason:"reconcile"}`
-   calls each produce their own operation id and each independently converge
-   on `done=true`/`progress_pct=100`.
-6. **Still-unimplemented RPC** — `GetQuote` (declared on `RoutingService` for
+   several seconds; `OperationsService.CancelOperation` sent 0.3s after
+   starting it lands well before natural completion. The follow-up
+   `GetOperation` shows `done=true`, a `message` containing "cancelled"
+   (case-insensitive), and `progress_pct < 100` — the server-owned job
+   actually stopped, not merely a client that stopped asking.
+5. **Rerunnable reconcile** — two sequential
+   `RoutingService.RecomputeRoutes{reason:"reconcile"}` calls each produce
+   their own operation id and each independently converge on
+   `done=true`/`progress_pct=100`.
+6. **Still-unimplemented RPC** — `RoutingService.GetQuote` (declared for
    other chapters, not this one) still answers `UNIMPLEMENTED`.
 
 Prints `PASS` only if every assertion holds for **both** stacks.
@@ -66,10 +90,11 @@ docker compose --profile observability up --build
 ## The Operation registry
 
 Both stacks keep an in-memory map from an `op_`-prefixed id to a mutable
-record (`OperationRegistry`/`OperationState` on both sides). A production
-service would back this with a durable store so an operation survives a
-restart; the client-visible contract — create, poll, watch, cancel by id — is
-identical either way.
+record (`OperationRegistry`/`OperationState` on both sides), shared by the
+two service implementations described above. A production service would
+back this with a durable store so an operation survives a restart; the
+client-visible contract — create, poll, watch, cancel by id — is identical
+either way.
 
 | Field | Meaning |
 |---|---|
@@ -131,6 +156,7 @@ Server reflection is enabled on both stacks:
 ```bash
 grpcurl -plaintext localhost:9160 list
 # grpc.reflection.v1alpha.ServerReflection
+# shipping.routing.v1.OperationsService
 # shipping.routing.v1.RoutingService
 ```
 

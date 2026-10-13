@@ -1,6 +1,10 @@
 """Ch16 async/long-running-jobs example — the server-owned Operation record
-and its registry, shared by RecomputeRoutes/GetOperation/WatchOperation/
-CancelOperation in app/routing_service.py.
+and its registry. One OperationRegistry instance (constructed in
+app/main.py) is shared by RoutingServiceServicer's RecomputeRoutes
+(app/routing_service.py) and OperationsServiceServicer's GetOperation/
+WatchOperation/CancelOperation (app/operations_service.py) — two separate
+grpc.aio servicers for two separate proto services, reading and writing the
+identical records.
 
 asyncio runs one coroutine at a time on a single event loop — there is never
 a context switch mid-statement — so, unlike the Quarkus side's OperationState

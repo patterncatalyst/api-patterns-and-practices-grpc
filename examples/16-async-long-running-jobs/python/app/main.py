@@ -1,9 +1,16 @@
 """Ch16 async/long-running-jobs example — Python side entrypoint.
 
-Starts an asyncio grpc.aio server exposing shipping.routing.v1.RoutingService
-on GRPC_HOST:GRPC_PORT (default 0.0.0.0:9000 — container port 9000, mapped to
-host 9161 by ../compose.yaml), with server reflection enabled so grpcurl can
-`list`/`describe`/call it without a local copy of the .proto.
+Starts an asyncio grpc.aio server exposing TWO services on
+GRPC_HOST:GRPC_PORT (default 0.0.0.0:9000 — container port 9000, mapped to
+host 9161 by ../compose.yaml): shipping.routing.v1.RoutingService
+(RecomputeRoutes) and shipping.routing.v1.OperationsService (GetOperation,
+WatchOperation, CancelOperation) — the dedicated Operation-lookup service
+this chapter's contract puts the three lookup RPCs on instead of
+RoutingService itself (see app/routing_service.py and
+app/operations_service.py for why). Both servicers share ONE
+OperationRegistry instance, constructed once below. Server reflection is
+enabled for both services so grpcurl can `list`/`describe`/call either
+without a local copy of the .proto.
 
 Run with the `opentelemetry-instrument` wrapper (see ../Containerfile) for
 zero-code OTLP tracing when the opt-in `observability` compose profile is
@@ -22,6 +29,8 @@ from grpc_reflection.v1alpha import reflection
 
 from shipping.routing.v1 import routing_pb2, routing_pb2_grpc
 
+from app.operations import OperationRegistry
+from app.operations_service import OperationsServiceServicer
 from app.routing_service import RoutingServiceServicer
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -33,10 +42,17 @@ PORT = os.environ.get("GRPC_PORT", "9000")
 
 async def serve() -> None:
     server = grpc.aio.server()
-    routing_pb2_grpc.add_RoutingServiceServicer_to_server(RoutingServiceServicer(), server)
+
+    # One registry, injected into both servicers — the asyncio analog of the
+    # Quarkus side's single @ApplicationScoped OperationRegistry CDI-injected
+    # into two separate @GrpcService beans.
+    registry = OperationRegistry()
+    routing_pb2_grpc.add_RoutingServiceServicer_to_server(RoutingServiceServicer(registry), server)
+    routing_pb2_grpc.add_OperationsServiceServicer_to_server(OperationsServiceServicer(registry), server)
 
     service_names = (
         routing_pb2.DESCRIPTOR.services_by_name["RoutingService"].full_name,
+        routing_pb2.DESCRIPTOR.services_by_name["OperationsService"].full_name,
         reflection.SERVICE_NAME,
     )
     reflection.enable_server_reflection(service_names, server)
@@ -45,8 +61,9 @@ async def serve() -> None:
     server.add_insecure_port(bind_addr)
     await server.start()
     logger.info(
-        "ch16-operation-python: shipping.routing.v1.RoutingService listening on %s "
-        "(RecomputeRoutes/GetOperation/WatchOperation/CancelOperation implemented; see README.md)",
+        "ch16-operation-python: shipping.routing.v1.RoutingService (RecomputeRoutes) and "
+        "shipping.routing.v1.OperationsService (GetOperation/WatchOperation/CancelOperation) "
+        "listening on %s; see README.md",
         bind_addr,
     )
     await server.wait_for_termination()

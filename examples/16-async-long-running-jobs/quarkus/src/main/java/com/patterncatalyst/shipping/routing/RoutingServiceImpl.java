@@ -10,17 +10,26 @@ import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
-import io.smallrye.mutiny.subscription.MultiEmitter;
 import shipping.routing.v1.Routing;
 import shipping.routing.v1.RoutingService;
-import shipping.type.v1.Types;
 
 /**
  * Ch16 async/long-running-jobs example — {@code RecomputeRoutes} starts a
- * server-owned {@link Types.Operation}; {@code GetOperation} polls it,
- * {@code WatchOperation} streams its progress, and {@code CancelOperation}
- * stops the server-owned job early. The other four {@code RoutingService}
- * RPCs return {@code UNIMPLEMENTED}, as in every prior chapter's anchor.
+ * server-owned {@code Operation}. The three lookup RPCs that poll, watch, and
+ * cancel it — {@code GetOperation}, {@code WatchOperation}, {@code
+ * CancelOperation} — live on a SEPARATE {@code @GrpcService} bean, {@link
+ * OperationsServiceImpl}, implementing {@code shipping.routing.v1.
+ * OperationsService} rather than a trio of extra methods here. quarkus-grpc
+ * generates a fully abstract interface per service, so adding those three
+ * RPCs to {@code RoutingService} itself would force every other chapter's
+ * {@code RoutingServiceImpl} to grow overrides it has no business providing;
+ * putting them on their own service (AIP-151's dedicated Operations service)
+ * keeps this bean's interface exactly the five RPCs {@code RoutingService}
+ * has always declared. The two beans share one {@link OperationRegistry} —
+ * both are CDI-injected the identical {@code @ApplicationScoped} singleton —
+ * so a {@code RecomputeRoutes} call here and a {@code GetOperation} call on
+ * {@link OperationsServiceImpl} read and write the same {@link
+ * OperationState} record.
  *
  * <p>{@code RecomputeRoutes} itself returns instantly — it creates the
  * {@link OperationState} record and hands the actual work to {@link
@@ -28,6 +37,11 @@ import shipping.type.v1.Types;
  * the same pool a method annotated {@code @Blocking} runs on. Nothing about
  * advancing {@code progress_pct} ever touches the Vert.x event loop that
  * also has to answer every other RPC this process serves concurrently.
+ *
+ * <p>The other four {@code RoutingService} RPCs (everything except {@code
+ * RecomputeRoutes}) return {@code UNIMPLEMENTED}, as in every prior
+ * chapter's anchor — this bean still overrides all five, since
+ * quarkus-grpc's generated interface is fully abstract.
  */
 @GrpcService
 public class RoutingServiceImpl implements RoutingService {
@@ -46,10 +60,6 @@ public class RoutingServiceImpl implements RoutingService {
     // before the job would finish on its own.
     private static final int SLOW_STEPS = 20;
     private static final long SLOW_STEP_MS = 200;
-
-    // WatchOperation's poll interval — how often a snapshot is pushed onto the
-    // stream while the operation is still running.
-    private static final long WATCH_POLL_MS = 150;
 
     @Inject
     OperationRegistry registry;
@@ -104,57 +114,6 @@ public class RoutingServiceImpl implements RoutingService {
     }
 
     @Override
-    public Uni<Types.Operation> getOperation(Routing.GetOperationRequest request) {
-        OperationState state = registry.get(request.getOperationId());
-        if (state == null) {
-            return Uni.createFrom().failure(notFound(request.getOperationId()));
-        }
-        return Uni.createFrom().item(state.snapshot());
-    }
-
-    @Override
-    public Multi<Types.Operation> watchOperation(Routing.WatchOperationRequest request) {
-        OperationState state = registry.get(request.getOperationId());
-        if (state == null) {
-            return Multi.createFrom().failure(notFound(request.getOperationId()));
-        }
-        // emitOn moves every emission onto the worker pool too, so the loop
-        // inside streamSnapshots (including its Thread.sleep) never runs on
-        // the event loop thread that opened this stream.
-        return Multi.createFrom().<Types.Operation>emitter(emitter -> streamSnapshots(state, emitter))
-                .emitOn(Infrastructure.getDefaultExecutor());
-    }
-
-    private void streamSnapshots(OperationState state, MultiEmitter<? super Types.Operation> emitter) {
-        while (true) {
-            Types.Operation snapshot = state.snapshot();
-            emitter.emit(snapshot);
-            if (snapshot.getDone()) {
-                emitter.complete();
-                return;
-            }
-            try {
-                Thread.sleep(WATCH_POLL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                emitter.complete();
-                return;
-            }
-        }
-    }
-
-    @Override
-    public Uni<Types.Operation> cancelOperation(Routing.CancelOperationRequest request) {
-        OperationState state = registry.get(request.getOperationId());
-        if (state == null) {
-            return Uni.createFrom().failure(notFound(request.getOperationId()));
-        }
-        boolean cancelledNow = state.cancel();
-        LOG.infof("CancelOperation: id=%s cancelledNow=%s", state.id, cancelledNow);
-        return Uni.createFrom().item(state.snapshot());
-    }
-
-    @Override
     public Uni<Routing.GetQuoteResponse> getQuote(Routing.GetQuoteRequest request) {
         return Uni.createFrom().failure(unimplemented("GetQuote"));
     }
@@ -172,12 +131,6 @@ public class RoutingServiceImpl implements RoutingService {
     @Override
     public Multi<Routing.NegotiateRouteResponse> negotiateRoute(Multi<Routing.NegotiateRouteRequest> request) {
         return Multi.createFrom().failure(unimplemented("NegotiateRoute"));
-    }
-
-    private static StatusRuntimeException notFound(String operationId) {
-        return Status.NOT_FOUND
-                .withDescription("no such operation: " + operationId)
-                .asRuntimeException();
     }
 
     private static StatusRuntimeException unimplemented(String method) {
