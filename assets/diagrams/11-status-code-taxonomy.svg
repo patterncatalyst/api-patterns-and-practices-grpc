@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 940" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Malformed request -- fix the request, never retry</text>
+<rect x="20" y="164" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="184" font-size="12" font-weight="700" fill="#1d1d1d">State of the world -- a true fact, not malformed; never retry</text>
+<rect x="20" y="308" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="328" font-size="12" font-weight="700" fill="#1d1d1d">Transient -- the condition clears on its own; retry with backoff</text>
+<rect x="20" y="452" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="472" font-size="12" font-weight="700" fill="#1d1d1d">Overload -- the server is protecting itself; retry per policy</text>
+<rect x="20" y="596" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="616" font-size="12" font-weight="700" fill="#1d1d1d">Auth -- identity or grant is wrong; fix it, then retry</text>
+<rect x="20" y="740" width="920" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="760" font-size="12" font-weight="700" fill="#1d1d1d">Last resort -- no other code fits; the exception, not the default</text>
+<rect x="320.0" y="56" width="320" height="88" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="480.0" y="90.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">INVALID_ARGUMENT</text>
+<text x="480.0" y="107.5" font-size="11.5" fill="#555555" text-anchor="middle">the request itself is malformed</text>
+<text x="480.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: never</text>
+<rect x="180.0" y="200" width="280" height="88" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="320.0" y="234.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">NOT_FOUND</text>
+<text x="320.0" y="251.5" font-size="11.5" fill="#555555" text-anchor="middle">doesn&#x27;t exist</text>
+<text x="320.0" y="266.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: never</text>
+<rect x="500.0" y="200" width="280" height="88" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="640.0" y="234.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">FAILED_PRECONDITION</text>
+<text x="640.0" y="251.5" font-size="11.5" fill="#555555" text-anchor="middle">wrong state to act now</text>
+<text x="640.0" y="266.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: never</text>
+<rect x="180.0" y="344" width="280" height="88" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="320.0" y="378.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">UNAVAILABLE</text>
+<text x="320.0" y="395.5" font-size="11.5" fill="#555555" text-anchor="middle">unreachable right now</text>
+<text x="320.0" y="410.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: yes, with backoff</text>
+<rect x="500.0" y="344" width="280" height="88" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="640.0" y="378.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">DEADLINE_EXCEEDED</text>
+<text x="640.0" y="395.5" font-size="11.5" fill="#555555" text-anchor="middle">didn&#x27;t finish in time</text>
+<text x="640.0" y="410.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: only if idempotent</text>
+<rect x="320.0" y="488" width="320" height="88" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="480.0" y="522.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RESOURCE_EXHAUSTED</text>
+<text x="480.0" y="539.5" font-size="11.5" fill="#555555" text-anchor="middle">self-imposed 429</text>
+<text x="480.0" y="554.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: yes, honor backoff</text>
+<rect x="180.0" y="632" width="280" height="88" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="320.0" y="666.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">UNAUTHENTICATED</text>
+<text x="320.0" y="683.5" font-size="11.5" fill="#555555" text-anchor="middle">identity missing</text>
+<text x="320.0" y="698.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: after fixing credentials</text>
+<rect x="500.0" y="632" width="280" height="88" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="640.0" y="666.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">PERMISSION_DENIED</text>
+<text x="640.0" y="683.5" font-size="11.5" fill="#555555" text-anchor="middle">wrong grant</text>
+<text x="640.0" y="698.5" font-size="11.5" fill="#555555" text-anchor="middle">retry: after fixing the grant</text>
+<rect x="320.0" y="776" width="320" height="88" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="480.0" y="810.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">INTERNAL</text>
+<text x="480.0" y="827.5" font-size="11.5" fill="#dddddd" text-anchor="middle">no better name for it yet</text>
+<text x="480.0" y="842.5" font-size="11.5" fill="#dddddd" text-anchor="middle">last resort, not a default</text>
+<text x="480.0" y="908" font-size="13" fill="#b8650a" text-anchor="middle" font-weight="700">Don&#x27;t collapse everything to INTERNAL -- it erases the one signal a client acts on:</text>
+<text x="480.0" y="926" font-size="13" fill="#b8650a" text-anchor="middle" font-weight="700">retry, give up, or page someone.</text>
+</svg>
