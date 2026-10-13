@@ -196,8 +196,15 @@ grpc_expect_code() {
     echo "lib.sh: FAIL — ${context}: expected error code $expected, but the call succeeded" >&2
     return 1
   fi
-  if grep -qiE "Code:[[:space:]]*$expected\b" <<<"$out"; then
-    echo "lib.sh: ok — ${context}: got expected code $expected" >&2
+  # grpcurl renders codes in PascalCase (InvalidArgument, DeadlineExceeded);
+  # the canonical spelling is UPPER_SNAKE (INVALID_ARGUMENT). Normalize both
+  # (drop underscores/spaces, lowercase) so either form the caller passes matches.
+  local got exp_n got_n
+  got="$(grep -oiE "Code:[[:space:]]*[A-Za-z_]+" <<<"$out" | head -1 | sed -E 's/^[Cc]ode:[[:space:]]*//')"
+  exp_n="$(printf '%s' "$expected" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
+  got_n="$(printf '%s' "$got" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
+  if [[ -n "$got_n" && "$got_n" == "$exp_n" ]]; then
+    echo "lib.sh: ok — ${context}: got expected code $expected (grpcurl: ${got})" >&2
     return 0
   fi
   echo "lib.sh: FAIL — ${context}: expected code $expected, got: $out" >&2
