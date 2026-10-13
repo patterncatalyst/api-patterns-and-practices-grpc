@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1180 440" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="165" width="160" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="100.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">candidate change</text>
+<text x="100.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">routing.proto</text>
+<text x="100.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">vs contracts/proto/</text>
+<rect x="220" y="140" width="220" height="140" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="330.0" y="193.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">1. buf lint</text>
+<text x="330.0" y="210.0" font-size="11.5" fill="#555555" text-anchor="middle">STANDARD ruleset</text>
+<text x="330.0" y="225.0" font-size="11.5" fill="#555555" text-anchor="middle">naming, comments,</text>
+<text x="330.0" y="240.0" font-size="11.5" fill="#555555" text-anchor="middle">no unused imports</text>
+<rect x="480" y="140" width="220" height="140" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="590.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">2. buf build -o /dev/null</text>
+<text x="590.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">compiles the module</text>
+<text x="590.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">every import resolves</text>
+<rect x="740" y="140" width="240" height="140" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="860.0" y="193.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">3. buf breaking</text>
+<text x="860.0" y="210.0" font-size="11.5" fill="#555555" text-anchor="middle">--against main</text>
+<text x="860.0" y="225.0" font-size="11.5" fill="#555555" text-anchor="middle">rejects reused/retyped/</text>
+<text x="860.0" y="240.0" font-size="11.5" fill="#555555" text-anchor="middle">removed fields</text>
+<rect x="1020" y="165" width="140" height="90" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="1090.0" y="200.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">stub generation</text>
+<text x="1090.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">Quarkus + Python</text>
+<text x="1090.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">(next: Ch. 7)</text>
+<rect x="470" y="340" width="280" height="80" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="610.0" y="378.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">rejected — build fails</text>
+<text x="610.0" y="395.0" font-size="11.5" fill="#dddddd" text-anchor="middle">change never reaches either stack</text>
+<path d="M180,210 L220,210" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="206.0" y="204.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">gated</text>
+<text x="206.0" y="204.0" font-size="11" fill="#b8650a" text-anchor="middle">gated</text>
+<path d="M440,210 L480,210" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="466.0" y="204.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">passes</text>
+<text x="466.0" y="204.0" font-size="11" fill="#b8650a" text-anchor="middle">passes</text>
+<path d="M700,210 L740,210" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="726.0" y="204.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">passes</text>
+<text x="726.0" y="204.0" font-size="11" fill="#b8650a" text-anchor="middle">passes</text>
+<path d="M980,210 L1020,210" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="1006.0" y="204.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">all three pass</text>
+<text x="1006.0" y="204.0" font-size="11" fill="#b8650a" text-anchor="middle">all three pass</text>
+<path d="M330,280 L560,340" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="451.0" y="304.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fails</text>
+<text x="451.0" y="304.0" font-size="11" fill="#555" text-anchor="middle">fails</text>
+<path d="M590,280 L610,340" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="606.0" y="304.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fails</text>
+<text x="606.0" y="304.0" font-size="11" fill="#555" text-anchor="middle">fails</text>
+<path d="M860,280 L680,340" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="776.0" y="304.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fails</text>
+<text x="776.0" y="304.0" font-size="11" fill="#555" text-anchor="middle">fails</text>
+<text x="20" y="24" font-size="13" fill="#1d1d1d" text-anchor="start" font-weight="700">Three gates, in sequence, before either stack generates a line of code from the contract.</text>
+<text x="20" y="425" font-size="11" fill="#555555" text-anchor="start">All three run in CI and identically on a laptop; a failure at any gate stops the change before Quarkus or Python ever sees it.</text>
+</svg>
