@@ -1,0 +1,15 @@
+# Convenience generation config. The AUTHORITATIVE stub generation for each stack
+# happens inside that stack's build (Quarkus: the quarkus-maven-plugin / protoc;
+# Python: grpcio-tools / `python -m grpc_tools.protoc`). This file documents a
+# one-shot Python generation via Buf's remote plugins for local inspection:
+#
+#     cd contracts && buf generate
+#
+# CI does NOT depend on this step — CI gates on `buf lint` + `buf breaking` +
+# `buf build`, and each example regenerates its own stubs at build time.
+version: v2
+plugins:
+  - remote: buf.build/protocolbuffers/python
+    out: ../examples/_generated/python
+  - remote: buf.build/grpc/python
+    out: ../examples/_generated/python

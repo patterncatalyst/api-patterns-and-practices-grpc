@@ -1,0 +1,56 @@
+// The TrackingService — the real-time shipment-tracking hot-path. Demonstrates
+// all three streaming shapes: server-streaming (WatchShipment), client-streaming
+// (ReportPositions), and bidirectional (Sync). Implemented from Ch8 onward.
+syntax = "proto3";
+
+package shipping.tracking.v1;
+
+import "google/protobuf/timestamp.proto";
+import "shipping/type/v1/types.proto";
+
+message TrackingEvent {
+  string booking_id = 1;
+  shipping.type.v1.Location location = 2;
+  shipping.type.v1.BookingState state = 3;
+  google.protobuf.Timestamp at = 4;
+  string note = 5;
+}
+
+// --- WatchShipment (server streaming) ---------------------------------------
+
+message WatchShipmentRequest {
+  string booking_id = 1;
+}
+
+message WatchShipmentResponse {
+  TrackingEvent event = 1;
+}
+
+// --- ReportPositions (client streaming) -------------------------------------
+
+message ReportPositionsRequest {
+  TrackingEvent event = 1;
+}
+
+message ReportPositionsResponse {
+  int32 accepted_count = 1;
+}
+
+// --- Sync (bidirectional streaming) -----------------------------------------
+
+message SyncRequest {
+  TrackingEvent event = 1;
+}
+
+message SyncResponse {
+  TrackingEvent event = 1;
+}
+
+service TrackingService {
+  // Server-streaming: a live feed of tracking events for one booking.
+  rpc WatchShipment(WatchShipmentRequest) returns (stream WatchShipmentResponse);
+  // Client-streaming: bulk-ingest position reports, folded into one ack.
+  rpc ReportPositions(stream ReportPositionsRequest) returns (ReportPositionsResponse);
+  // Bidirectional: two-way event reconciliation.
+  rpc Sync(stream SyncRequest) returns (stream SyncResponse);
+}

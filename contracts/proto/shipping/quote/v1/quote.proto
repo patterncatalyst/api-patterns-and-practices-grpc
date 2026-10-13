@@ -1,0 +1,23 @@
+// The QuoteService — a small downstream service the RoutingService calls. It is
+// the target for the deadline-propagation example (Ch10) and the rich-error-model
+// example (Ch11, which introduces google.rpc.Status).
+syntax = "proto3";
+
+package shipping.quote.v1;
+
+import "shipping/type/v1/types.proto";
+
+message GetQuoteRequest {
+  shipping.type.v1.Location origin = 1;
+  shipping.type.v1.Location destination = 2;
+  repeated shipping.type.v1.Cargo cargo = 3;
+}
+
+message GetQuoteResponse {
+  shipping.type.v1.Money quote = 1;
+}
+
+service QuoteService {
+  // Unary: price a shipment. Called by RoutingService.GetQuote.
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}
