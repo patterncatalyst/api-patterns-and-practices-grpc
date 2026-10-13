@@ -255,3 +255,66 @@ assert_contains() {
   fi
   echo "lib.sh: ok — ${context}: found '$needle'" >&2
 }
+
+# ---------------------------------------------------------------------------
+# Streaming helpers (server-/client-/bidirectional-streaming RPCs)
+#
+# grpcurl prints one JSON object per streamed message, back to back. For a
+# SERVER stream, call grpc_call as usual and pipe its output to the json_stream_*
+# parsers below. For a CLIENT or BIDI stream, feed newline-delimited JSON request
+# messages on stdin to grpc_client_stream (grpcurl -d @ reads them in order).
+# ---------------------------------------------------------------------------
+
+# grpc_client_stream <host:port> <Service/Method>
+# Reads newline-delimited JSON request messages on stdin and sends them as a
+# client (or bidirectional) stream. Prints the response(s) on stdout.
+#   printf '%s\n' "$m1" "$m2" | grpc_client_stream localhost:9090 pkg.Svc/Method
+grpc_client_stream() {
+  local target="$1"
+  local method="$2"
+  ensure_grpcurl
+  grpcurl $GRPCURL_OPTS -d @ "$target" "$method"
+}
+
+# json_stream_count — read concatenated JSON objects on stdin, print how many.
+json_stream_count() {
+  python3 -I -c '
+import json, sys
+dec = json.JSONDecoder()
+s = sys.stdin.read()
+i = 0; n = 0
+while True:
+    while i < len(s) and s[i].isspace():
+        i += 1
+    if i >= len(s):
+        break
+    _, i = dec.raw_decode(s, i)
+    n += 1
+print(n)'
+}
+
+# json_stream_field <index> <dot.path> — field at <dot.path> from the Nth
+# (0-based) streamed JSON object on stdin. Supports numeric list indices.
+json_stream_field() {
+  python3 -I -c '
+import json, sys
+idx = int(sys.argv[1]); path = sys.argv[2].strip(".")
+dec = json.JSONDecoder()
+s = sys.stdin.read()
+i = 0; objs = []
+while True:
+    while i < len(s) and s[i].isspace():
+        i += 1
+    if i >= len(s):
+        break
+    o, i = dec.raw_decode(s, i); objs.append(o)
+cur = objs[idx]
+for p in [x for x in path.split(".") if x]:
+    cur = cur[int(p)] if isinstance(cur, list) else cur[p]
+if isinstance(cur, (dict, list)):
+    print(json.dumps(cur, separators=(",", ":")))
+elif isinstance(cur, bool):
+    print("true" if cur else "false")
+else:
+    print(cur)' "$1" "$2"
+}
