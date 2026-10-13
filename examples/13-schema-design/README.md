@@ -209,10 +209,11 @@ form and reads the proto-name response fields for exactly this reason.
 | masked response | the literal string `"legs"` never appears |
 | unmasked response | `"legs"` and a carrier name (`MAERSK`) both present |
 
-## Diagram
+## Diagrams
 
-`assets/diagrams/13-pagination-and-fieldmask.svg` /
-`.excalidraw` (generated with `scripts/generate_diagram.py`) show the two
-call/response pairs that walk the catalog across a page boundary, and the
-request/full-object/projected-object chain `FieldMaskUtil.merge` (Java) and
-`FieldMask.MergeMessage` (Python) both perform.
+Three paired figures in `assets/diagrams/` (generated with
+`scripts/generate_diagram.py`) back this chapter: `13-message-granularity`
+(nest vs. reference by id), `13-pagination-page-tokens` (the two call/response
+pairs that walk the catalog across a page boundary), and
+`13-fieldmask-projection` (the request/full-object/projected-object chain
+`FieldMaskUtil.merge` (Java) and `FieldMask.MergeMessage` (Python) both perform).

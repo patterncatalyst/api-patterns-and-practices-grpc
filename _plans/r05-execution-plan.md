@@ -39,7 +39,7 @@ Ch14 the evolution gate asserts `buf breaking` **fails on a seeded breaking chan
 lgtm-professional-voice 0 ban-tier. Emphasis boxes light `accent`, never dark.
 
 ## Figures
-`13-pagination-and-fieldmask` (page-token flow + mask projection) ·
+`13-message-granularity` (nest vs reference) · `13-pagination-page-tokens` · `13-fieldmask-projection` ·
 `14-evolution-compatibility` (field-number contract, wire-compat matrix, v1→v2 + the breaking gate).
 
 ## Examples (UNIQUE ports + compose project names)
