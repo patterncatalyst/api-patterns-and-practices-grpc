@@ -200,21 +200,6 @@ public class RoutingServiceImpl implements RoutingService {
         return Multi.createFrom().failure(unimplemented("NegotiateRoute"));
     }
 
-    @Override
-    public Uni<Types.Operation> getOperation(Routing.GetOperationRequest request) {
-        return Uni.createFrom().failure(unimplemented("GetOperation"));
-    }
-
-    @Override
-    public Multi<Types.Operation> watchOperation(Routing.WatchOperationRequest request) {
-        return Multi.createFrom().failure(unimplemented("WatchOperation"));
-    }
-
-    @Override
-    public Uni<Types.Operation> cancelOperation(Routing.CancelOperationRequest request) {
-        return Uni.createFrom().failure(unimplemented("CancelOperation"));
-    }
-
     private static StatusRuntimeException unimplemented(String method) {
         return Status.UNIMPLEMENTED
                 .withDescription(method + " lands in a later chapter")
