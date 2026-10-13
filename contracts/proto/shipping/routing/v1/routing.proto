@@ -68,6 +68,20 @@ message RecomputeRoutesResponse {
   shipping.type.v1.Operation operation = 1;
 }
 
+// --- Operation lookup (Ch16): poll, watch, or cancel an Operation by id -----
+
+message GetOperationRequest {
+  string operation_id = 1;
+}
+
+message WatchOperationRequest {
+  string operation_id = 1;
+}
+
+message CancelOperationRequest {
+  string operation_id = 1;
+}
+
 service RoutingService {
   // Unary anchor: quote the cost + route for a shipment.
   rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
@@ -79,4 +93,15 @@ service RoutingService {
   rpc NegotiateRoute(stream NegotiateRouteRequest) returns (stream NegotiateRouteResponse);
   // Async: kick off a background route recomputation, returning an Operation.
   rpc RecomputeRoutes(RecomputeRoutesRequest) returns (RecomputeRoutesResponse);
+
+  // Async/LRO lookup (Ch16): re-fetch, watch progress, or cancel an Operation by id.
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc GetOperation(GetOperationRequest) returns (shipping.type.v1.Operation);
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc WatchOperation(WatchOperationRequest) returns (stream shipping.type.v1.Operation);
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+  // buf:lint:ignore RPC_RESPONSE_STANDARD_NAME
+  rpc CancelOperation(CancelOperationRequest) returns (shipping.type.v1.Operation);
 }
