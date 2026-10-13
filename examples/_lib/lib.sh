@@ -204,6 +204,20 @@ grpc_expect_code() {
   return 1
 }
 
+# grpc_error_output <host:port> <Service/Method> <json>
+# Runs the call and prints grpcurl's COMBINED output — the error Code, Message,
+# and any google.rpc.Status Details (ErrorInfo/RetryInfo/BadRequest). Always
+# returns 0 so the caller can assert_contains on the text. For the rich-error
+# chapter, where asserting the detail payload matters, not just the status code.
+grpc_error_output() {
+  local target="$1"
+  local method="$2"
+  local data="${3:-}"
+  [[ -z "$data" ]] && data='{}'
+  ensure_grpcurl
+  grpcurl $GRPCURL_OPTS -d "$data" "$target" "$method" 2>&1 || true
+}
+
 # ---------------------------------------------------------------------------
 # Assertions (stdlib-python JSON field extraction; no extra deps)
 # ---------------------------------------------------------------------------
