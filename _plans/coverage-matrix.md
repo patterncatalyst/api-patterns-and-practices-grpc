@@ -18,11 +18,11 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 
 | # | Topic | Chapter | File | Status |
 |---|---|---|---|---|
-| T1 | Why gRPC / three paradigms / stub-to-stub | Ch1 | `_docs/01-from-rest-to-rpc.md` | planned |
-| T2 | gRPC decision framework (5 axes) | Ch2 | `_docs/02-grpc-decision-framework.md` | planned |
-| T3 | Full protobuf coverage + wire encoding | Ch3 | `_docs/03-protobuf-in-depth.md` | planned |
-| T4 | Well-known types & JSON mapping | Ch4 | `_docs/04-well-known-types-json-mapping.md` | planned |
-| T5 | Buf (lint/build/breaking) + contract-first anchor | Ch5 | `_docs/05-contract-first-with-buf.md` | planned |
+| T1 | Why gRPC / three paradigms / stub-to-stub | Ch1 | `_docs/01-from-rest-to-rpc.md` | draft |
+| T2 | gRPC decision framework (5 axes) | Ch2 | `_docs/02-grpc-decision-framework.md` | draft |
+| T3 | Full protobuf coverage + wire encoding | Ch3 | `_docs/03-protobuf-in-depth.md` | draft |
+| T4 | Well-known types & JSON mapping | Ch4 | `_docs/04-well-known-types-json-mapping.md` | draft |
+| T5 | Buf (lint/build/breaking) + contract-first anchor | Ch5 | `_docs/05-contract-first-with-buf.md` | draft |
 | T6 | HTTP/2 foundation + binary vs JSON | Ch6 | `_docs/06-http2-foundation.md` | planned |
 | T7 | Unary RPCs + channels/stubs | Ch7 | `_docs/07-unary-rpcs.md` | planned |
 | T8 | Server-streaming | Ch8 | `_docs/08-server-streaming.md` | planned |
@@ -50,7 +50,7 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 
 | # | Topic | Chapter | File | Status |
 |---|---|---|---|---|
-| R1 | Docker/Podman Compose tier | Ch0 / Ch5 | `_docs/00-prerequisites-and-the-lab.md` | planned |
+| R1 | Docker/Podman Compose tier | Ch0 / Ch5 | `_docs/00-prerequisites-and-the-lab.md` | draft |
 | R2 | minikube tier (+ the LB problem) | Ch22 / Ch27 | `_docs/22-load-balancing-service-mesh.md` | planned |
 | R3 | CRC / OpenShift Local tier | Appendix A | `_docs/99-appendix-a-openshift-crc.md` | planned |
 
@@ -58,12 +58,12 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 
 | Ch | File | Part | Status |
 |---|---|---|---|
-| 0 | `_docs/00-prerequisites-and-the-lab.md` | Part 0 | planned |
-| 1 | `_docs/01-from-rest-to-rpc.md` | Part 1 | planned |
-| 2 | `_docs/02-grpc-decision-framework.md` | Part 1 | planned |
-| 3 | `_docs/03-protobuf-in-depth.md` | Part 2 | planned |
-| 4 | `_docs/04-well-known-types-json-mapping.md` | Part 2 | planned |
-| 5 | `_docs/05-contract-first-with-buf.md` | Part 2 | planned |
+| 0 | `_docs/00-prerequisites-and-the-lab.md` | Part 0 | draft |
+| 1 | `_docs/01-from-rest-to-rpc.md` | Part 1 | draft |
+| 2 | `_docs/02-grpc-decision-framework.md` | Part 1 | draft |
+| 3 | `_docs/03-protobuf-in-depth.md` | Part 2 | draft |
+| 4 | `_docs/04-well-known-types-json-mapping.md` | Part 2 | draft |
+| 5 | `_docs/05-contract-first-with-buf.md` | Part 2 | draft |
 | 6 | `_docs/06-http2-foundation.md` | Part 3 | planned |
 | 7 | `_docs/07-unary-rpcs.md` | Part 3 | planned |
 | 8 | `_docs/08-server-streaming.md` | Part 3 | planned |
