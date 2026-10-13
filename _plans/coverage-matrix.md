@@ -27,9 +27,9 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T7 | Unary RPCs + channels/stubs | Ch7 | `_docs/07-unary-rpcs.md` | verified |
 | T8 | Server-streaming | Ch8 | `_docs/08-server-streaming.md` | verified |
 | T9 | Client-streaming + bidirectional | Ch9 | `_docs/09-client-and-bidi-streaming.md` | verified |
-| T10 | Deadlines / timeouts / cancellation | Ch10 | `_docs/10-deadlines-cancellation.md` | planned |
-| T11 | Error handling + rich error model + retries | Ch11 | `_docs/11-error-handling.md` | planned |
-| T12 | Interceptors | Ch12 | `_docs/12-interceptors.md` | planned |
+| T10 | Deadlines / timeouts / cancellation | Ch10 | `_docs/10-deadlines-cancellation.md` | verified |
+| T11 | Error handling + rich error model + retries | Ch11 | `_docs/11-error-handling.md` | verified |
+| T12 | Interceptors | Ch12 | `_docs/12-interceptors.md` | verified |
 | T13 | Schema design + pagination + FieldMask | Ch13 | `_docs/13-schema-design.md` | planned |
 | T14 | Evolution / versioning + buf breaking + BSR | Ch14 | `_docs/14-evolution-and-versioning.md` | planned |
 | T15 | Backend I/O concurrency | Ch15 | `_docs/15-backend-io-concurrency.md` | planned |
@@ -68,9 +68,9 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 7 | `_docs/07-unary-rpcs.md` | Part 3 | verified |
 | 8 | `_docs/08-server-streaming.md` | Part 3 | verified |
 | 9 | `_docs/09-client-and-bidi-streaming.md` | Part 3 | verified |
-| 10 | `_docs/10-deadlines-cancellation.md` | Part 4 | planned |
-| 11 | `_docs/11-error-handling.md` | Part 4 | planned |
-| 12 | `_docs/12-interceptors.md` | Part 4 | planned |
+| 10 | `_docs/10-deadlines-cancellation.md` | Part 4 | verified |
+| 11 | `_docs/11-error-handling.md` | Part 4 | verified |
+| 12 | `_docs/12-interceptors.md` | Part 4 | verified |
 | 13 | `_docs/13-schema-design.md` | Part 5 | planned |
 | 14 | `_docs/14-evolution-and-versioning.md` | Part 5 | planned |
 | 15 | `_docs/15-backend-io-concurrency.md` | Part 6 | planned |
