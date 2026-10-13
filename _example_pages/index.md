@@ -12,8 +12,7 @@ implementation, generated from the same Protobuf contract, and a `verify.sh` tha
 calls the running service and asserts response semantics against the proto — not
 just a status. The code tabs and example layout are built to admit Go and C++ later.
 
-This table fills in as each iteration lands; see the
-[coverage matrix]({{ '/plans/coverage-matrix/' | relative_url }}) for per-chapter status.
+More examples land here as new chapters ship.
 
 | Example | What it shows | Stacks | Chapter |
 |---|---|---|---|
