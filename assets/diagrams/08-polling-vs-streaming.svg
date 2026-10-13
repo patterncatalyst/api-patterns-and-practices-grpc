@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 470" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="10" y="20" width="495" height="430" rx="12" fill="#f7f7f7" stroke="#ddd"/>
+<text x="22" y="40" font-size="12" font-weight="700" fill="#1d1d1d">POLLING — repeated unary GetShipmentStatus calls on a timer</text>
+<rect x="535" y="20" width="495" height="430" rx="12" fill="#fff3e0" stroke="#ddd"/>
+<text x="547" y="40" font-size="12" font-weight="700" fill="#1d1d1d">SERVER-STREAMING — one WatchShipment call, pushed as events post</text>
+<rect x="30" y="60" width="140" height="55" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="100.0" y="85.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="100.0" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">polls on a timer</text>
+<rect x="220" y="60" width="270" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="355.0" y="83.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Poll 1 -&gt; GetShipmentStatus</text>
+<text x="355.0" y="100.0" font-size="11.5" fill="#555555" text-anchor="middle">same answer as last poll (wasted)</text>
+<rect x="220" y="125" width="270" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="355.0" y="148.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Poll 2 -&gt; GetShipmentStatus</text>
+<text x="355.0" y="165.0" font-size="11.5" fill="#555555" text-anchor="middle">same answer as last poll (wasted)</text>
+<rect x="220" y="190" width="270" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="355.0" y="213.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Poll 3 -&gt; GetShipmentStatus</text>
+<text x="355.0" y="230.0" font-size="11.5" fill="#555555" text-anchor="middle">same answer as last poll (wasted)</text>
+<rect x="220" y="255" width="270" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="355.0" y="278.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Poll 4 -&gt; GetShipmentStatus</text>
+<text x="355.0" y="295.0" font-size="11.5" fill="#555555" text-anchor="middle">event had posted, up to 1 interval ago</text>
+<rect x="30" y="340" width="460" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="260.0" y="370.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Cost of polling</text>
+<text x="260.0" y="387.5" font-size="11.5" fill="#555555" text-anchor="middle">a full round trip + HTTP/2 overhead + a server lookup per</text>
+<text x="260.0" y="402.5" font-size="11.5" fill="#555555" text-anchor="middle">poll, most returning nothing new, plus up-to-one-interval staleness</text>
+<rect x="560" y="60" width="150" height="55" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="635.0" y="85.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="635.0" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">opens stream once</text>
+<rect x="740" y="60" width="270" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="875.0" y="83.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">WatchShipment opens one stream</text>
+<text x="875.0" y="100.0" font-size="11.5" fill="#555555" text-anchor="middle">server pushes the moment an event posts</text>
+<rect x="740" y="130" width="270" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="875.0" y="153.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event pushed -&gt; CONFIRMED</text>
+<text x="875.0" y="170.0" font-size="11.5" fill="#555555" text-anchor="middle">sent the instant it posts, no delay</text>
+<rect x="740" y="200" width="270" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="875.0" y="223.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event pushed -&gt; IN_TRANSIT</text>
+<text x="875.0" y="240.0" font-size="11.5" fill="#555555" text-anchor="middle">sent the instant it posts, no delay</text>
+<rect x="740" y="270" width="270" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="875.0" y="293.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event pushed -&gt; DELIVERED</text>
+<text x="875.0" y="310.0" font-size="11.5" fill="#555555" text-anchor="middle">sent the instant it posts, no delay</text>
+<rect x="560" y="340" width="460" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="790.0" y="370.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Cost of streaming</text>
+<text x="790.0" y="387.5" font-size="11.5" fill="#555555" text-anchor="middle">one connection held open; no polling interval to tune,</text>
+<text x="790.0" y="402.5" font-size="11.5" fill="#555555" text-anchor="middle">no wasted calls, no lag beyond network latency</text>
+<path d="M170,85 L220,85" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M170,87 L220,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M170,87 L220,215" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M170,87 L220,280" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M710,87 L740,85" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="731.0" y="80.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">1 request, once</text>
+<text x="731.0" y="80.0" font-size="11" fill="#555" text-anchor="middle">1 request, once</text>
+<path d="M875,110 L875,130" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M875,180 L875,200" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M875,250 L875,270" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="30" y="440" font-size="10.5" fill="#555555" text-anchor="start">mostly-unchanged answers, wasted round trips, up to one interval of staleness</text>
+<text x="560" y="440" font-size="10.5" fill="#8a4b06" text-anchor="start">each TrackingEvent pushed the moment it posts, on one open stream</text>
+</svg>

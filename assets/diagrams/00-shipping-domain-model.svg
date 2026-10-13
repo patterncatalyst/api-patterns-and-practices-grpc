@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 740" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="500" height="460" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Booking aggregate — shipping.type.v1.Booking</text>
+<rect x="560" y="20" width="500" height="460" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="572" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Route aggregate — shipping.type.v1.Route</text>
+<rect x="20" y="500" width="1040" height="210" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="520" font-size="12" font-weight="700" fill="#1d1d1d">Shared value types (referenced by both aggregates)</text>
+<rect x="60" y="60" width="200" height="200" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="160.0" y="135.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Booking</text>
+<text x="160.0" y="152.5" font-size="11.5" fill="#555555" text-anchor="middle">id: string (bkg_*)</text>
+<text x="160.0" y="167.5" font-size="11.5" fill="#555555" text-anchor="middle">state: BookingState</text>
+<text x="160.0" y="182.5" font-size="11.5" fill="#555555" text-anchor="middle">cargo: repeated Cargo</text>
+<text x="160.0" y="197.5" font-size="11.5" fill="#555555" text-anchor="middle">quote: Money</text>
+<rect x="300" y="60" width="200" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="400.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Cargo</text>
+<text x="400.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">id, description, cargo_type</text>
+<text x="400.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">weight_kg, volume_m3, hazardous</text>
+<rect x="300" y="200" width="200" height="110" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="400.0" y="245.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">BookingState (enum)</text>
+<text x="400.0" y="262.5" font-size="11.5" fill="#555555" text-anchor="middle">PENDING -&gt; CONFIRMED</text>
+<text x="400.0" y="277.5" font-size="11.5" fill="#555555" text-anchor="middle">-&gt; IN_TRANSIT -&gt; DELIVERED</text>
+<rect x="600" y="60" width="200" height="140" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="700.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Route</text>
+<text x="700.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">id: string (rte_*)</text>
+<text x="700.0" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">legs: repeated Leg</text>
+<text x="700.0" y="160.0" font-size="11.5" fill="#555555" text-anchor="middle">price: Money</text>
+<rect x="840" y="60" width="210" height="200" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="945.0" y="143.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Leg</text>
+<text x="945.0" y="160.0" font-size="11.5" fill="#555555" text-anchor="middle">carrier: string</text>
+<text x="945.0" y="175.0" font-size="11.5" fill="#555555" text-anchor="middle">origin, destination: Location</text>
+<text x="945.0" y="190.0" font-size="11.5" fill="#555555" text-anchor="middle">departs_at, arrives_at: Timestamp</text>
+<rect x="80" y="560" width="400" height="100" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="280.0" y="600.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Location</text>
+<text x="280.0" y="617.5" font-size="11.5" fill="#555555" text-anchor="middle">un_locode: string (e.g. USNYC)</text>
+<text x="280.0" y="632.5" font-size="11.5" fill="#555555" text-anchor="middle">name: string</text>
+<rect x="600" y="560" width="400" height="90" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="800.0" y="595.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Money</text>
+<text x="800.0" y="612.5" font-size="11.5" fill="#555555" text-anchor="middle">currency: string (ISO 4217)</text>
+<text x="800.0" y="627.5" font-size="11.5" fill="#555555" text-anchor="middle">amount: string (decimal, never float)</text>
+<path d="M260,100 L300,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="286.0" y="101.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cargo[] (1..*)</text>
+<text x="286.0" y="101.5" font-size="11" fill="#555" text-anchor="middle">cargo[] (1..*)</text>
+<path d="M260,200 L300,245" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="286.0" y="216.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">state</text>
+<text x="286.0" y="216.5" font-size="11" fill="#555" text-anchor="middle">state</text>
+<path d="M800,130 L840,150" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="826.0" y="134.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">legs[] (1..*)</text>
+<text x="826.0" y="134.0" font-size="11" fill="#b8650a" text-anchor="middle">legs[] (1..*)</text>
+<path d="M120,260 L160,560" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="146.0" y="404.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">origin</text>
+<text x="146.0" y="404.0" font-size="11" fill="#555" text-anchor="middle">origin</text>
+<path d="M200,260 L240,560" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="226.0" y="404.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">destination</text>
+<text x="226.0" y="404.0" font-size="11" fill="#555" text-anchor="middle">destination</text>
+<path d="M235,260 L650,560" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="448.5" y="404.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">quote</text>
+<text x="448.5" y="404.0" font-size="11" fill="#555" text-anchor="middle">quote</text>
+<path d="M900,260 L400,560" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="656.0" y="404.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">origin</text>
+<text x="656.0" y="404.0" font-size="11" fill="#b8650a" text-anchor="middle">origin</text>
+<path d="M980,260 L460,560" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="726.0" y="404.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">destination</text>
+<text x="726.0" y="404.0" font-size="11" fill="#b8650a" text-anchor="middle">destination</text>
+<path d="M700,200 L800,560" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="756.0" y="374.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">price</text>
+<text x="756.0" y="374.0" font-size="11" fill="#b8650a" text-anchor="middle">price</text>
+<text x="40" y="700" font-size="11" fill="#555555" text-anchor="start">Location and Money are shared value types with no identity of their own — every chapter that touches routing, booking, or pricing reuses these same six messages.</text>
+</svg>
