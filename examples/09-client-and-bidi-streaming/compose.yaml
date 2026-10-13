@@ -1,0 +1,72 @@
+# Ch9 client-and-bidi-streaming — compose topology for
+# shipping.tracking.v1.TrackingService.{ReportPositions,Sync}.
+#
+# Both services are generated from the SAME proto
+# (contracts/proto/shipping/{type,tracking}/v1/*.proto) and implement
+# ReportPositions (client streaming) and Sync (bidirectional streaming)
+# identically — see ../README.md. WatchShipment (server streaming, Ch8's
+# RPC) is declared on the same service and returns UNIMPLEMENTED here; this
+# chapter's example registers only TrackingService, kept to the two new RPC
+# shapes for a reliable both-stack build. The build context for both
+# services is the REPO ROOT so each Containerfile can COPY the two proto
+# files it needs straight from contracts/ — see quarkus/Containerfile and
+# python/Containerfile for the exact COPY lines.
+#
+# The LGTM observability stack is opt-in (`--profile observability`) so CI
+# and a first boot stay fast; both apps are wired for OTLP export but start
+# and serve ReportPositions/Sync fine without a collector listening.
+#
+# Usage:
+#   docker compose up --build                          # app stack only
+#   docker compose --profile observability up --build  # + Grafana LGTM
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/09-client-and-bidi-streaming/quarkus/Containerfile
+    container_name: ch09-tracking-quarkus
+    ports:
+      - "9090:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/09-client-and-bidi-streaming/python/Containerfile
+    container_name: ch09-tracking-python
+    ports:
+      - "9091:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast. The OTEL_EXPORTER_*
+  # env vars above point at this service's name, which only resolves when
+  # the profile is active — harmless (just unreachable) otherwise.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch09-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9199:9090" # Prometheus / Mimir query — remapped off the default
+                     # 9090 host port (other examples' convention) because
+                     # this chapter's quarkus service already claims host
+                     # 9090 for gRPC.
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s

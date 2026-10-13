@@ -23,10 +23,10 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T3 | Full protobuf coverage + wire encoding | Ch3 | `_docs/03-protobuf-in-depth.md` | verified |
 | T4 | Well-known types & JSON mapping | Ch4 | `_docs/04-well-known-types-json-mapping.md` | verified |
 | T5 | Buf (lint/build/breaking) + contract-first anchor | Ch5 | `_docs/05-contract-first-with-buf.md` | verified |
-| T6 | HTTP/2 foundation + binary vs JSON | Ch6 | `_docs/06-http2-foundation.md` | planned |
-| T7 | Unary RPCs + channels/stubs | Ch7 | `_docs/07-unary-rpcs.md` | planned |
-| T8 | Server-streaming | Ch8 | `_docs/08-server-streaming.md` | planned |
-| T9 | Client-streaming + bidirectional | Ch9 | `_docs/09-client-and-bidi-streaming.md` | planned |
+| T6 | HTTP/2 foundation + binary vs JSON | Ch6 | `_docs/06-http2-foundation.md` | verified |
+| T7 | Unary RPCs + channels/stubs | Ch7 | `_docs/07-unary-rpcs.md` | verified |
+| T8 | Server-streaming | Ch8 | `_docs/08-server-streaming.md` | verified |
+| T9 | Client-streaming + bidirectional | Ch9 | `_docs/09-client-and-bidi-streaming.md` | verified |
 | T10 | Deadlines / timeouts / cancellation | Ch10 | `_docs/10-deadlines-cancellation.md` | planned |
 | T11 | Error handling + rich error model + retries | Ch11 | `_docs/11-error-handling.md` | planned |
 | T12 | Interceptors | Ch12 | `_docs/12-interceptors.md` | planned |
@@ -64,10 +64,10 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 3 | `_docs/03-protobuf-in-depth.md` | Part 2 | verified |
 | 4 | `_docs/04-well-known-types-json-mapping.md` | Part 2 | verified |
 | 5 | `_docs/05-contract-first-with-buf.md` | Part 2 | verified |
-| 6 | `_docs/06-http2-foundation.md` | Part 3 | planned |
-| 7 | `_docs/07-unary-rpcs.md` | Part 3 | planned |
-| 8 | `_docs/08-server-streaming.md` | Part 3 | planned |
-| 9 | `_docs/09-client-and-bidi-streaming.md` | Part 3 | planned |
+| 6 | `_docs/06-http2-foundation.md` | Part 3 | verified |
+| 7 | `_docs/07-unary-rpcs.md` | Part 3 | verified |
+| 8 | `_docs/08-server-streaming.md` | Part 3 | verified |
+| 9 | `_docs/09-client-and-bidi-streaming.md` | Part 3 | verified |
 | 10 | `_docs/10-deadlines-cancellation.md` | Part 4 | planned |
 | 11 | `_docs/11-error-handling.md` | Part 4 | planned |
 | 12 | `_docs/12-interceptors.md` | Part 4 | planned |
