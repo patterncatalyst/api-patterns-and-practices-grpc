@@ -1,0 +1,2 @@
+# Cached buf binary downloaded by verify.sh when buf isn't already on PATH.
+.bin/

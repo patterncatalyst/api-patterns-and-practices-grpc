@@ -1,0 +1,25 @@
+// Ch14 evolution demo — BREAKING candidate. Three independent breaking
+// changes, each one `buf breaking` catches on its own:
+//   1. `destination_un_locode` (field 2) deleted outright
+//   2. `legacy_notes` (field 4) deleted outright — proving that simply
+//      removing a field is caught whether or not anyone bothered to mark
+//      it `reserved` first (reservation stops number/name REUSE, it does
+//      not make deletion itself safe under this gate's FILE category)
+//   3. `weight_kg` (field 3) changed type from `double` to `int32`
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+message GetQuoteRequest {
+  string origin_un_locode = 1;
+  int32 weight_kg = 3;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}
