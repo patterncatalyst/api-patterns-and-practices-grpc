@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="960" height="270" rx="12" fill="#f4faf5" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Generous budget: client sets a 10s deadline</text>
+<rect x="20" y="320" width="960" height="270" rx="12" fill="#fdf5f4" stroke="#ddd"/>
+<text x="32" y="340" font-size="12" font-weight="700" fill="#1d1d1d">Tight budget: client sets a 1s deadline</text>
+<rect x="40" y="95" width="220" height="110" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="150.0" y="140.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Booking service</text>
+<text x="150.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">(REST handler)</text>
+<text x="150.0" y="172.5" font-size="11.5" fill="#555555" text-anchor="middle">budget: 10s</text>
+<rect x="390" y="95" width="220" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="500.0" y="140.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService</text>
+<text x="500.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
+<text x="500.0" y="172.5" font-size="11.5" fill="#555555" text-anchor="middle">carves a downstream slice</text>
+<rect x="740" y="95" width="220" height="110" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="850.0" y="140.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteService</text>
+<text x="850.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
+<text x="850.0" y="172.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — fits in ~9.9s</text>
+<rect x="40" y="395" width="220" height="110" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="150.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Booking service</text>
+<text x="150.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">(REST handler)</text>
+<text x="150.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">budget: 1s</text>
+<rect x="390" y="395" width="220" height="110" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="500.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService</text>
+<text x="500.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
+<text x="500.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">carves a downstream slice</text>
+<rect x="740" y="395" width="220" height="110" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="850.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteService</text>
+<text x="850.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
+<text x="850.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — abandoned at ~0.9s</text>
+<path d="M260,120 L390,120" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="325.0" y="112.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote, deadline 10s</text>
+<text x="325.0" y="112.0" font-size="11" fill="#555" text-anchor="middle">GetQuote, deadline 10s</text>
+<path d="M610,120 L740,120" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="675.0" y="112.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote, deadline ~9.9s</text>
+<text x="675.0" y="112.0" font-size="11" fill="#555" text-anchor="middle">GetQuote, deadline ~9.9s</text>
+<path d="M740,175 L610,175" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="675.0" y="191.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OK: quote</text>
+<text x="675.0" y="191.0" font-size="11" fill="#555" text-anchor="middle">OK: quote</text>
+<path d="M390,175 L260,175" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="325.0" y="191.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OK: quote + route</text>
+<text x="325.0" y="191.0" font-size="11" fill="#555" text-anchor="middle">OK: quote + route</text>
+<path d="M260,420 L390,420" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="325.0" y="412.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote, deadline 1s</text>
+<text x="325.0" y="412.0" font-size="11" fill="#555" text-anchor="middle">GetQuote, deadline 1s</text>
+<path d="M610,420 L740,420" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="675.0" y="412.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote, deadline ~0.9s</text>
+<text x="675.0" y="412.0" font-size="11" fill="#555" text-anchor="middle">GetQuote, deadline ~0.9s</text>
+<path d="M740,475 L610,475" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="675.0" y="491.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cancelled: budget expired</text>
+<text x="675.0" y="491.0" font-size="11" fill="#b8650a" text-anchor="middle">cancelled: budget expired</text>
+<path d="M390,475 L260,475" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="325.0" y="491.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DEADLINE_EXCEEDED</text>
+<text x="325.0" y="491.0" font-size="11" fill="#b8650a" text-anchor="middle">DEADLINE_EXCEEDED</text>
+<text x="500" y="605" font-size="12" fill="#555555" text-anchor="middle">QuoteService&#x27;s ~2s delay never changes — only the budget each caller hands it does.</text>
+</svg>
