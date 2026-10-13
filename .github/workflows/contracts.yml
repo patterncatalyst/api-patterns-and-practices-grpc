@@ -1,0 +1,173 @@
+name: contracts
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  contracts:
+    name: Lint & validate the proto contract (Buf)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # buf breaking needs the main ref available
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: buf lint
+        working-directory: contracts
+        run: buf lint
+
+      - name: buf build (compile; all imports resolve)
+        working-directory: contracts
+        run: buf build -o /dev/null
+
+      - name: buf breaking (vs main)
+        working-directory: contracts
+        run: |
+          # The evolution gate. On the first introduction main has no baseline
+          # protos, so skip; once this lands on main, every later change is
+          # checked against it (a reused tag / changed type / removed field fails).
+          if git ls-tree -r origin/main --name-only -- contracts/proto 2>/dev/null | grep -q '\.proto$'; then
+            buf breaking --against "../.git#branch=main,subdir=contracts"
+          else
+            echo "no baseline protos on main yet — skipping breaking check (first introduction)"
+          fi
+
+  site:
+    name: Validate site & build Jekyll
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Static validation (front matter, diagrams, coverage)
+        run: python -I scripts/validate.py
+
+      - name: Word-count gate (draft/verified chapters)
+        run: GATE=1 bash scripts/wordcount.sh
+
+      - name: Build Jekyll
+        run: bundle exec jekyll build --trace
+
+  k8s-manifests:
+    name: Validate Kubernetes manifests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install kubeconform
+        run: |
+          curl -sSL -o /tmp/kubeconform.tar.gz \
+            https://github.com/yannh/kubeconform/releases/latest/download/kubeconform-linux-amd64.tar.gz
+          tar -xzf /tmp/kubeconform.tar.gz -C /tmp kubeconform
+          sudo install -m 0755 /tmp/kubeconform /usr/local/bin/kubeconform
+          kubeconform -v
+
+      - name: Install helm
+        run: curl -sSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+
+      - name: Validate minikube kustomize manifests (strict)
+        run: |
+          if [ -d examples/22-mesh-loadbalancing/k8s ]; then
+            kubectl kustomize examples/22-mesh-loadbalancing/k8s | kubeconform -strict -summary
+          else
+            echo "examples/22-mesh-loadbalancing/k8s not present yet"
+          fi
+
+      - name: Validate OpenShift/CRC Helm chart
+        run: |
+          if [ -d examples/99-appendix-a-openshift-crc/helm ]; then
+            helm lint examples/99-appendix-a-openshift-crc/helm
+            helm template examples/99-appendix-a-openshift-crc/helm | kubeconform -ignore-missing-schemas -summary
+          else
+            echo "examples/99-appendix-a-openshift-crc/helm not present yet"
+          fi
+
+  discover-examples:
+    name: Discover examples
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.find.outputs.examples }}
+      any: ${{ steps.find.outputs.any }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        name: Build the example matrix from examples/*/verify.sh
+        run: |
+          shopt -s nullglob
+          names=()
+          for s in examples/*/verify.sh; do
+            names+=("$(basename "$(dirname "$s")")")
+          done
+          if [ ${#names[@]} -eq 0 ]; then
+            echo "any=false" >> "$GITHUB_OUTPUT"
+            echo "examples=[]" >> "$GITHUB_OUTPUT"
+            echo "No examples/*/verify.sh yet."
+            exit 0
+          fi
+          json=$(printf '%s\n' "${names[@]}" | sort | jq -R . | jq -cs .)
+          echo "any=true" >> "$GITHUB_OUTPUT"
+          echo "examples=$json" >> "$GITHUB_OUTPUT"
+          echo "Matrix: $json"
+
+  examples:
+    name: "verify: ${{ matrix.example }}"
+    needs: discover-examples
+    if: needs.discover-examples.outputs.any == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.discover-examples.outputs.examples) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify ${{ matrix.example }} (response semantics vs proto, both stacks)
+        # Retry up to 3x: each verify.sh is self-contained (compose up -> assert ->
+        # compose down via lib.sh's EXIT trap), so a retry starts from a clean slate.
+        # This absorbs transient CI flakes — image pulls, JVM cold-start timing,
+        # grpcurl download — without masking real failures (a deterministic bug
+        # fails all three attempts).
+        run: |
+          for attempt in 1 2 3; do
+            echo "::group::verify attempt $attempt/3 — ${{ matrix.example }}"
+            if bash "examples/${{ matrix.example }}/verify.sh"; then
+              echo "::endgroup::"
+              exit 0
+            fi
+            echo "::endgroup::"
+            echo "attempt $attempt failed for ${{ matrix.example }}"
+            [ "$attempt" -lt 3 ] && { echo "retrying in 15s..."; sleep 15; }
+          done
+          echo "all 3 attempts failed for ${{ matrix.example }}"
+          exit 1
+
+  examples-summary:
+    name: Verify stacks against the contract
+    needs: [discover-examples, examples]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gate on the example matrix result
+        run: |
+          result="${{ needs.examples.result }}"
+          echo "examples matrix result: $result"
+          if [ "${{ needs.discover-examples.outputs.any }}" = "true" ] && [ "$result" != "success" ]; then
+            echo "One or more example verify.sh jobs failed."
+            exit 1
+          fi
+          echo "All example verifications passed (or none to run)."
