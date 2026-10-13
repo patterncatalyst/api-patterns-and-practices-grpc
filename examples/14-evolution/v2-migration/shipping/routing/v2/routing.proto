@@ -1,0 +1,33 @@
+// Ch14 evolution demo — the package-version escape hatch. `legacy_notes`
+// (v1 field 4) is gone for good here, which the FILE breaking category would
+// reject inside v1 itself (see candidate-breaking/). It's allowed here only
+// because this message lives in a NEW package, `shipping.routing.v2`, at a
+// NEW file path — `buf breaking` has nothing on the baseline side at this
+// path to diff against, so there is nothing to call breaking.
+//
+// `reserved 4` and `reserved "legacy_notes"` are carried forward anyway:
+// nothing requires it, but it stops a future v3 (or a second v2 change)
+// from reusing field 4 for something unrelated to what v1 clients may still
+// remember it meant while both versions are deployed side by side.
+syntax = "proto3";
+
+package shipping.routing.v2;
+
+message GetQuoteRequest {
+  reserved 4;
+  reserved "legacy_notes";
+
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+  int32 cargo_count = 5;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}

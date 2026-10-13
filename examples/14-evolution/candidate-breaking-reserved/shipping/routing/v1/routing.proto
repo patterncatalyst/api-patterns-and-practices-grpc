@@ -1,0 +1,30 @@
+// Ch14 evolution demo — BREAKING-AND-RESERVED candidate. Proves the
+// "reserved" section's precise claim: marking a field's number `reserved`
+// on the way out does NOT make deleting it safe under this gate's FILE
+// breaking category. `legacy_notes` (field 4) is gone AND its number and
+// name are both reserved here — and `buf breaking` still reports
+// FIELD_NO_DELETE, identically to candidate-breaking/'s unreserved
+// deletion. The lenient exception, `FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED`,
+// lives only in the WIRE_JSON breaking category, which contracts/buf.yaml
+// (and this example's own buf.yaml) never selects.
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+message GetQuoteRequest {
+  reserved 4;
+  reserved "legacy_notes";
+
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}

@@ -30,8 +30,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T10 | Deadlines / timeouts / cancellation | Ch10 | `_docs/10-deadlines-cancellation.md` | verified |
 | T11 | Error handling + rich error model + retries | Ch11 | `_docs/11-error-handling.md` | verified |
 | T12 | Interceptors | Ch12 | `_docs/12-interceptors.md` | verified |
-| T13 | Schema design + pagination + FieldMask | Ch13 | `_docs/13-schema-design.md` | planned |
-| T14 | Evolution / versioning + buf breaking + BSR | Ch14 | `_docs/14-evolution-and-versioning.md` | planned |
+| T13 | Schema design + pagination + FieldMask | Ch13 | `_docs/13-schema-design.md` | verified |
+| T14 | Evolution / versioning + buf breaking + BSR | Ch14 | `_docs/14-evolution-and-versioning.md` | verified |
 | T15 | Backend I/O concurrency | Ch15 | `_docs/15-backend-io-concurrency.md` | planned |
 | T16 | Async / long-running jobs | Ch16 | `_docs/16-async-long-running-jobs.md` | planned |
 | T17 | Streaming at scale + flow control / backpressure | Ch17 | `_docs/17-streaming-at-scale.md` | planned |
@@ -71,8 +71,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 10 | `_docs/10-deadlines-cancellation.md` | Part 4 | verified |
 | 11 | `_docs/11-error-handling.md` | Part 4 | verified |
 | 12 | `_docs/12-interceptors.md` | Part 4 | verified |
-| 13 | `_docs/13-schema-design.md` | Part 5 | planned |
-| 14 | `_docs/14-evolution-and-versioning.md` | Part 5 | planned |
+| 13 | `_docs/13-schema-design.md` | Part 5 | verified |
+| 14 | `_docs/14-evolution-and-versioning.md` | Part 5 | verified |
 | 15 | `_docs/15-backend-io-concurrency.md` | Part 6 | planned |
 | 16 | `_docs/16-async-long-running-jobs.md` | Part 6 | planned |
 | 17 | `_docs/17-streaming-at-scale.md` | Part 7 | planned |
