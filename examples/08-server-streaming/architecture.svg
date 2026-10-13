@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="330" y="20" width="300" height="70" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="480.0" y="45.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">shipping.tracking.v1 contract</text>
+<text x="480.0" y="62.5" font-size="11.5" fill="#555555" text-anchor="middle">tracking.proto + type/v1/types.proto</text>
+<text x="480.0" y="77.5" font-size="11.5" fill="#555555" text-anchor="middle">ONE proto, two independent implementations</text>
+<rect x="120" y="150" width="260" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="250.0" y="180.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Quarkus</text>
+<text x="250.0" y="197.5" font-size="11.5" fill="#555555" text-anchor="middle">TrackingServiceImpl (@GrpcService)</text>
+<text x="250.0" y="212.5" font-size="11.5" fill="#555555" text-anchor="middle">Multi&lt;WatchShipmentResponse&gt;</text>
+<rect x="580" y="150" width="260" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="710.0" y="180.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Python</text>
+<text x="710.0" y="197.5" font-size="11.5" fill="#555555" text-anchor="middle">TrackingServiceServicer (grpc.aio)</text>
+<text x="710.0" y="212.5" font-size="11.5" fill="#555555" text-anchor="middle">async def WatchShipment(...) yield</text>
+<rect x="120" y="280" width="260" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="250.0" y="310.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">localhost:9080 -&gt; container:9000</text>
+<rect x="580" y="280" width="260" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="710.0" y="310.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">localhost:9081 -&gt; container:9000</text>
+<rect x="330" y="390" width="300" height="80" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="480.0" y="420.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client (grpcurl / verify.sh)</text>
+<text x="480.0" y="437.5" font-size="11.5" fill="#555555" text-anchor="middle">WatchShipment({bookingId: bkg_demo})</text>
+<text x="480.0" y="452.5" font-size="11.5" fill="#555555" text-anchor="middle">reads 4 events, in order, to completion</text>
+<rect x="330" y="500" width="300" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="480.0" y="523.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">otel-lgtm — opt-in `observability` profile</text>
+<text x="480.0" y="540.0" font-size="11.5" fill="#555555" text-anchor="middle">OTLP traces for the WatchShipment span</text>
+<path d="M400,90 L280,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="346.0" y="114.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="346.0" y="114.0" font-size="11" fill="#555" text-anchor="middle">generates</text>
+<path d="M560,90 L690,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="631.0" y="114.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates</text>
+<text x="631.0" y="114.0" font-size="11" fill="#555" text-anchor="middle">generates</text>
+<path d="M250,230 L250,280" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M710,230 L710,280" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M250,330 L420,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="341.0" y="354.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">1 request, 4-event stream</text>
+<text x="341.0" y="354.0" font-size="11" fill="#555" text-anchor="middle">1 request, 4-event stream</text>
+<path d="M710,330 L540,390" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="631.0" y="354.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">1 request, 4-event stream</text>
+<text x="631.0" y="354.0" font-size="11" fill="#555" text-anchor="middle">1 request, 4-event stream</text>
+<path d="M250,230 L420,500" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M710,230 L540,500" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+</svg>
