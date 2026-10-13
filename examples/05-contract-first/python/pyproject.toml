@@ -1,0 +1,27 @@
+[project]
+name = "shipping-python-ch05-routing"
+version = "1.0.0"
+description = "Ch5 contract-first anchor — gRPC RoutingService.GetQuote (Python side)."
+requires-python = ">=3.14"
+dependencies = [
+    "grpcio>=1.75,<2",
+    "grpcio-reflection>=1.75,<2",
+    "protobuf>=5,<7",
+    "opentelemetry-distro>=0.50b0",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.29",
+    "opentelemetry-instrumentation-grpc>=0.50b0",
+]
+
+# grpcio-tools is build-time only (generates stubs from contracts/proto/ —
+# see Containerfile); the runtime image never needs it.
+[dependency-groups]
+dev = [
+    "grpcio-tools>=1.75,<2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

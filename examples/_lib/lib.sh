@@ -164,7 +164,15 @@ wait_for_grpc() {
 grpc_call() {
   local target="$1"
   local method="$2"
-  local data="${3:-{}}"
+  # NOTE: not written as `local data="${3:-{}}"` — bash's parameter-expansion
+  # parser matches the FIRST unescaped '}' as the closing brace of ${...},
+  # so that form evaluates to `${3:-{}` followed by a stray literal '}',
+  # silently appending an extra '}' onto every request payload (breaks any
+  # non-empty $3, not just the empty-default case).
+  local data="$3"
+  if [[ -z "$data" ]]; then
+    data='{}'
+  fi
   ensure_grpcurl
   grpcurl $GRPCURL_OPTS -d "$data" "$target" "$method"
 }
