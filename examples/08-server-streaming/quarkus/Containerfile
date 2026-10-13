@@ -1,0 +1,54 @@
+# Ch8 server-streaming example — Quarkus, UBI 10, JVM mode (fast-jar), no native.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/08-server-streaming/quarkus/Containerfile \
+#     -t ch08-tracking-quarkus .
+# compose.yaml sets the build context to the repo root for exactly this
+# reason — contracts/proto/ is the single source of truth for the .proto
+# files, and this build COPIES the two files this service needs into
+# src/main/proto/ before `mvn package` runs (the quarkus-grpc extension then
+# generates the Mutiny stubs from them). The copy is build-time only — it is
+# never committed into this module (see ../.gitignore).
+#
+# Base image pins (re-check with `skopeo list-tags
+# docker://registry.access.redhat.com/ubi10/openjdk-25`, confirm with
+# `skopeo inspect`; bump deliberately):
+#   registry.access.redhat.com/ubi10/openjdk-25:1.24-15
+#   registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24-15 AS build
+
+WORKDIR /build
+COPY examples/08-server-streaming/quarkus/pom.xml .
+COPY examples/08-server-streaming/quarkus/src ./src
+
+# Copy only the two proto files TrackingService needs, preserving the
+# package path tracking.proto's import statement expects.
+COPY contracts/proto/shipping/type/v1/types.proto ./src/main/proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/tracking/v1/tracking.proto ./src/main/proto/shipping/tracking/v1/tracking.proto
+
+# The extra -Daether.* / -Dmaven.wagon.* flags give the resolver more room
+# under CI's shared Maven local-repo lock and more retries against a flaky
+# mirror — this module's build was seen stalling on syncContext contention
+# without them.
+RUN mvn -B package -DskipTests -Dmaven.javadoc.skip=true \
+      -Daether.syncContext.named.time=300 -Daether.syncContext.named.time.unit=SECONDS \
+      -Dmaven.wagon.http.retryHandler.count=3 -Daether.connector.http.retryHandler.count=3
+
+# ── Stage 2: Runtime (fast-jar) ─────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15
+
+ENV LANGUAGE='en_US:en'
+
+COPY --from=build --chown=185 /build/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /build/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /build/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /build/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 9000
+USER 185
+
+ENV JAVA_OPTS_APPEND="-Dquarkus.grpc.server.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]

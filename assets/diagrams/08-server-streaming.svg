@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 430" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="10" y="110" width="1020" height="170" rx="12" fill="#f7f7f7" stroke="#ddd"/>
+<text x="22" y="130" font-size="12" font-weight="700" fill="#1d1d1d">ONE HTTP/2 stream — opened by the request, held open until the server half-closes</text>
+<rect x="20" y="20" width="190" height="65" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="115.0" y="43.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="115.0" y="60.0" font-size="11.5" fill="#555555" text-anchor="middle">stub.watchShipment(request)</text>
+<text x="115.0" y="75.0" font-size="11.5" fill="#555555" text-anchor="middle">one call, one request message</text>
+<rect x="830" y="20" width="190" height="65" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="925.0" y="43.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="925.0" y="60.0" font-size="11.5" fill="#555555" text-anchor="middle">reads until completion</text>
+<text x="925.0" y="75.0" font-size="11.5" fill="#555555" text-anchor="middle">stream closed, no more events</text>
+<rect x="30" y="150" width="145" height="90" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="102.5" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Request frame</text>
+<text x="102.5" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">WatchShipmentRequest</text>
+<text x="102.5" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">{bookingId: bkg_demo}</text>
+<rect x="205" y="150" width="150" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="280.0" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event 1 of 4</text>
+<text x="280.0" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">PENDING @ USNYC</text>
+<text x="280.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">booking accepted</text>
+<rect x="375" y="150" width="150" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="450.0" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event 2 of 4</text>
+<text x="450.0" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">CONFIRMED @ USNYC</text>
+<text x="450.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">loaded onboard</text>
+<rect x="545" y="150" width="150" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="620.0" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event 3 of 4</text>
+<text x="620.0" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">IN_TRANSIT @ NLRTM</text>
+<text x="620.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">vessel arrived</text>
+<rect x="715" y="150" width="150" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="790.0" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Event 4 of 4</text>
+<text x="790.0" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">DELIVERED @ NLRTM</text>
+<text x="790.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">handed to consignee</text>
+<rect x="885" y="150" width="125" height="90" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="947.5" y="185.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Half-close</text>
+<text x="947.5" y="202.5" font-size="11.5" fill="#555555" text-anchor="middle">server ends the stream</text>
+<text x="947.5" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">no trailer error</text>
+<rect x="375" y="330" width="290" height="65" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="520.0" y="353.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<text x="520.0" y="370.0" font-size="11.5" fill="#555555" text-anchor="middle">TrackingServiceImpl / Servicer</text>
+<text x="520.0" y="385.0" font-size="11.5" fill="#555555" text-anchor="middle">Multi&lt;...&gt; / async-generator yield</text>
+<path d="M110,85 L102,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="112.0" y="111.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">1 request</text>
+<text x="112.0" y="111.5" font-size="11" fill="#555" text-anchor="middle">1 request</text>
+<path d="M175,195 L205,195" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M355,195 L375,195" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M525,195 L545,195" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M695,195 L715,195" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M865,195 L885,195" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M960,150 L925,85" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="948.5" y="111.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">half-close signals completion</text>
+<text x="948.5" y="111.5" font-size="11" fill="#555" text-anchor="middle">half-close signals completion</text>
+<path d="M520,330 L460,240" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="496.0" y="279.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">server yields 4 events, strictly in order</text>
+<text x="496.0" y="279.0" font-size="11" fill="#b8650a" text-anchor="middle">server yields 4 events, strictly in order</text>
+<text x="20" y="108" font-size="11" fill="#555555" text-anchor="start">shipping.tracking.v1.TrackingService.WatchShipment</text>
+</svg>
