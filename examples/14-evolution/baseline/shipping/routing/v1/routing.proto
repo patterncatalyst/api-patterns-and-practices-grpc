@@ -1,0 +1,26 @@
+// Ch14 evolution demo — a standalone, trimmed stand-in for
+// contracts/proto/shipping/routing/v1/routing.proto, used only to drive
+// `buf breaking` without touching the real contracts module (see README.md).
+// This is the BASELINE: the schema already shipped and running in production.
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+message GetQuoteRequest {
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+  // Dead weight: nothing sets or reads this anymore, but it stays in v1
+  // because this gate's FILE breaking category forbids deleting a field
+  // outright, reserved or not (see candidate-breaking/ and v2-migration/).
+  string legacy_notes = 4;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}

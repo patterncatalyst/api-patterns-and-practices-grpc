@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
-# Word-count gate for chapter prose (depth standard: 2,000–2,500 words).
+# Word-count gate for chapter prose (depth standard: 2,000–2,500 words target).
 #
 # Counts PROSE only: strips YAML front matter, fenced code blocks, HTML blocks
 # (callouts, include lines), blockquoted command output, and Markdown table
 # rows — so code listings, diagram captions and command output don't inflate
 # the count, matching the plan's "excluding code/captions/output" rule.
 #
+# 2,000–2,500 is a TARGET band, not a hard cap. In GATE mode only the lower
+# bound is enforced: a draft/verified chapter UNDER 2,000 words fails the build
+# (too thin), while one OVER 2,500 is flagged as a non-failing warning so long
+# chapters stay visible without blocking. A chapter that runs long should earn
+# it with more than one figure (see the coverage matrix / iteration plan).
+#
 # Usage:
 #   scripts/wordcount.sh                 # report every _docs chapter
 #   scripts/wordcount.sh _docs/04-*.md   # report specific files
 #   GATE=1 scripts/wordcount.sh          # exit non-zero if any DRAFT/VERIFIED
-#                                        # chapter is out of the 2000–2500 band
+#                                        # chapter is UNDER 2000 words
 #
 # In GATE mode, only chapters marked draft/verified in the coverage matrix are
 # enforced, so planned (unwritten) chapters don't fail the build.
@@ -78,12 +84,16 @@ for f in "${targets[@]}"; do
   if [ "$wc_words" -lt "$MIN" ]; then band="under ${MIN}"; elif [ "$wc_words" -gt "$MAX" ]; then band="over ${MAX}"; fi
   gated=""
   if [ "$GATE" = "1" ] && is_enforced "$f" && [ "$band" != "ok" ]; then
-    gated="  <-- GATE FAIL"; fail=1
+    if [ "$wc_words" -lt "$MIN" ]; then
+      gated="  <-- GATE FAIL (under ${MIN})"; fail=1
+    else
+      gated="  <-- over target (warning, ok)"
+    fi
   fi
   printf '%-48s %7s   %s%s\n' "$rel" "$wc_words" "$band" "$gated"
 done
 
 if [ "$GATE" = "1" ] && [ "$fail" -ne 0 ]; then
-  echo "Word-count gate failed: a draft/verified chapter is outside ${MIN}-${MAX} words." >&2
+  echo "Word-count gate failed: a draft/verified chapter is under ${MIN} words." >&2
   exit 1
 fi

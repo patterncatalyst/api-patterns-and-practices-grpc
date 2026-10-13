@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="450" height="280" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Nest — Leg&#x27;s identity depends on its parent Route</text>
+<rect x="490" y="20" width="450" height="280" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="502" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Reference by id — Carrier has its own lifecycle</text>
+<rect x="145" y="60" width="200" height="72" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="245.0" y="94.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Route</text>
+<text x="245.0" y="111.0" font-size="11.5" fill="#555555" text-anchor="middle">repeated Leg legs</text>
+<rect x="65" y="190" width="150" height="72" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="140.0" y="216.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Leg (1 of N)</text>
+<text x="140.0" y="233.5" font-size="11.5" fill="#555555" text-anchor="middle">no identity outside</text>
+<text x="140.0" y="248.5" font-size="11.5" fill="#555555" text-anchor="middle">Route.legs</text>
+<rect x="235" y="190" width="150" height="72" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="310.0" y="216.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Leg (2 of N)</text>
+<text x="310.0" y="233.5" font-size="11.5" fill="#555555" text-anchor="middle">ordinal position</text>
+<text x="310.0" y="248.5" font-size="11.5" fill="#555555" text-anchor="middle">only</text>
+<rect x="600" y="60" width="200" height="72" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="700.0" y="94.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Route</text>
+<text x="700.0" y="111.0" font-size="11.5" fill="#555555" text-anchor="middle">carrier_id: string</text>
+<rect x="600" y="190" width="200" height="72" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="700.0" y="216.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Carrier</text>
+<text x="700.0" y="233.5" font-size="11.5" fill="#555555" text-anchor="middle">own list, own lifecycle</text>
+<text x="700.0" y="248.5" font-size="11.5" fill="#555555" text-anchor="middle">fetched via CarrierService.Get</text>
+<path d="M245,132 L140,190" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="198.5" y="155.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">embedded</text>
+<text x="198.5" y="155.0" font-size="11" fill="#555" text-anchor="middle">embedded</text>
+<path d="M245,132 L310,190" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="283.5" y="155.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">embedded</text>
+<text x="283.5" y="155.0" font-size="11" fill="#555" text-anchor="middle">embedded</text>
+<path d="M700,132 L700,190" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="706.0" y="155.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">carrier_id (reference)</text>
+<text x="706.0" y="155.0" font-size="11" fill="#b8650a" text-anchor="middle">carrier_id (reference)</text>
+<text x="245" y="285" font-size="11" fill="#1d1d1d" text-anchor="middle">Nest when the child&#x27;s identity only makes sense as part of the parent.</text>
+<text x="715" y="285" font-size="11" fill="#1d1d1d" text-anchor="middle">Reference by id when the value has its own callers and lifecycle.</text>
+</svg>

@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 460" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="40" y="185" width="180" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="130.0" y="215.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">baseline/</text>
+<text x="130.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">routing.proto v1</text>
+<text x="130.0" y="247.5" font-size="11.5" fill="#555555" text-anchor="middle">shipped &amp; running</text>
+<rect x="280" y="40" width="220" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="390.0" y="70.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">candidate-safe/</text>
+<text x="390.0" y="87.5" font-size="11.5" fill="#555555" text-anchor="middle">+cargo_count, +ListRoutes</text>
+<text x="390.0" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">reserved 10, 11</text>
+<rect x="280" y="190" width="220" height="80" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="390.0" y="220.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">candidate-breaking/</text>
+<text x="390.0" y="237.5" font-size="11.5" fill="#555555" text-anchor="middle">2 fields deleted</text>
+<text x="390.0" y="252.5" font-size="11.5" fill="#555555" text-anchor="middle">weight_kg retyped</text>
+<rect x="280" y="340" width="220" height="80" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="390.0" y="370.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">candidate-breaking-reserved/</text>
+<text x="390.0" y="387.5" font-size="11.5" fill="#dddddd" text-anchor="middle">legacy_notes deleted</text>
+<text x="390.0" y="402.5" font-size="11.5" fill="#dddddd" text-anchor="middle">reserved 4 on the way out</text>
+<rect x="560" y="40" width="200" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="660.0" y="78.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">buf breaking</text>
+<text x="660.0" y="95.0" font-size="11.5" fill="#555555" text-anchor="middle">--against baseline</text>
+<rect x="560" y="190" width="200" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="660.0" y="228.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">buf breaking</text>
+<text x="660.0" y="245.0" font-size="11.5" fill="#555555" text-anchor="middle">--against baseline</text>
+<rect x="560" y="340" width="200" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="660.0" y="378.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">buf breaking</text>
+<text x="660.0" y="395.0" font-size="11.5" fill="#555555" text-anchor="middle">--against baseline</text>
+<rect x="810" y="40" width="160" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="890.0" y="70.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">exit 0</text>
+<text x="890.0" y="87.5" font-size="11.5" fill="#555555" text-anchor="middle">gate passes</text>
+<text x="890.0" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">candidate merges</text>
+<rect x="800" y="185" width="180" height="90" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="890.0" y="220.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100 — gate fails</text>
+<text x="890.0" y="237.5" font-size="11.5" fill="#dddddd" text-anchor="middle">destination_un_locode deleted</text>
+<text x="890.0" y="252.5" font-size="11.5" fill="#dddddd" text-anchor="middle">weight_kg: double -&gt; int32</text>
+<rect x="800" y="340" width="180" height="80" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="890.0" y="370.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100 — gate fails</text>
+<text x="890.0" y="387.5" font-size="11.5" fill="#dddddd" text-anchor="middle">legacy_notes deleted</text>
+<text x="890.0" y="402.5" font-size="11.5" fill="#dddddd" text-anchor="middle">reserved or not: still caught</text>
+<path d="M220,205 L560,80" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="396.0" y="136.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">baseline</text>
+<text x="396.0" y="136.5" font-size="11" fill="#555" text-anchor="middle">baseline</text>
+<path d="M220,220 L560,230" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="396.0" y="219.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">baseline</text>
+<text x="396.0" y="219.0" font-size="11" fill="#555" text-anchor="middle">baseline</text>
+<path d="M220,240 L560,380" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="396.0" y="304.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">baseline</text>
+<text x="396.0" y="304.0" font-size="11" fill="#555" text-anchor="middle">baseline</text>
+<path d="M500,80 L560,80" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="536.0" y="74.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">candidate</text>
+<text x="536.0" y="74.0" font-size="11" fill="#555" text-anchor="middle">candidate</text>
+<path d="M500,230 L560,230" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="536.0" y="224.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">candidate</text>
+<text x="536.0" y="224.0" font-size="11" fill="#555" text-anchor="middle">candidate</text>
+<path d="M500,380 L560,380" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="536.0" y="374.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">candidate</text>
+<text x="536.0" y="374.0" font-size="11" fill="#555" text-anchor="middle">candidate</text>
+<path d="M760,80 L810,80" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M760,230 L800,230" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M760,380 L800,380" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="500" y="440" font-size="12" fill="#1d1d1d" text-anchor="middle">verify.sh runs all three comparisons against the same baseline; only the safe candidate merges.</text>
+</svg>

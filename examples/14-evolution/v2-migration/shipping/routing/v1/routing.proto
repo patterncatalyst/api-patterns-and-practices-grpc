@@ -1,0 +1,24 @@
+// Unchanged copy of baseline/shipping/routing/v1/routing.proto. Carried
+// here so the v2 addition below is checked alongside its own untouched v1
+// file: `buf breaking` only ever diffs files it finds at the SAME path on
+// both sides, so an entirely new path (v2/routing.proto) is invisible to
+// it — which is the whole point of this demo (see README.md).
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+message GetQuoteRequest {
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+  string legacy_notes = 4;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+}

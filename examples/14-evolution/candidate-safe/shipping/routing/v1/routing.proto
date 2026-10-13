@@ -1,0 +1,40 @@
+// Ch14 evolution demo — SAFE candidate. Three changes, all backward- and
+// forward-compatible under `buf breaking`'s FILE category:
+//   1. a new field (cargo_count = 5)
+//   2. a new RPC (ListRoutes)
+//   3. a defensive `reserved` for numbers and a name nothing has used yet,
+//      blocking a future field from silently landing on them
+// `legacy_notes` (field 4) is untouched — see candidate-breaking/ for why
+// removing it, even here, would fail this gate.
+syntax = "proto3";
+
+package shipping.routing.v1;
+
+message GetQuoteRequest {
+  reserved 10, 11;
+  reserved "internal_only";
+
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+  string legacy_notes = 4;
+  int32 cargo_count = 5;
+}
+
+message GetQuoteResponse {
+  string currency = 1;
+  string amount = 2;
+}
+
+message ListRoutesRequest {
+  int32 page_size = 1;
+}
+
+message ListRoutesResponse {
+  repeated string route_ids = 1;
+}
+
+service RoutingService {
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+  rpc ListRoutes(ListRoutesRequest) returns (ListRoutesResponse);
+}
