@@ -82,7 +82,16 @@ all-chapters (no releasable checkpoint); Poetry for Python (match the REST site'
 
 Legend: **[H]** hands-on (runnable in BOTH stacks against a committed `.proto`), **[C]** concept.
 **Depth standard (every chapter):** 2,000–2,500 words of prose (excl. code listings,
-captions, command output) + **≥1 paired SVG+.excalidraw diagram**.
+captions, command output) is the **target band, not a hard cap** — a chapter may run
+longer when the material earns it. The `wordcount.sh` gate enforces only the 2,000-word
+floor; over-target is a non-failing warning.
+
+**Diagrams:** a chapter carries roughly **one focused diagram per major concept** — in
+practice **≥2 paired SVG+.excalidraw figures** for any chapter near or above the target
+band, and never fewer than one. A ~2,500-word chapter with a single figure is
+under-illustrated; prefer several focused figures over one crowded multi-band figure.
+(Chapters Ch1–Ch12 predate this convention at one figure each; backfill is deferred, new
+chapters from r05 forward follow it.)
 
 **Part 0 — Prerequisites & the Lab** · _r01_
 _After this part, the reader has the contract-first (proto + Buf) toolchain generating stubs and serving in both stacks locally._
@@ -212,7 +221,7 @@ whose assertions are exactly the chapter's "On the wire" box.
 - **Ch27** capstone: all services, all four RPC modes, deadlines/retries/rich errors, mTLS+JWT, OTel seam, buf-gated, ghz-tested, Compose→minikube; verify asserts the end-to-end booking→route→track flow both stacks.
 - **Appendix A** CRC deploy; verify asserts a traced call through an HTTP/2 Route + STRICT mTLS canary.
 
-## Diagrams (≥1 per chapter, paired `.svg`+`.excalidraw` in `assets/diagrams/`)
+## Diagrams (one per major concept — ≥2 per full-length chapter from r05 on; paired `.svg`+`.excalidraw` in `assets/diagrams/`)
 
 Generated via the ported `scripts/generate_diagram.py` (lgtm-diagram-generator), house
 amber on Red Hat fonts; captions unique and sequential per doc (version-aware sort —
@@ -285,7 +294,7 @@ template residue; one unary RPC running and traced end to end through LGTM.
 4. `buf lint` passes and `buf breaking` runs against a committed baseline on every push; a deliberate breaking change (reused tag / changed type) **fails** CI; a safe additive edit passes.
 5. Codetab shells and the `contracts/proto/` layout accept a `go/` or `cpp/` stack with no proto or harness change (demonstrated by a stubbed discovery entry).
 6. `_plans/coverage-matrix.md` maps every PRD/user topic to a chapter; CI fails on a missing mapped-and-claimed file.
-7. Each chapter is 2,000–2,500 words excl. code/captions/output (`scripts/wordcount.sh`); every chapter embeds ≥1 paired SVG+.excalidraw; the verification footer flips only on green in both stacks.
+7. Each chapter clears the 2,000-word floor (`scripts/wordcount.sh`; 2,000–2,500 is a soft target, over-target warns not fails); every chapter embeds paired SVG+.excalidraw figures — one per major concept, ≥2 for a full-length chapter (r05 on); the verification footer flips only on green in both stacks.
 8. `bundle exec jekyll build` green on every push; no lgtm-jekyll / REST / eBPF template residue.
 9. Runs on all three tiers: Compose (Ch27), minikube with the LB problem demonstrated and fixed (Ch22/Ch27), CRC (Appendix A), each with a traced call.
 10. All four RPC types are implemented and verified (unary Ch5/7; server/client/bidi Ch8/9); Ch17 asserts streaming order/completion + backpressure.
