@@ -1,0 +1,8 @@
+# Protos copied from contracts/ into each service module for local `mvn`/
+# `uv` runs outside Docker (the Containerfiles do the same copy inside the
+# build context — see quarkus/Containerfile and python/Containerfile).
+# contracts/proto/ stays the single source of truth; these copies are
+# build-time-only and never committed.
+quarkus/src/main/proto/
+python/proto/
+python/generated/

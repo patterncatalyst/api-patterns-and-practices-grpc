@@ -1,0 +1,20 @@
+// Ch3 teaching proto — NOT part of the shipping contract under contracts/.
+// It exists only so this example can round-trip a `oneof`, which none of the
+// real shipping messages currently need. Contract evolution is deliberately
+// out of scope here; see contracts/proto/shipping/type/v1/types.proto for the
+// real source of truth this chapter's prose walks through.
+syntax = "proto3";
+
+package ch03.demo.v1;
+
+// A Notification carries exactly one delivery channel. Setting a second
+// field clears whichever one was set first — the wire never carries two
+// populated branches at once, and the unset branches never appear in the
+// serialized bytes at all.
+message Notification {
+  oneof channel {
+    string email = 1;
+    string sms = 2;
+    string push_token = 3;
+  }
+}
