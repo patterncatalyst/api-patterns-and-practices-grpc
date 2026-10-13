@@ -26,6 +26,10 @@ Three changes are breaking, because each one makes an old reader misinterpret by
 - **Changing a field's type** to something with a different wire type, such as `double` to `string`, or even to a same-wire-type value whose meaning differs, such as `double weight_kg` becoming `double weight_lb` at the same number.
 - **Removing a field a reader still depends on.** The bytes simply stop arriving; a reader that doesn't handle absence as a real case — treating a missing optional as "zero" rather than "unset," for example — draws a wrong conclusion from silence.
 
+The two lists line up column for column: renaming a field is safe because the number never moves, renumbering it is breaking for the same reason in reverse.
+
+{% include excalidraw.html file="14-evolution-compatibility" alt="A matrix of schema changes under buf breaking's FILE category. Safe row: rename a field (origin_un_locode to origin, number 1 unchanged), add a field (cargo_count at an unused number), add an RPC (ListRoutes, an old stub never calls it), widen a numeric type (int32 to int64, same varint wire type). Breaking row, aligned under it: renumber a field (field 1 to field 6, an old binary still sends field 1), reuse a number (a new field lands on an old number and is read as the wrong type), change a field's type (double to string, a different wire type), remove a field a reader needs (bytes stop arriving). A dashed line connects rename to renumber, calling out that the field number — not the name — is what can never move once a message has shipped." caption="Figure 14.1 — safe changes leave every existing field number's meaning untouched; breaking changes move, reuse, retype, or remove one a reader still depends on." %}
+
 ## `reserved`: what it actually buys you
 
 Protobuf's `reserved` keyword blocks the compiler from accepting a field declaration that reuses a given number or name:
@@ -54,6 +58,8 @@ This is easy to overstate. `reserved` does not make deleting a field safe — a 
 Every safe change named so far is additive: new field, new RPC, wider type. Eventually a schema needs a change that isn't additive at all — `weight_kg` really should have been `weight_grams`, or `GetQuoteRequest` needs a shape no amount of careful addition can produce. That's what a new package version is for. `shipping.routing.v1` becomes `shipping.routing.v2` as a new `package` statement in a new file at a new path — `shipping/routing/v2/routing.proto` beside the untouched `v1/routing.proto` — not an edit to the v1 file in place. The two packages coexist on disk and at runtime: `RoutingServiceImpl` for v1 keeps serving `shipping.routing.v1.RoutingService` exactly as before, while a second implementation serves `shipping.routing.v2.RoutingService`, and existing v1 clients never notice v2 exists until someone migrates them, on their own schedule.
 
 This is the second, more durable use for `reserved`: when v2 drops a field v1 carried — `legacy_notes`, say — carrying `reserved 4; reserved "legacy_notes";` forward into the v2 message costs nothing and buys the same protection v1 would have wanted. No tool requires it; it's the same discipline applied one version later, so a v3 can't reuse the number for something a long-lived v1-era payload might still carry through code that doesn't distinguish the packages carefully.
+
+{% include excalidraw.html file="14-package-versioning-v2" alt="shipping.routing.v1 and shipping.routing.v2 coexisting during a rolling deploy. RoutingServiceImpl v1 keeps serving old clients still generated from the v1 package; a second RoutingServiceImpl v2, in a new file at shipping/routing/v2/routing.proto, serves new clients that have migrated. The v2 message reserves field 4 and the name legacy_notes, the same field v1 still carries, so a future v3 cannot reuse it. A dashed boundary around buf breaking shows the v1-against-baseline diff never crossing into the v2 file, because the two packages live at different paths and the tool only ever compares files at a matching path." caption="Figure 14.2 — v1 and v2 coexist on disk and at runtime; old clients keep talking to v1 while new clients move to v2, and the new package path is invisible to buf breaking by construction." %}
 
 ## The `buf breaking` gate
 
@@ -98,7 +104,7 @@ message GetQuoteRequest {
                                 // weight_kg changed double -> int32
 ```
 
-`verify.sh` runs `buf breaking <candidate> --against baseline` against each, plus a third, `v2-migration/`, that drops the same field inside a new `shipping.routing.v2` package:
+`verify.sh` runs `buf breaking <candidate> --against baseline` against each, plus a fourth, `candidate-breaking-reserved/`, that reserves the same field it deletes, and a fifth, `v2-migration/`, that drops the same field inside a new `shipping.routing.v2` package:
 
 ```text
 === Step 2: SAFE candidate (add field, add RPC, defensive reserved) ===
@@ -110,11 +116,17 @@ candidate-breaking/shipping/routing/v1/routing.proto:13:1:Previously present fie
 candidate-breaking/shipping/routing/v1/routing.proto:13:1:Previously present field "4" with name "legacy_notes" on message "GetQuoteRequest" was deleted.
 candidate-breaking/shipping/routing/v1/routing.proto:15:3:Field "3" with name "weight_kg" on message "GetQuoteRequest" changed type from "double" to "int32".
 
-=== Step 4: v2-migration (new package carries the retired field as reserved) ===
+=== Step 4: BREAKING-AND-RESERVED candidate (delete a field, reserve its number anyway) ===
+ok — buf breaking candidate-breaking-reserved --against baseline: exit 100 (reserved field 4 still can't be deleted)
+candidate-breaking-reserved/shipping/routing/v1/routing.proto:14:1:Previously present field "4" with name "legacy_notes" on message "GetQuoteRequest" was deleted.
+
+=== Step 5: v2-migration (new package carries the retired field as reserved) ===
 ok — buf breaking v2-migration --against baseline: exit 0 (shipping.routing.v2 is a new file; v1 is untouched)
 ```
 
-Each line names the field, the message, and the exact violation, which is what turns a CI failure into something a reviewer can act on without re-deriving the diff by hand. The safe candidate's `reserved 10, 11` block passes because nothing on the baseline side ever used those numbers; the breaking candidate's deletions fail regardless of whether they'd been reserved first, for the reason the `reserved` section above already gave. The v2 package's drop of field 4 passes for a different reason: `buf breaking` only ever diffs a file against the file at the *same path* on the other side, and `shipping/routing/v2/routing.proto` has no counterpart in `baseline/`. See `examples/14-evolution/README.md` for the full walkthrough.
+Each line names the field, the message, and the exact violation, which is what turns a CI failure into something a reviewer can act on without re-deriving the diff by hand. The safe candidate's `reserved 10, 11` block passes because nothing on the baseline side ever used those numbers; the breaking candidate's deletions fail regardless of whether they'd been reserved first — and `candidate-breaking-reserved/` makes that claim self-demonstrating rather than asserted: it deletes `legacy_notes` *and* marks field 4 and its name `reserved` on the way out, and `buf breaking` reports the identical `FIELD_NO_DELETE`-style violation anyway, for the reason the `reserved` section above already gave. The v2 package's drop of field 4 passes for a different reason: `buf breaking` only ever diffs a file against the file at the *same path* on the other side, and `shipping/routing/v2/routing.proto` has no counterpart in `baseline/`. See `examples/14-evolution/README.md` for the full walkthrough.
+
+{% include excalidraw.html file="14-buf-breaking-gate" alt="The buf breaking gate as verify.sh runs it: a safe candidate compared against baseline exits 0 and the candidate merges; a breaking candidate compared against the same baseline exits 100, naming destination_un_locode deleted and weight_kg retyped from double to int32; a third comparison shows the same deletion with the field marked reserved still exits 100, proving reservation does not excuse a deletion under the FILE breaking category." caption="Figure 14.3 — the buf breaking gate: baseline compared against each candidate, safe passes at exit 0, breaking (reserved or not) fails at exit 100 naming the violation." %}
 
 This example lives entirely outside `contracts/`: a proto built to fail `buf breaking` has no business near the module every stack in this book compiles against. To see the real consequence — the real `contracts.yml` CI job turning red against the real `shipping.routing.v1.routing.proto` — run the on-demand script `scripts/ch14-demo-breaking.sh`. It forks a throwaway branch off the current `main`, renumbers a real field in `routing.proto`, pushes the branch, and lets the reader watch the real `buf breaking --against main` job fail in GitHub Actions, on a contract that was never actually merged. The branch is intentionally red: it exists to be watched failing, not to be fixed or merged, and `--cleanup` deletes both the local and the remote copy once the point has been made:
 
@@ -135,8 +147,6 @@ This book does not stand up a live BSR module for `shipping.routing.v1`: a real 
 
 <div class="callout callout--safe"><p class="callout__title">Decision</p><p>A monorepo with every consumer inside it — this book's own shape, one <code>contracts/</code> directory, a handful of services in the same checkout — gets nothing from the BSR that a <code>COPY</code> at build time doesn't already provide, and it avoids a dependency on an external registry's uptime for every build. The BSR earns its cost the moment a schema has a consumer outside that boundary: a partner integration, a public client SDK, a second repository that shouldn't need to clone this one to generate stubs. At that point, the registry's versioning and its hosted SDK generation replace what would otherwise be a brittle, manually-copied <code>.proto</code> file passed around over chat or committed into someone else's repository by hand — the exact failure mode contract-first was adopted in Chapter 5 to eliminate inside this repository, recurring one organizational boundary further out. Choose a local, filesystem-based contract for an internal multi-service repository; reach for the BSR the moment a consumer sits outside it.</p></div>
 
-{% include excalidraw.html file="14-evolution-compatibility" alt="shipping.routing.v1's buf breaking gate: a safe candidate (new field, new RPC, defensive reserved) passes with exit 0, a breaking candidate (deleted fields, a changed field type) fails with exit 100; below it, a new shipping.routing.v2 package drops the same retired field and still passes, because buf breaking only diffs files at a matching path and the v2 file has no v1-side counterpart; a Buf Schema Registry lane shows buf push distributing the module as a versioned, pinned, generated SDK to a consuming service, requiring an account this book does not stand up live." caption="Figure 14.1 — buf breaking gates in-package changes; a new package sidesteps the gate by construction; the BSR distributes the result." %}
-
 ## Where this goes next
 
 The gate this chapter wires stays in force for every later change to `routing.proto`, `types.proto`, `quote.proto`, and `tracking.proto`: any field Part 6's async methods add, any message Part 8's streaming chapters extend, passes through the same `buf breaking --against main` check before it reaches a stack that generates code from it. Chapter 5 already depended on this gate existing without spelling out its rules; this chapter is the one that makes the dependency precise. A reader who wants to watch the gate fail against the actual contract this book ships runs `scripts/ch14-demo-breaking.sh` and sees the CI run turn red — then deletes the branch it made and moves on, since that branch was never meant to merge.
@@ -147,8 +157,8 @@ A field renumber is the mistake `buf breaking` exists to catch before it ever re
 
 ```bash
 cd contracts
-# routing.proto, before:  shipping.type.v1.Cargo cargo = 3;
-# routing.proto, after:   shipping.type.v1.Cargo cargo = 7;
+# routing.proto, before:  repeated shipping.type.v1.Cargo cargo = 3;
+# routing.proto, after:   repeated shipping.type.v1.Cargo cargo = 7;
 buf breaking --against '.git#branch=main,subdir=contracts'
 ```
 

@@ -14,6 +14,11 @@ yourself:
   has used yet.
 - `candidate-breaking/` — the seeded-failure proof: two deleted fields and
   one changed field type, each independently caught.
+- `candidate-breaking-reserved/` — the same `legacy_notes` (field 4)
+  deletion as `candidate-breaking/`, except its number and name are *also*
+  marked `reserved` on the way out. Still fails `buf breaking`, proving the
+  chapter's claim that `reserved` blocks a future field from reusing a
+  retired number — it does not excuse the deletion itself.
 - `v2-migration/` — the package-version escape hatch: a new
   `shipping.routing.v2` package that drops the same field
   `candidate-breaking/` got rejected for deleting, carrying `reserved`
@@ -21,7 +26,7 @@ yourself:
 - `buf.yaml` — `lint: STANDARD`, `breaking: FILE`, the same two rule sets
   `contracts/buf.yaml` uses, so this example's gate behaves exactly like the
   real one.
-- `verify.sh` — runs all four steps from a clean checkout: no pre-installed
+- `verify.sh` — runs all five steps from a clean checkout: no pre-installed
   `buf` required (downloads a pinned release binary into `.bin/` the first
   time, same pattern as `examples/03-protobuf/verify.sh`), nothing left
   running afterward.
@@ -33,7 +38,7 @@ cd examples/14-evolution
 ./verify.sh
 ```
 
-Four steps, all read-only against the proto trees in this directory:
+Five steps, all read-only against the proto trees in this directory:
 
 1. **`buf lint` + `buf build` on `baseline/`.** Proves the starting schema
    passes the `STANDARD` lint rules and compiles — the same two gates
@@ -45,7 +50,13 @@ Four steps, all read-only against the proto trees in this directory:
    three specific violations seeded into that candidate — not just "it
    failed" — so a change to `buf`'s own wording, or an unrelated failure,
    can't accidentally masquerade as the expected result.
-4. **The v2 migration (bonus).** `buf breaking v2-migration --against
+4. **The breaking-and-reserved candidate.** `buf breaking
+   candidate-breaking-reserved --against baseline` must *also* exit
+   non-zero: the same `legacy_notes` deletion, but with field 4's number and
+   name reserved on the way out. Reservation doesn't change the verdict,
+   which is exactly the point — see "What the breaking candidate catches"
+   below.
+5. **The v2 migration (bonus).** `buf breaking v2-migration --against
    baseline` must exit `0`, proving that a new package version is not
    merely *allowed* to drop a field — it's structurally invisible to this
    gate, because `buf breaking` only ever diffs files it finds at the same
@@ -55,9 +66,10 @@ Expect output ending in:
 
 ```text
 PASS — buf breaking caught every seeded breaking change (deleted fields,
-changed field type) in the breaking candidate, passed the safe candidate
-(added field, added RPC, defensive reserved) clean, and confirmed that a
-new package version sidesteps the same gate by construction.
+changed field type) in the breaking candidate, caught the same deletion
+again even with the field's number and name reserved, passed the safe
+candidate (added field, added RPC, defensive reserved) clean, and confirmed
+that a new package version sidesteps the same gate by construction.
 ```
 
 ## What the safe candidate actually changes
@@ -83,7 +95,7 @@ numbers and a name nothing has used yet, so a future field can never land on
 them by accident. `legacy_notes` (field 4) is left in place; see the next
 section for why removing it here would fail.
 
-## What the breaking candidate catches, and what it doesn't prove
+## What the breaking candidate catches — and what `candidate-breaking-reserved/` proves directly
 
 ```text
 candidate-breaking/.../routing.proto: field "2" (destination_un_locode) was deleted.
@@ -93,10 +105,20 @@ candidate-breaking/.../routing.proto: field "3" (weight_kg) changed type from "d
 
 The second line is the one worth sitting with. `legacy_notes` is dead
 weight — nothing in this proto's story sets or reads it — and it still fails
-the gate the moment it's deleted. **Marking a field `reserved` does not make
-deleting it safe under this gate's `FILE` breaking category.** `reserved`
-stops a *future* field from reusing a retired number or name; it does
-nothing to permit the deletion itself. (Buf does ship a rule,
+the gate the moment it's deleted. But `candidate-breaking/` deletes an
+*unreserved* field, which leaves an obvious question: would reserving the
+number first have changed the outcome? `candidate-breaking-reserved/`
+answers it directly — same deletion, with `reserved 4; reserved
+"legacy_notes";` added on the way out:
+
+```text
+candidate-breaking-reserved/.../routing.proto: field "4" (legacy_notes) was deleted.
+```
+
+Identical failure. **Marking a field `reserved` does not make deleting it
+safe under this gate's `FILE` breaking category.** `reserved` stops a
+*future* field from reusing a retired number or name; it does nothing to
+permit the deletion itself. (Buf does ship a rule,
 `FIELD_NO_DELETE_UNLESS_NAME_RESERVED` / `..._NUMBER_RESERVED`, that grants
 exactly that exception — but it lives in the `WIRE_JSON` category, not
 `FILE`, which is why `contracts/buf.yaml`'s choice of `FILE` matters: see the

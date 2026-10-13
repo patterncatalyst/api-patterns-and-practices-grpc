@@ -6,7 +6,7 @@
 # stand-in for shipping.routing.v1.RoutingService (NOT the real module under
 # contracts/, which this example never touches or imports).
 #
-# Four steps:
+# Five steps:
 #
 #   1. `buf lint` + `buf build` on baseline/ — the schema compiles and passes
 #      the same STANDARD rule set contracts/buf.yaml uses.
@@ -17,7 +17,13 @@
 #      a deleted field, a second deleted field, and a changed field type.
 #      Must exit non-zero, and the failure text must name the specific
 #      violations, not just "something broke".
-#   4. BONUS — the package-version escape hatch: `buf breaking v2-migration
+#   4. BREAKING-AND-RESERVED case: `buf breaking candidate-breaking-reserved
+#      --against baseline` — the same field 4 deleted, but this time its
+#      number and name are ALSO marked `reserved` on the way out. Must still
+#      exit non-zero, proving the chapter's "reserved" section claim that
+#      reservation does not make deletion safe under the FILE breaking
+#      category — it only blocks a future field from reusing the number.
+#   5. BONUS — the package-version escape hatch: `buf breaking v2-migration
 #      --against baseline` succeeds even though v2's message drops the same
 #      field candidate-breaking got rejected for deleting, because v2 lives
 #      at a new file path `buf breaking` never compares against v1.
@@ -132,11 +138,36 @@ for needle in \
 done
 
 # ---------------------------------------------------------------------------
-# Step 4 (bonus): the package-version escape hatch
+# Step 4: the BREAKING-AND-RESERVED candidate must also fail — reservation
+# does not make a deletion safe under the FILE breaking category.
 # ---------------------------------------------------------------------------
 
 echo
-echo "=== Step 4: v2-migration (new package carries the retired field as reserved) ==="
+echo "=== Step 4: BREAKING-AND-RESERVED candidate (delete a field, reserve its number anyway) ==="
+reserved_out=""
+reserved_rc=0
+reserved_out="$(buf breaking candidate-breaking-reserved --against baseline 2>&1)" || reserved_rc=$?
+
+if [[ $reserved_rc -eq 0 ]]; then
+  echo "verify.sh: FAIL — expected the breaking-and-reserved candidate to fail buf breaking (reserved does not excuse a deletion under FILE), but it passed" >&2
+  exit 1
+fi
+echo "ok — buf breaking candidate-breaking-reserved --against baseline: exit $reserved_rc (reserved field 4 still can't be deleted)"
+echo "$reserved_out"
+
+reserved_needle='name "legacy_notes" on message "GetQuoteRequest" was deleted'
+if [[ "$reserved_out" != *"$reserved_needle"* ]]; then
+  echo "verify.sh: FAIL — expected breaking-change text not found: $reserved_needle" >&2
+  exit 1
+fi
+echo "ok — found expected violation: $reserved_needle"
+
+# ---------------------------------------------------------------------------
+# Step 5 (bonus): the package-version escape hatch
+# ---------------------------------------------------------------------------
+
+echo
+echo "=== Step 5: v2-migration (new package carries the retired field as reserved) ==="
 v2_out=""
 v2_rc=0
 v2_out="$(buf breaking v2-migration --against baseline 2>&1)" || v2_rc=$?
@@ -150,6 +181,8 @@ echo "ok — buf breaking v2-migration --against baseline: exit 0 (shipping.rout
 
 echo
 echo "PASS — buf breaking caught every seeded breaking change (deleted fields," \
-     "changed field type) in the breaking candidate, passed the safe candidate" \
-     "(added field, added RPC, defensive reserved) clean, and confirmed that a" \
-     "new package version sidesteps the same gate by construction."
+     "changed field type) in the breaking candidate, caught the same deletion" \
+     "again even with the field's number and name reserved, passed the safe" \
+     "candidate (added field, added RPC, defensive reserved) clean, and" \
+     "confirmed that a new package version sidesteps the same gate by" \
+     "construction."
