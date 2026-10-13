@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 680" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="920" height="100" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Server — RoutingService.GetQuote(origin=&quot;ZZZZZ&quot;)</text>
+<rect x="20" y="132" width="920" height="280" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="152" font-size="12" font-weight="700" fill="#1d1d1d">On the wire — google.rpc.Status + details[] (trailers)</text>
+<rect x="20" y="422" width="920" height="96" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="442" font-size="12" font-weight="700" fill="#1d1d1d">Client</text>
+<rect x="20" y="528" width="920" height="120" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="548" font-size="12" font-weight="700" fill="#1d1d1d">Client decision — branch on the code</text>
+<rect x="330" y="38" width="300" height="64" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="480.0" y="68.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.GetQuote</text>
+<text x="480.0" y="85.0" font-size="11.5" fill="#555555" text-anchor="middle">a failure, not a crash</text>
+<rect x="330" y="152" width="300" height="78" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="480.0" y="181.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">google.rpc.Status</text>
+<text x="480.0" y="198.5" font-size="11.5" fill="#555555" text-anchor="middle">code: NOT_FOUND (5)</text>
+<text x="480.0" y="213.5" font-size="11.5" fill="#555555" text-anchor="middle">message: safe, human text</text>
+<rect x="40" y="290" width="280" height="92" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="180.0" y="326.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ErrorInfo</text>
+<text x="180.0" y="343.5" font-size="11.5" fill="#555555" text-anchor="middle">reason: ORIGIN_UNROUTABLE</text>
+<text x="180.0" y="358.5" font-size="11.5" fill="#555555" text-anchor="middle">domain: shipping.routing.v1</text>
+<rect x="340" y="290" width="280" height="92" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="480.0" y="326.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">BadRequest</text>
+<text x="480.0" y="343.5" font-size="11.5" fill="#555555" text-anchor="middle">field_violations[]</text>
+<text x="480.0" y="358.5" font-size="11.5" fill="#555555" text-anchor="middle">field: origin.un_locode</text>
+<rect x="640" y="290" width="280" height="92" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="780.0" y="326.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RetryInfo</text>
+<text x="780.0" y="343.5" font-size="11.5" fill="#555555" text-anchor="middle">retry_delay: 2s</text>
+<text x="780.0" y="358.5" font-size="11.5" fill="#555555" text-anchor="middle">set only with UNAVAILABLE</text>
+<rect x="330" y="440" width="300" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="480.0" y="473.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">gRPC client</text>
+<text x="480.0" y="490.0" font-size="11.5" fill="#555555" text-anchor="middle">reads the code, unpacks details[]</text>
+<rect x="40" y="556" width="400" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="240.0" y="591.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Retryable</text>
+<text x="240.0" y="608.5" font-size="11.5" fill="#555555" text-anchor="middle">UNAVAILABLE / DEADLINE_EXCEEDED (idempotent) /</text>
+<text x="240.0" y="623.5" font-size="11.5" fill="#555555" text-anchor="middle">RESOURCE_EXHAUSTED -&gt; backoff and retry</text>
+<rect x="480" y="556" width="400" height="90" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="680.0" y="591.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Not retryable</text>
+<text x="680.0" y="608.5" font-size="11.5" fill="#555555" text-anchor="middle">INVALID_ARGUMENT / NOT_FOUND / FAILED_PRECONDITION</text>
+<text x="680.0" y="623.5" font-size="11.5" fill="#555555" text-anchor="middle">-&gt; surface to the caller now</text>
+<path d="M480,102 L480,152" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M480,230 L180,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M480,230 L480,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="486.0" y="254.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">details[] (Any)</text>
+<text x="486.0" y="254.0" font-size="11" fill="#555" text-anchor="middle">details[] (Any)</text>
+<path d="M480,230 L780,290" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M180,382 L400,440" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M480,382 L480,440" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="486.0" y="405.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">trailers</text>
+<text x="486.0" y="405.0" font-size="11" fill="#555" text-anchor="middle">trailers</text>
+<path d="M780,382 L560,440" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M400,510 L240,556" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="326.0" y="527.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">retryable</text>
+<text x="326.0" y="527.0" font-size="11" fill="#b8650a" text-anchor="middle">retryable</text>
+<path d="M560,510 L680,556" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="626.0" y="527.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">not retryable</text>
+<text x="626.0" y="527.0" font-size="11" fill="#555" text-anchor="middle">not retryable</text>
+<text x="480" y="668" font-size="11" fill="#555555" text-anchor="middle">The code says whether to retry; details[] say what to tell a human and how long to wait.</text>
+</svg>

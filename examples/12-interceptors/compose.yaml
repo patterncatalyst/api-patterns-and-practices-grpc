@@ -1,0 +1,67 @@
+# Ch12 interceptors ANCHOR — compose topology for
+# shipping.routing.v1.RoutingService.GetQuote behind AuthLoggingInterceptor.
+#
+# Default `docker compose up` brings up: quarkus, python. Both are generated
+# from the SAME proto (contracts/proto/shipping/{type,routing}/v1/*.proto)
+# and gate every call on an `authorization` metadata entry before GetQuote
+# ever runs — see ../README.md for the interceptor contract.
+# The build context for both services is the REPO ROOT so each
+# Containerfile can COPY the two proto files it needs straight from
+# contracts/ (the single source of truth) — see quarkus/Containerfile and
+# python/Containerfile for the exact COPY lines.
+#
+# The LGTM observability stack is opt-in (`--profile observability`) so CI
+# and a first boot stay fast; both apps are wired for OTLP export but start
+# and serve GetQuote fine without a collector listening.
+#
+# Usage:
+#   docker compose up --build                          # app stack only
+#   docker compose --profile observability up --build  # + Grafana LGTM
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/12-interceptors/quarkus/Containerfile
+    container_name: ch12-routing-quarkus
+    ports:
+      - "9120:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/12-interceptors/python/Containerfile
+    container_name: ch12-routing-python
+    ports:
+      - "9121:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast. The OTEL_EXPORTER_*
+  # env vars above point at this service's name, which only resolves when
+  # the profile is active — harmless (just unreachable) otherwise.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch12-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
