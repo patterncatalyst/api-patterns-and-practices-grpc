@@ -1,0 +1,65 @@
+# Three Route termination strategies for the same gRPC Service — see
+# values.yaml's routes.* comments and the chapter's "On the wire" box for
+# which of these carries HTTP/2 to the backend, and which this chapter's
+# live run actually calls.
+{{- if .Values.routes.h2c }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: getquote-h2c
+  labels:
+    app.kubernetes.io/name: getquote
+    {{- include "getquote.labels" . | nindent 4 }}
+  annotations:
+    # The router terminates TLS from the client, then re-encodes to
+    # cleartext HTTP/2 (h2c) to the pod — the one setting that lets an
+    # edge-terminated Route carry gRPC end to end.
+    haproxy.router.openshift.io/h2c-enable: "true"
+spec:
+  to:
+    kind: Service
+    name: getquote
+  port:
+    targetPort: grpc
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
+{{- if .Values.routes.edge }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: getquote-edge
+  labels:
+    app.kubernetes.io/name: getquote
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: getquote
+  port:
+    targetPort: grpc
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+{{- end }}
+{{- if .Values.routes.passthrough }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: getquote-passthrough
+  labels:
+    app.kubernetes.io/name: getquote
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  to:
+    kind: Service
+    name: getquote
+  port:
+    targetPort: grpc
+  tls:
+    termination: passthrough
+{{- end }}

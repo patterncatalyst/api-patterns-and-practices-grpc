@@ -1,0 +1,6 @@
+apiVersion: v2
+name: getquote
+description: Appendix A — shipping.quote.v1.QuoteService.GetQuote on OpenShift Local (CRC), with edge/h2c/passthrough Routes and an OpenShift Service Mesh 3 STRICT mTLS canary.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

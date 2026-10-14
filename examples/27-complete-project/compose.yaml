@@ -1,0 +1,105 @@
+# Ch27 final project — the whole system, both stacks: RoutingService
+# (GetQuote, NegotiateRoute) + QuoteService (the downstream hop) +
+# TrackingService (WatchShipment, ReportPositions) + grpc.health.v1.Health,
+# behind a REST POST /booking/quote front door, over mTLS (Ch19's certgen
+# shape) with a JWT interceptor + per-method authz (Ch20's shape), OTel
+# tracing REST -> gRPC -> QuoteService (Ch21's shape), and an always-on
+# Grafana LGTM stack. Zero contract change: every RPC here was already
+# declared in contracts/proto/ — this example is the first place several of
+# them run for real together instead of answering UNIMPLEMENTED in a lean,
+# single-topic chapter.
+#
+# The build context for both app services is the REPO ROOT so each
+# Containerfile can COPY the four proto files it needs straight from
+# contracts/ (the single source of truth).
+#
+# Usage:
+#   docker compose up --build
+#   TOKEN="$(docker compose -p ch27-final-project run --rm --entrypoint python python -m app.mint_token valid)"
+#   curl -s -X POST localhost:8270/booking/quote -H 'content-type: application/json' \
+#     -d '{"origin":"USNYC","destination":"NLRTM","cargoKg":1000}'
+#   open http://localhost:3000   # Grafana (anonymous admin)
+
+services:
+  certgen:
+    build:
+      context: ../..
+      dockerfile: examples/27-complete-project/certgen/Containerfile
+    container_name: ch27-certgen
+    volumes:
+      - certs:/certs
+      - ./.host-out:/host-out
+
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/27-complete-project/quarkus/Containerfile
+    container_name: ch27-final-project-quarkus
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+      lgtm:
+        condition: service_healthy
+    ports:
+      - "9270:9000"  # gRPC: RoutingService, QuoteService, TrackingService, Health (mTLS + JWT)
+      - "8270:8080"  # HTTP: POST /booking/quote, GET /q/metrics
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+    volumes:
+      - certs:/certs:ro
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/27-complete-project/python/Containerfile
+    container_name: ch27-final-project-python
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+      lgtm:
+        condition: service_healthy
+    ports:
+      - "9271:9000"  # gRPC: RoutingService, QuoteService, TrackingService, Health (mTLS + JWT)
+      - "8271:8000"  # HTTP: POST /booking/quote
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+    volumes:
+      - certs:/certs:ro
+
+  # ─── ghz load generator (one-shot; `docker compose run`, never `up`) ───────
+  # Pinned ghcr.io/bojand/ghz 0.121.0 (NOT published to docker.io — see Ch18's
+  # compose.yaml). contracts/proto/ is mounted read-only so ghz can be fed the
+  # .proto directly (no server-reflection support), and .host-out holds the
+  # client cert/key certgen exports for ghz's own --cacert/--cert/--key flags.
+  ghz:
+    image: ghcr.io/bojand/ghz:0.121.0
+    profiles: ["ghz"]
+    volumes:
+      - ../../contracts/proto:/contracts:ro
+      - ./.host-out:/certs:ro
+
+  # ─── Observability (ALWAYS ON for this chapter, Ch21's shape) ──────────────
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch27-lgtm
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo query API
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      # grafana/otel-lgtm's RHEL9 base carries curl, not wget (Ch21's finding).
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  certs: {}

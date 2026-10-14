@@ -1,0 +1,22 @@
+# Retries and a per-attempt timeout for GetQuote, layered on top of the
+# DestinationRule's load-balancing policy. A transient failure on the pod an
+# Envoy pick lands on is retried against a DIFFERENT pod automatically,
+# because the retry is a new load-balancing decision, not a replay against
+# the same backend — no change needed in the server or loadclient.py.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: finalproject-plain
+  namespace: final-project-demo
+spec:
+  hosts:
+    - finalproject-plain.final-project-demo.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: finalproject-plain.final-project-demo.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+        retryOn: unavailable,resource-exhausted
+      timeout: 3s

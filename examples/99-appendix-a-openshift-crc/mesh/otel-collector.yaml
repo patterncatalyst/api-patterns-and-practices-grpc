@@ -1,0 +1,52 @@
+# A minimal OpenTelemetry Collector for this appendix: OTLP in, a debug
+# (logging) exporter out. No Tempo/Grafana — the point here is to show
+# trace propagation through the Route/mesh path, not to stand up a second
+# observability stack (Ch21 already covers the LGTM stack in depth).
+# restricted-v2: the operator's own default security context already
+# tolerates an arbitrary UID; this is explicit so the pod's SCC annotation
+# reads restricted-v2 rather than whatever the operator would otherwise pick.
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: otelcol
+spec:
+  mode: deployment
+  securityContext:
+    runAsNonRoot: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: RuntimeDefault
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc: {}
+          http: {}
+    exporters:
+      debug:
+        verbosity: detailed
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          exporters: [debug]
+---
+# instrumentation.opentelemetry.io/inject-java: getquote-java on the pod
+# template (set via deploy.sh --set observability.enabled=true in the
+# chart) makes the operator inject the OpenTelemetry Java agent as an init
+# container; no pom or image change (zero-code auto-instrumentation).
+apiVersion: opentelemetry.io/v1alpha1
+kind: Instrumentation
+metadata:
+  name: getquote-java
+spec:
+  exporter:
+    # The operator's injected Java agent defaults to OTLP/HTTP, not gRPC —
+    # port 4317 above is the collector's OTLP/gRPC receiver only, and a
+    # live run first pointed here, producing a real
+    # "Failed to export spans. Server responded with HTTP status code 415"
+    # (protocol mismatch) until this was corrected to the OTLP/HTTP port.
+    endpoint: http://otelcol-collector:4318
+  java: {}

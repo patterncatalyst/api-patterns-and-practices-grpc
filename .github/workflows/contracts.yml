@@ -89,6 +89,14 @@ jobs:
             echo "examples/22-mesh-loadbalancing/k8s not present yet"
           fi
 
+      - name: Validate Final Project minikube kustomize manifests (strict)
+        run: |
+          if [ -d examples/27-complete-project/k8s ]; then
+            kubectl kustomize examples/27-complete-project/k8s | kubeconform -strict -summary
+          else
+            echo "examples/27-complete-project/k8s not present yet"
+          fi
+
       - name: Validate OpenShift/CRC Helm chart
         run: |
           if [ -d examples/99-appendix-a-openshift-crc/helm ]; then

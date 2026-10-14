@@ -1,0 +1,83 @@
+# values.yaml — the Appendix A GetQuote workload on OpenShift Local.
+#
+# One Deployment, one Service, three Route variants (h2c / plain edge /
+# passthrough) and an opt-in mesh tier (STRICT mTLS + a weighted canary).
+# A plain install (helm lint, helm template, or `deploy.sh` with no extra
+# flags) renders only the workload and the Routes; mesh.* adds the OSSM
+# CRs and the v2 canary Deployment.
+
+image:
+  # scripts/build-images.sh pushes the in-cluster S2I build to this
+  # ImageStream; the internal registry's cluster-local hostname.
+  registry: image-registry.openshift-image-registry.svc:5000
+  repository: getquote
+  tag: v1
+
+grpcPort: 9000
+httpPort: 8080
+
+resources:
+  requests: {cpu: 100m, memory: 160Mi}
+  limits: {cpu: 500m, memory: 320Mi}
+
+# Three Route termination strategies for the same gRPC Service — see the
+# chapter's "On the wire" box and the A-crc-grpc-routes figure for which of
+# these actually carries HTTP/2 to the backend.
+routes:
+  # Edge TLS + the h2c-enable annotation: the router terminates TLS from
+  # the client, then speaks cleartext HTTP/2 (h2c) to the pod. This
+  # annotation governs the ROUTER-TO-POD hop only. A live run against
+  # OpenShift 4.22.14 found the CLIENT-facing hop of edge/reencrypt Routes
+  # never negotiates ALPN "h2" at all (the router's shared SNI frontend
+  # binds with the literal haproxy option `no-alpn`, confirmed by reading
+  # the live haproxy.config) — so a strict-ALPN gRPC client (grpc-go
+  # 1.67+, which grpcurl uses) cannot complete the TLS handshake at all,
+  # regardless of this annotation. Rendered and actually called in this
+  # chapter's live run to capture that real failure; see expected-output.md.
+  h2c: true
+  # Plain edge TLS, no h2c annotation: hits the identical client-facing
+  # ALPN gap as h2c above (same shared frontend) — rendered and actually
+  # called to confirm the failure is identical with or without the
+  # annotation, i.e. it is a router limitation, not an annotation mistake.
+  edge: true
+  # TLS passthrough: the router does not terminate TLS at all — it is a
+  # raw TCP/SNI forward, so ALPN is negotiated directly between the client
+  # and the POD. This is the only one of the three Route types a live run
+  # found actually carries a native gRPC client's TLS handshake end to
+  # end; it requires the POD to terminate TLS itself (tls.enabled below),
+  # which conflicts with this chart's normal mesh-mTLS shape on the same
+  # port — see the chapter's "Decision" callout.
+  passthrough: true
+
+# OpenShift Service Mesh 3 (Sail): off by default, so `helm lint` and a
+# plain `deploy.sh` render/install cleanly without the mesh CRDs installed.
+mesh:
+  enabled: false
+  # The Istio CR named "default" serves revision "default" (Sail's
+  # revisioned injection matches pods via the istio.io/rev label).
+  revision: default
+  canary:
+    enabled: false
+    # Percentage of mesh-internal (sidecar-to-sidecar) traffic sent to v2.
+    v2Weight: 10
+
+# Red Hat build of OpenTelemetry: annotate the pod so the operator injects
+# the Java agent (zero-code auto-instrumentation; no pom or image change).
+# Requires mesh/otel-collector.yaml's Instrumentation (named below) applied
+# first — see scripts/deploy.sh.
+observability:
+  enabled: false
+  instrumentation: getquote-java
+
+# A diagnostic-only flip: app-level TLS on the gRPC port, for the
+# passthrough-Route test in the chapter's "On the wire" box. Off by
+# default — this is NOT the chart's normal shape (plaintext app, mTLS in
+# the mesh sidecar). Turning it on while mesh.enabled is also true breaks
+# mesh-internal calls on the same port (the sidecar hands the app
+# decrypted plaintext for a meshed caller; an app now expecting a TLS
+# ClientHello cannot parse that), so this is exercised with the mesh off.
+# tls.secretName must already exist in the release namespace
+# (kubectl create secret tls <name> --cert=... --key=...).
+tls:
+  enabled: false
+  secretName: getquote-passthrough-tls

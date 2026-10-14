@@ -1,0 +1,18 @@
+# Ch27 final project — certgen: a one-shot cert bootstrap image, never a server.
+# Byte-for-byte the Ch19 tls-mtls image (same base, same packages, same
+# reasoning for bundling keytool): the Quarkus gRPC Java server's mTLS
+# trust-store loads through Vert.x's KeyStoreHelper and needs an actual Java
+# keystore, not a bare PEM or an openssl-built PKCS12 — see gen-certs.sh.
+#
+# Base image pin (re-check with
+# `skopeo list-tags docker://registry.access.redhat.com/ubi10/ubi-minimal`,
+# confirm with `skopeo inspect`; bump deliberately):
+#   registry.access.redhat.com/ubi10/ubi-minimal:10.2-1791891203
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2-1791891203
+
+RUN microdnf install -y openssl java-21-openjdk-headless && microdnf clean all
+
+COPY examples/27-complete-project/certgen/gen-certs.sh /gen-certs.sh
+RUN chmod +x /gen-certs.sh
+
+ENTRYPOINT ["/gen-certs.sh"]

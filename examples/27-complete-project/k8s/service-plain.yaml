@@ -1,0 +1,19 @@
+# The pin demo: an ordinary ClusterIP Service. kube-proxy assigns each new
+# TCP connection to ONE backend pod via an iptables rule evaluated once per
+# connection, not per request — so a gRPC client that opens one channel and
+# reuses it (every well-behaved client, including loadclient.py) sends every
+# call for the life of that channel to whichever single pod won the
+# connection's iptables roll. The same L4-pinning problem Chapter 22 names.
+apiVersion: v1
+kind: Service
+metadata:
+  name: finalproject-plain
+  labels:
+    app: finalproject
+spec:
+  selector:
+    app: finalproject
+  ports:
+    - name: grpc
+      port: 9000
+      targetPort: 9000

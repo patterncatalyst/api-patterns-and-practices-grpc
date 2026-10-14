@@ -1,0 +1,7 @@
+# Protos copied from contracts/ into the Quarkus module by scripts/deploy.sh
+# before the in-cluster S2I build picks it up. contracts/proto/ stays the
+# single source of truth; this copy is build-time-only and never committed.
+quarkus/src/main/proto/
+
+# Maven build output from the in-cluster build's local `mvn package` step.
+quarkus/target/

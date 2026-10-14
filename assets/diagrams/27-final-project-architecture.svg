@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 560" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b8650a"/></marker></defs>
+<rect x="20" y="20" width="880" height="400" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#888">ch27-final-project (Compose, both stacks)</text>
+<rect x="20" y="440" width="880" height="100" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="32" y="460" font-size="12" font-weight="700" fill="#888">CI gates</text>
+<rect x="50" y="70" width="190" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="145.0" y="103.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">REST front door</text>
+<text x="145.0" y="120.0" font-size="11.5" fill="#555555" text-anchor="middle">POST /booking/quote</text>
+<rect x="330" y="70" width="230" height="90" rx="9" fill="#fff8ef" stroke="#e8870c" stroke-width="2"/>
+<text x="445.0" y="105.5" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">RoutingService</text>
+<text x="445.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote (unary)</text>
+<text x="445.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">NegotiateRoute (bidi)</text>
+<rect x="660" y="70" width="190" height="70" rx="9" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+<text x="755.0" y="103.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">QuoteService</text>
+<text x="755.0" y="120.0" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote (unary)</text>
+<rect x="330" y="210" width="230" height="90" rx="9" fill="#ffffff" stroke="#111111" stroke-width="2"/>
+<text x="445.0" y="245.5" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">TrackingService</text>
+<text x="445.0" y="262.5" font-size="11.5" fill="#555555" text-anchor="middle">WatchShipment (stream)</text>
+<text x="445.0" y="277.5" font-size="11.5" fill="#555555" text-anchor="middle">ReportPositions (stream)</text>
+<rect x="50" y="300" width="190" height="70" rx="9" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+<text x="145.0" y="333.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">certgen</text>
+<text x="145.0" y="350.0" font-size="11.5" fill="#555555" text-anchor="middle">mTLS CA + certs</text>
+<rect x="660" y="300" width="190" height="70" rx="9" fill="#f1f5f9" stroke="#64748b" stroke-width="2"/>
+<text x="755.0" y="333.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">LGTM stack</text>
+<text x="755.0" y="350.0" font-size="11.5" fill="#555555" text-anchor="middle">Tempo + Grafana</text>
+<rect x="50" y="460" width="260" height="60" rx="9" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+<text x="180.0" y="488.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">buf lint / build / breaking</text>
+<text x="180.0" y="505.0" font-size="11.5" fill="#555555" text-anchor="middle">contracts/ (frozen)</text>
+<rect x="630" y="460" width="230" height="60" rx="9" fill="#ffffff" stroke="#999999" stroke-width="1.5"/>
+<text x="745.0" y="488.0" font-size="13.5" font-weight="700" fill="#111111" text-anchor="middle">ghz smoke</text>
+<text x="745.0" y="505.0" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote, loose bounds</text>
+<path d="M240,105 L330,105" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="291.0" y="99.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">mTLS + JWT</text>
+<text x="291.0" y="99.0" font-size="11" fill="#b8650a" text-anchor="middle">mTLS + JWT</text>
+<path d="M560,105 L660,105" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="616.0" y="99.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">mTLS + JWT (loopback)</text>
+<text x="616.0" y="99.0" font-size="11" fill="#b8650a" text-anchor="middle">mTLS + JWT (loopback)</text>
+<path d="M240,255 L330,255" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
+<text x="291.0" y="249.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">mTLS + JWT</text>
+<text x="291.0" y="249.0" font-size="11" fill="#b8650a" text-anchor="middle">mTLS + JWT</text>
+<path d="M145,140 L145,300" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="151.0" y="214.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">certs</text>
+<text x="151.0" y="214.0" font-size="11" fill="#555" text-anchor="middle">certs</text>
+<path d="M150,105 L660,320" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="411.0" y="206.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTel spans</text>
+<text x="411.0" y="206.5" font-size="11" fill="#555" text-anchor="middle">OTel spans</text>
+<path d="M445,160 L445,335" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="451.0" y="241.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTel spans</text>
+<text x="451.0" y="241.5" font-size="11" fill="#555" text-anchor="middle">OTel spans</text>
+<path d="M755,140 L755,300" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="761.0" y="214.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTel spans</text>
+<text x="761.0" y="214.0" font-size="11" fill="#555" text-anchor="middle">OTel spans</text>
+<text x="460" y="40" font-size="11" fill="#888" text-anchor="middle" font-weight="700">all four RPC modes, mTLS + JWT at every hop, one trace REST -&gt; Routing -&gt; Quote</text>
+</svg>

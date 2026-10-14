@@ -44,7 +44,7 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T24 | Cross-protocol choices + HTTP/3 | Ch24 | `_docs/24-cross-protocol-http3.md` | verified |
 | T25 | Testing & CLI (grpcurl/grpcui/QuarkusTest/pytest/ghz) | Ch25 | `_docs/25-testing-and-cli.md` | verified |
 | T26 | Debugging gRPC | Ch26 | `_docs/26-debugging-grpc.md` | verified |
-| T27 | Complete project (capstone) | Ch27 | `_docs/27-complete-project.md` | planned |
+| T27 | Complete project (final project) | Ch27 | `_docs/27-complete-project.md` | verified |
 
 ## Runtime-tier topics → chapters
 
@@ -52,7 +52,7 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 |---|---|---|---|---|
 | R1 | Docker/Podman Compose tier | Ch0 / Ch5 | `_docs/00-prerequisites-and-the-lab.md` | verified |
 | R2 | minikube tier (+ the LB problem) | Ch22 / Ch27 | `_docs/22-load-balancing-service-mesh.md` | verified |
-| R3 | CRC / OpenShift Local tier | Appendix A | `_docs/99-appendix-a-openshift-crc.md` | planned |
+| R3 | CRC / OpenShift Local tier | Appendix A | `_docs/99-appendix-a-openshift-crc.md` | verified |
 
 ## Full chapter inventory (28 + appendix)
 
@@ -85,5 +85,5 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 24 | `_docs/24-cross-protocol-http3.md` | Part 10 | verified |
 | 25 | `_docs/25-testing-and-cli.md` | Part 11 | verified |
 | 26 | `_docs/26-debugging-grpc.md` | Part 11 | verified |
-| 27 | `_docs/27-complete-project.md` | Part 12 | planned |
-| A | `_docs/99-appendix-a-openshift-crc.md` | Part 12 | planned |
+| 27 | `_docs/27-complete-project.md` | Part 12 | verified |
+| A | `_docs/99-appendix-a-openshift-crc.md` | Part 12 | verified |

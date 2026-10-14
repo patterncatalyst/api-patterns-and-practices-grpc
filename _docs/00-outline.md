@@ -64,6 +64,6 @@ full arc is below.
 - [Ch25 · Testing and the CLI](../25-testing-and-cli/)
 - [Ch26 · Debugging gRPC](../26-debugging-grpc/)
 
-## Part 12 — Running It & the Capstone
-- [Ch27 · The complete project](../27-complete-project/)
+## Part 12 — Running It & the Final Project
+- [Ch27 · The final project](../27-complete-project/)
 - [Appendix A · OpenShift Local (CRC)](../99-appendix-a-openshift-crc/)
