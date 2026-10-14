@@ -1,0 +1,84 @@
+# Ch17 streaming-at-scale example — compose topology for
+# shipping.tracking.v1.TrackingService.WatchShipment as a demand-driven live
+# feed.
+#
+# Default `docker compose up` brings up: quarkus, python. Both are generated
+# from the SAME proto (contracts/proto/shipping/{type,tracking}/v1/*.proto)
+# and implement WatchShipment's bkg_demo / bkg_eager / bkg_quiet modes (see
+# ./README.md). The build context for both services is the REPO ROOT so each
+# Containerfile can COPY the two proto files it needs straight from
+# contracts/ (the single source of truth) — see quarkus/Containerfile and
+# python/Containerfile for the exact COPY lines.
+#
+# Ports: quarkus host 9170 -> container 9000, python host 9171 -> container
+# 9000 (Ch15's 9150/9151 and Ch16's 9160/9161 stay free for those chapters'
+# own stacks).
+#
+# `docker compose -p ch17-streaming run --rm python python -m
+# app.slow_consumer <quarkus|python>:9000 [booking_id]` runs the bundled
+# slow consumer as a one-off container ON this same compose network, so it
+# reaches either server by its SERVICE NAME and container port (not the
+# host-mapped 9170/9171) — see README.md.
+#
+# The LGTM observability stack is opt-in (`--profile observability`). Unlike
+# every other chapter's compose.yaml, the app services do NOT default
+# OTEL_EXPORTER_OTLP_ENDPOINT to the unresolvable `http://lgtm:4317` when the
+# profile is off: this chapter's demand-driven pacing is timing-sensitive
+# (production is paced in ~260ms steps against a ~2s quiet gap), and a
+# hostname that fails DNS resolution makes the OTel SDK's periodic batch
+# span exporter block an event-loop thread for several seconds per retry —
+# long enough to visibly disrupt the very pacing this example demonstrates.
+# Left unset, each app's own default (http://localhost:4317 — see
+# application.properties / app/main.py) fails FAST with a plain connection
+# refused instead. To exercise the `observability` profile, pass the
+# endpoint explicitly so it resolves:
+#   OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317 \
+#     docker compose --profile observability up --build
+#
+# Usage:
+#   docker compose up --build                          # app stack only
+#   docker compose --profile observability up --build  # + Grafana LGTM (see note above)
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/17-streaming-at-scale/quarkus/Containerfile
+    container_name: ch17-streaming-quarkus
+    ports:
+      - "9170:9000"
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/17-streaming-at-scale/python/Containerfile
+    container_name: ch17-streaming-python
+    ports:
+      - "9171:9000"
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast. See the note above
+  # the `quarkus`/`python` services for why OTEL_EXPORTER_OTLP_ENDPOINT must
+  # be passed explicitly (rather than hardcoded here) for this chapter.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch17-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s

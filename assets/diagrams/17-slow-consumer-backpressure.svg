@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="420" height="360" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">bkg_demo - demand-driven</text>
+<rect x="470" y="30" width="430" height="360" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="482" y="50" font-size="12" font-weight="700" fill="#1d1d1d">bkg_eager - pre-materialized</text>
+<rect x="50" y="65" width="220" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="160.0" y="90.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Multi.createFrom().emitter()</text>
+<text x="160.0" y="107.5" font-size="11.5" fill="#555555" text-anchor="middle">Mutiny Multi / async generator</text>
+<rect x="50" y="150" width="100" height="40" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="100.0" y="168.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">e0</text>
+<text x="100.0" y="185.0" font-size="11.5" fill="#555555" text-anchor="middle">t=0ms</text>
+<rect x="170" y="150" width="100" height="40" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="220.0" y="168.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">e1</text>
+<text x="220.0" y="185.0" font-size="11.5" fill="#555555" text-anchor="middle">t=260ms</text>
+<rect x="290" y="150" width="100" height="40" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="340.0" y="168.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">e2</text>
+<text x="340.0" y="185.0" font-size="11.5" fill="#555555" text-anchor="middle">t=520ms</text>
+<rect x="50" y="220" width="340" height="40" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="220.0" y="245.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">bounded in-flight: &gt;=1 item at a time</text>
+<rect x="50" y="290" width="340" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="220.0" y="318.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Consumer</text>
+<text x="220.0" y="335.0" font-size="11.5" fill="#555555" text-anchor="middle">onRequest(n) / yield pulls the next item</text>
+<rect x="500" y="65" width="220" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="610.0" y="90.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Multi.createFrom().items(list)</text>
+<text x="610.0" y="107.5" font-size="11.5" fill="#555555" text-anchor="middle">list built in one tight loop</text>
+<rect x="500" y="150" width="100" height="40" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="550.0" y="168.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">e0</text>
+<text x="550.0" y="185.0" font-size="11.5" fill="#dddddd" text-anchor="middle">t=0ms</text>
+<rect x="605" y="150" width="100" height="40" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="655.0" y="168.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">e1</text>
+<text x="655.0" y="185.0" font-size="11.5" fill="#dddddd" text-anchor="middle">t=~0ms</text>
+<rect x="710" y="150" width="100" height="40" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="760.0" y="168.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">e2</text>
+<text x="760.0" y="185.0" font-size="11.5" fill="#dddddd" text-anchor="middle">t=~0ms</text>
+<rect x="500" y="220" width="340" height="40" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="670.0" y="245.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">all 6 events already built and stamped</text>
+<rect x="500" y="290" width="340" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="670.0" y="318.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Consumer</text>
+<text x="670.0" y="335.0" font-size="11.5" fill="#555555" text-anchor="middle">reads a buffer the producer never waited on</text>
+<path d="M160,120 L160,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M280,120 L280,150" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M400,120 L400,150" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<path d="M220,260 L220,290" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="226.0" y="269.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">demand</text>
+<text x="226.0" y="269.0" font-size="11" fill="#b8650a" text-anchor="middle">demand</text>
+<path d="M610,120 L610,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M715,120 L715,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M820,120 L820,150" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M670,260 L670,290" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="230" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Figure contrast: spread timestamps vs clustered timestamps</text>
+</svg>
