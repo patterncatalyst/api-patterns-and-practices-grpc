@@ -1,0 +1,14 @@
+# Protos copied from contracts/ into each service module for local `mvn`/
+# `uv` runs outside Docker (the Containerfiles do the same copy inside the
+# build context — see quarkus/Containerfile and python/Containerfile).
+# contracts/proto/ stays the single source of truth; these copies are
+# build-time-only and never committed.
+quarkus/src/main/proto/
+python/app/_generated/
+python/generated/
+
+# certgen's host-bind export (see compose.yaml's `certgen` service and
+# gen-certs.sh): a fresh CA/client cert/key dropped here on every
+# verify.sh run so the host-side grpcurl binary can present them. Never
+# committed — regenerated on every run, and it's local key material.
+.host-out/
