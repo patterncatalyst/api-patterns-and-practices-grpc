@@ -1,0 +1,83 @@
+# Ch21 observability ANCHOR — compose topology for
+# shipping.routing.v1.RoutingService.GetQuote calling DOWNSTREAM
+# shipping.quote.v1.QuoteService.GetQuote (the Ch10 two-service loopback
+# shape, minus the deadline plumbing), PLUS a minimal REST front door
+# (POST /booking/quote) on each stack that calls RoutingService.GetQuote.
+# Both are generated from the SAME proto
+# (contracts/proto/shipping/{type,routing,quote}/v1/*.proto). The build
+# context for both services is the REPO ROOT so each Containerfile can COPY
+# the three proto files it needs straight from contracts/ (the single source
+# of truth) — see quarkus/Containerfile and python/Containerfile for the
+# exact COPY lines.
+#
+# Unlike every prior chapter, the Grafana LGTM observability stack is NOT
+# opt-in here — this chapter's whole point is tracing/metrics/health, so
+# `lgtm` carries no `profiles:` guard and comes up by default with
+# `docker compose up`. Tempo's query API (port 3200) is published so
+# verify.sh and a reader can fetch a trace by id directly.
+#
+# Usage:
+#   docker compose up --build
+#   curl -X POST localhost:8210/booking/quote -H 'content-type: application/json' \
+#     -d '{"origin":"USNYC","destination":"NLRTM","cargoKg":1000}'
+#   open http://localhost:3000   # Grafana (anonymous admin)
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/21-observability/quarkus/Containerfile
+    container_name: ch21-observability-quarkus
+    ports:
+      - "9210:9000"  # gRPC: RoutingService, QuoteService, grpc.health.v1.Health
+      - "8210:8080"  # HTTP: POST /booking/quote, GET /q/metrics
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+    depends_on:
+      lgtm:
+        condition: service_healthy
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/21-observability/python/Containerfile
+    container_name: ch21-observability-python
+    ports:
+      - "9211:9000"  # gRPC: RoutingService, QuoteService, grpc.health.v1.Health
+      - "8211:8000"  # HTTP: POST /booking/quote, GET /metrics
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+    depends_on:
+      lgtm:
+        condition: service_healthy
+
+  # ─── Observability (ALWAYS ON for this chapter) ────────────────────────
+  # No `profiles:` guard — this is the chapter about traces, metrics, and
+  # health, so the collector is part of the baseline stack, not an add-on.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch21-lgtm
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo query API — verify.sh polls http://localhost:3200/api/traces/<id>
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      # The `grafana/otel-lgtm:0.36.0` image's RHEL 9 base carries `curl` but
+      # not `wget` (confirmed at authoring time: `docker exec ... which wget`
+      # fails) — every prior chapter's identical `wget -qO-` healthcheck has
+      # never actually been exercised, because `lgtm` has always been
+      # profile-gated opt-in there. This chapter makes `lgtm` load-bearing
+      # (`depends_on: condition: service_healthy`), so the healthcheck has to
+      # genuinely pass; `curl -fsS` is the fix.
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s

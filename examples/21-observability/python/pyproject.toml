@@ -1,0 +1,32 @@
+[project]
+name = "shipping-python-ch21-observability"
+version = "1.0.0"
+description = "Ch21 observability anchor — the Ch10 two-service loopback (RoutingService.GetQuote calling downstream QuoteService.GetQuote) plus a FastAPI booking front door, OTel tracing/metrics, and a grpc.health.v1.Health service (Python side)."
+requires-python = ">=3.14"
+dependencies = [
+    "grpcio>=1.84,<2",
+    "grpcio-reflection>=1.84,<2",
+    "grpcio-health-checking>=1.84,<2",
+    "protobuf>=6.33.5,<8",
+    "fastapi>=0.143,<1",
+    "uvicorn>=0.54,<1",
+    "prometheus-client>=0.26,<1",
+    "opentelemetry-distro>=0.66b1",
+    "opentelemetry-exporter-otlp-proto-grpc>=1.45.1",
+    "opentelemetry-instrumentation-grpc>=0.66b1",
+    "opentelemetry-instrumentation-fastapi>=0.66b1",
+]
+
+# grpcio-tools is build-time only (generates stubs from contracts/proto/ —
+# see Containerfile); the runtime image never needs it.
+[dependency-groups]
+dev = [
+    "grpcio-tools>=1.84,<2",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]

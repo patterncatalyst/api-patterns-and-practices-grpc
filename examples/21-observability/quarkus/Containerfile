@@ -1,0 +1,62 @@
+# Ch21 observability ANCHOR — Quarkus, UBI 10, JVM mode (fast-jar), no native.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/21-observability/quarkus/Containerfile \
+#     -t ch21-observability-quarkus .
+# compose.yaml sets the build context to the repo root for exactly this
+# reason — contracts/proto/ is the single source of truth for the .proto
+# files, and this build COPIES the three files this module needs into
+# src/main/proto/ before `mvn package` runs (the quarkus-grpc extension then
+# generates the Mutiny stubs for RoutingService AND QuoteService from them,
+# since this one process implements both and also exposes a REST front door
+# over each — see application.properties and BookingResource.java). The
+# copy is build-time only — it is never committed into this module (see
+# ../.gitignore).
+#
+# Base image pins (re-check with `skopeo list-tags
+# docker://registry.access.redhat.com/ubi10/openjdk-25`, confirm with
+# `skopeo inspect`; bump deliberately) — refreshed at authoring time past
+# every prior anchor's 1.24-15 pin:
+#   registry.access.redhat.com/ubi10/openjdk-25:1.24-16
+#   registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-16
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24-16 AS build
+
+WORKDIR /build
+COPY examples/21-observability/quarkus/pom.xml .
+COPY examples/21-observability/quarkus/src ./src
+
+# Copy the three proto files this module needs: types (shared), routing (the
+# RoutingService server surface AND the @GrpcClient("routing") stub
+# BookingResource calls) and quote (the QuoteService server surface AND the
+# @GrpcClient("quote") stub RoutingServiceImpl calls downstream).
+COPY contracts/proto/shipping/type/v1/types.proto ./src/main/proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./src/main/proto/shipping/routing/v1/routing.proto
+COPY contracts/proto/shipping/quote/v1/quote.proto ./src/main/proto/shipping/quote/v1/quote.proto
+
+# The extra -D flags harden the build against a flaky Maven Central mirror in
+# CI: `aether.syncContext.named.time(.unit)` extends the local-repo lock
+# timeout past its 2-minute default, and the two retryHandler.count flags
+# retry a dropped download instead of failing the build on the first
+# transient 0-byte response.
+RUN mvn -B package -DskipTests -Dmaven.javadoc.skip=true \
+      -Daether.syncContext.named.time=300 -Daether.syncContext.named.time.unit=SECONDS \
+      -Dmaven.wagon.http.retryHandler.count=3 -Daether.connector.http.retryHandler.count=3
+
+# ── Stage 2: Runtime (fast-jar) ─────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-16
+
+ENV LANGUAGE='en_US:en'
+
+COPY --from=build --chown=185 /build/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /build/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /build/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /build/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 9000 8080
+USER 185
+
+ENV JAVA_OPTS_APPEND="-Dquarkus.grpc.server.host=0.0.0.0 -Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
