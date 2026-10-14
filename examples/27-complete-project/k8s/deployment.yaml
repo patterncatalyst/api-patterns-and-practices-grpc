@@ -1,0 +1,57 @@
+# Three replicas of the Final Project's mesh server (examples/27-complete-project/
+# loadclient/app/server.py) — a plaintext, dependency-light rebuild of the same
+# RoutingService.GetQuote -> QuoteService.GetQuote loopback hop the CI-gated
+# Compose tier runs behind mTLS and JWT, PLUS NegotiateRoute and WatchShipment,
+# so "the full flow" is recognizable here too. Plaintext and unauthenticated on
+# purpose, mirroring Chapter 22's own choice: mixing mTLS/JWT into the
+# load-balancing teaching point would obscure it, and Appendix A's OpenShift
+# tier already demonstrates STRICT mesh mTLS at the platform layer. Deliberately
+# plain otherwise: no Service-level magic here — the whole point of this
+# subtree is what two DIFFERENT Service objects (service-plain.yaml,
+# service-headless.yaml) do to calls against these same three pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: finalproject
+  labels:
+    app: finalproject
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: finalproject
+  template:
+    metadata:
+      labels:
+        app: finalproject
+      annotations:
+        # Overrides the namespace-wide istio-injection=enabled label (see
+        # namespace.yaml) so this base deployment starts UNMESHED. The Istio
+        # phase of scripts/run-demo.sh patches this to "true" and restarts
+        # the rollout.
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: finalproject
+          image: ch27-final-project-mesh:dev
+          imagePullPolicy: Never
+          ports:
+            - name: grpc
+              containerPort: 9000
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi

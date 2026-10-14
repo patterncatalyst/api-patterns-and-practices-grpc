@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Appendix A — OpenShift Local (CRC). A single-service Quarkus gRPC server:
+  shipping.quote.v1.QuoteService.GetQuote, the same frozen contract Ch27's
+  final project serves (contracts/proto/shipping/quote/v1/quote.proto and its
+  shipping/type/v1/types.proto import). Zero contract change: this module
+  reuses the RPC shape, not the Ch27 Java sources.
+
+  Deliberately NO app-level TLS (no quarkus.grpc.server.ssl.* — compare
+  Ch19/Ch27, which terminate mTLS in the JVM): on OpenShift Local this
+  service runs inside the mesh, and OpenShift Service Mesh 3's STRICT
+  PeerAuthentication terminates mTLS in the Envoy sidecar instead. See the
+  chapter's "Decision" callout for when each is the right layer.
+
+  The *.proto files are NOT committed under src/main/proto/ here —
+  contracts/proto/ is the single source of truth. scripts/deploy.sh copies
+  the two files this service needs into src/main/proto/ before the
+  in-cluster S2I build picks up the Maven module (mirrors Ch27's
+  Containerfile COPY step, which does the same thing for a Docker build).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.appendixa</groupId>
+  <artifactId>appendix-a-getquote</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches every other chapter's pin: Quarkus latest stable LTS. -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates Mutiny stubs from src/main/proto/**.proto at build time and
+         runs the gRPC server. No TLS config here — see the pom comment
+         above: OSSM's sidecar carries mTLS on this build. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+  </dependencies>
+
+  <profiles>
+    <!-- Active only with -Popenshift: build-images.sh's in-cluster binary
+         S2I build. mvn verify and every other runtime are unaffected.
+         quarkus-container-image-openshift alone generates no BuildConfig —
+         the manifest comes from quarkus-openshift's generator. -->
+    <profile>
+      <id>openshift</id>
+      <dependencies>
+        <dependency>
+          <groupId>io.quarkus</groupId>
+          <artifactId>quarkus-openshift</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
+  </profiles>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

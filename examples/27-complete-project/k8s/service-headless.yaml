@@ -1,0 +1,19 @@
+# Fix #1: a headless Service (clusterIP: None) has no virtual IP and no
+# kube-proxy involvement at all — DNS for this name returns one A/AAAA record
+# PER READY POD. A client that resolves this name with grpc-core's `dns:///`
+# scheme and sets LB policy `round_robin` opens one subchannel (one
+# persistent HTTP/2 connection) per pod and spreads RPCs across all of them.
+apiVersion: v1
+kind: Service
+metadata:
+  name: finalproject-headless
+  labels:
+    app: finalproject
+spec:
+  clusterIP: None
+  selector:
+    app: finalproject
+  ports:
+    - name: grpc
+      port: 9000
+      targetPort: 9000

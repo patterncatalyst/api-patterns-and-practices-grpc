@@ -1,0 +1,23 @@
+# Fix #2: tell every meshed client's sidecar how to balance calls to
+# finalproject-plain across the three server pods. ROUND_ROBIN here is an L7,
+# per-REQUEST decision made by Envoy — not a per-connection decision like the
+# plain Service's kube-proxy iptables rule, and not a per-subchannel decision
+# like the headless+round_robin client fix. Outlier detection is the natural
+# companion to any load-balancing policy: a pod that starts failing calls is
+# temporarily ejected from the pool so the other two absorb its share
+# automatically, with no client-visible change at all.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: finalproject-plain
+  namespace: final-project-demo
+spec:
+  host: finalproject-plain.final-project-demo.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

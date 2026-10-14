@@ -1,0 +1,14 @@
+# Mesh-wide STRICT mTLS for the demo namespace: once applied, every meshed
+# pod in final-project-demo only accepts mTLS connections from other meshed
+# pods, and plaintext traffic from an unmeshed source is refused at the
+# sidecar. Applied only in the Istio phase of scripts/run-demo.sh, after both
+# the server Deployment and the load-client Job have been switched into the
+# mesh (sidecar.istio.io/inject: "true").
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: final-project-demo
+spec:
+  mtls:
+    mode: STRICT

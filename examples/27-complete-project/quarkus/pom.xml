@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch27 final project — Quarkus side.
+
+  One process serves RoutingService (GetQuote, NegotiateRoute), QuoteService
+  (the downstream hop), TrackingService (WatchShipment, ReportPositions), and
+  grpc.health.v1.Health, all behind AuthzInterceptor (Ch20's JWT + per-method
+  scope shape) layered on top of Ch19's mTLS, with a REST front door
+  (BookingResource) and OTel tracing/metrics (Ch21's shape) added on top. Zero
+  contract change: every RPC implemented here was already declared in
+  contracts/proto/ — this module is the first place several of them (the
+  streaming/bidi ones) run for real instead of answering UNIMPLEMENTED.
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs the
+  four proto files this service needs into src/main/proto/ as part of the
+  image build.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch27-quarkus-final-project</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches every prior anchor's pin: Quarkus latest stable LTS (3.40.x). -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates Mutiny stubs from src/main/proto/**.proto at build time and
+         runs the gRPC server (TLS/mTLS via quarkus.grpc.server.ssl.*);
+         AuthzInterceptor is registered against it via @GlobalInterceptor. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+    <!-- Explicit: this module builds its OWN mTLS-authenticated, Bearer-token-
+         carrying ManagedChannel for the two internal loopback hops (Booking ->
+         Routing, Routing -> Quote — see security/SecureGrpcClients.java)
+         instead of a Quarkus-managed @GrpcClient, so both ends of each call
+         present a client certificate to the one mTLS-required port. Version
+         is managed by the quarkus-bom import above (pins 1.81.0). -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+    </dependency>
+    <!-- The REST front door: POST /booking/quote. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-jackson</artifactId>
+    </dependency>
+    <!-- A CDI-managed ObjectMapper for JwtVerifier's claims decoding (Ch20's
+         dependency-light HMAC approach — see JwtVerifier's Javadoc). -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <!-- Zero-code REST + gRPC tracing (Ch21's shape) — the REST->Routing->
+         Quote seam this example's trace-id-continuity assertion depends on. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
+    </dependency>
+    <!-- gRPC server metrics, automatic the moment this is on the classpath
+         alongside quarkus-grpc (Ch21). -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

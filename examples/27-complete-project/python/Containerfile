@@ -1,0 +1,74 @@
+# Ch27 final project — Python, UBI 10, uv-managed, grpc.aio server + a
+# FastAPI/uvicorn REST front door, over mTLS + JWT, in one process.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/27-complete-project/python/Containerfile \
+#     -t ch27-final-project-python .
+#
+# Pin (same generation as Ch21's; re-check with
+# `skopeo list-tags docker://registry.access.redhat.com/ubi10/python-314-minimal`,
+# confirm with `skopeo inspect`; bump deliberately):
+#   registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506 AS build
+
+USER 0
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv==0.12.24
+
+COPY examples/27-complete-project/python/pyproject.toml ./
+COPY examples/27-complete-project/python/app ./app
+
+RUN uv sync --group dev
+
+# Stage the four proto files this module needs, preserving the package paths
+# their import statements expect, then generate the stub packages into
+# /app/generated — a sibling of app/, added to PYTHONPATH below.
+COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./proto/shipping/routing/v1/routing.proto
+COPY contracts/proto/shipping/quote/v1/quote.proto ./proto/shipping/quote/v1/quote.proto
+COPY contracts/proto/shipping/tracking/v1/tracking.proto ./proto/shipping/tracking/v1/tracking.proto
+RUN mkdir -p generated && \
+    .venv/bin/python -m grpc_tools.protoc -I proto \
+      --python_out=generated --grpc_python_out=generated \
+      proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto \
+      proto/shipping/quote/v1/quote.proto proto/shipping/tracking/v1/tracking.proto
+
+# Rebuild the venv without the dev group (grpcio-tools and its protoc binary
+# are not needed to run the server or the REST front door).
+RUN rm -rf .venv && uv sync --no-dev
+
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506
+
+WORKDIR /app
+
+COPY --from=build --chown=1001:0 /app/.venv /app/.venv
+COPY --from=build --chown=1001:0 /app/app /app/app
+COPY --from=build --chown=1001:0 /app/generated /app/generated
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/generated:/app" \
+    PYTHONUNBUFFERED=1 \
+    GRPC_HOST=0.0.0.0 \
+    GRPC_PORT=9000 \
+    HTTP_HOST=0.0.0.0 \
+    HTTP_PORT=8000 \
+    CERTS_DIR=/certs \
+    GRPC_CLIENT_AUTH=REQUIRED \
+    OTEL_SERVICE_NAME=ch27-final-project-python \
+    OTEL_TRACES_EXPORTER=otlp \
+    OTEL_METRICS_EXPORTER=none \
+    OTEL_LOGS_EXPORTER=none \
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=false
+
+EXPOSE 9000 8000
+USER 1001
+
+# opentelemetry-instrument is a zero-code wrapper: it auto-instruments the
+# grpc.aio server, the grpc.aio client channel (both RoutingServiceServicer's
+# downstream call AND the REST handler's call into RoutingService), and the
+# FastAPI app, exporting spans to OTEL_EXPORTER_OTLP_ENDPOINT.
+ENTRYPOINT ["opentelemetry-instrument", "python", "-m", "app.main"]

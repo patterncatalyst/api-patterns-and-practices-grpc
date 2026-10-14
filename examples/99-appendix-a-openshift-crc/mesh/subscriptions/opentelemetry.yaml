@@ -1,0 +1,36 @@
+# Red Hat build of OpenTelemetry (all namespaces).
+# Re-checked live on this cluster on 2026-10-14:
+#   oc get packagemanifest opentelemetry-product -n openshift-marketplace \
+#     -o jsonpath='{range .status.channels[*]}{.name}{"  "}{.currentCSV}{"\n"}{end}'
+# -> stable  opentelemetry-operator.v0.158.0-3 (newer patch than the
+#    lgtm-crc skill's 2026-10-09 reference pin of -2 — pinned to what the
+#    catalog actually serves, per the "re-check before every live run" rule).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-opentelemetry-operator
+  labels:
+    app.kubernetes.io/part-of: appendix-a-grpc
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-opentelemetry-operator
+  namespace: openshift-opentelemetry-operator
+spec:
+  upgradeStrategy: Default
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: opentelemetry-product
+  namespace: openshift-opentelemetry-operator
+  labels:
+    app.kubernetes.io/part-of: appendix-a-grpc
+spec:
+  name: opentelemetry-product
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  channel: stable
+  startingCSV: opentelemetry-operator.v0.158.0-3
+  installPlanApproval: Manual
