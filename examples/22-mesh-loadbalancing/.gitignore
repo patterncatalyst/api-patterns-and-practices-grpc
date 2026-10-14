@@ -1,0 +1,4 @@
+# scripts/bootstrap.sh's self-contained pinned-istioctl download cache (see
+# ensure_istioctl in that script) — never committed, re-downloaded on a
+# fresh machine the same way examples/_lib/lib.sh caches grpcurl.
+scripts/.bin/

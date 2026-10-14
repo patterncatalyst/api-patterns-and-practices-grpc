@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="430" height="320" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #1 — headless Service + client round_robin</text>
+<rect x="470" y="30" width="430" height="320" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="482" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #2 — Istio sidecar, per-request L7 balancing</text>
+<rect x="40" y="150" width="140" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="110.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">gRPC client</text>
+<text x="110.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">LB_POLICY=round_robin</text>
+<rect x="300" y="50" width="130" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="365.0" y="83.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod A</text>
+<rect x="300" y="150" width="130" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="365.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod B</text>
+<rect x="300" y="250" width="130" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="365.0" y="283.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod C</text>
+<rect x="490" y="150" width="120" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="550.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">gRPC client</text>
+<text x="550.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">unchanged code</text>
+<rect x="650" y="150" width="120" height="70" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
+<text x="710.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">client-side</text>
+<text x="710.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">Envoy sidecar</text>
+<rect x="810" y="50" width="90" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="855.0" y="83.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod A</text>
+<rect x="810" y="150" width="90" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="855.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod B</text>
+<rect x="810" y="250" width="90" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="855.0" y="283.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod C</text>
+<path d="M180,165 L300,77" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="246.0" y="115.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">subchannel 1</text>
+<text x="246.0" y="115.0" font-size="11" fill="#b8650a" text-anchor="middle">subchannel 1</text>
+<path d="M180,180 L300,177" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="246.0" y="172.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">subchannel 2</text>
+<text x="246.0" y="172.5" font-size="11" fill="#b8650a" text-anchor="middle">subchannel 2</text>
+<path d="M180,195 L300,277" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="246.0" y="230.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">subchannel 3</text>
+<text x="246.0" y="230.0" font-size="11" fill="#b8650a" text-anchor="middle">subchannel 3</text>
+<path d="M610,185 L650,185" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="636.0" y="179.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">one connection</text>
+<text x="636.0" y="179.0" font-size="11" fill="#555" text-anchor="middle">one connection</text>
+<path d="M770,170 L810,77" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="796.0" y="117.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">per-request pick</text>
+<text x="796.0" y="117.5" font-size="11" fill="#b8650a" text-anchor="middle">per-request pick</text>
+<path d="M770,185 L810,177" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M770,200 L810,277" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+</svg>

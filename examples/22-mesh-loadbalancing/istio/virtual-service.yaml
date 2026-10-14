@@ -1,0 +1,23 @@
+# Retries and a per-attempt timeout for GetQuote, layered on top of the
+# DestinationRule's load-balancing policy. Neither RoutingServiceServicer
+# nor loadclient.py changes to get this: a transient failure on the pod an
+# Envoy pick lands on is retried against a DIFFERENT pod automatically,
+# because the retry is a new load-balancing decision, not a replay against
+# the same backend.
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: quote-plain
+  namespace: mesh-lb-demo
+spec:
+  hosts:
+    - quote-plain.mesh-lb-demo.svc.cluster.local
+  http:
+    - route:
+        - destination:
+            host: quote-plain.mesh-lb-demo.svc.cluster.local
+      retries:
+        attempts: 2
+        perTryTimeout: 1s
+        retryOn: unavailable,resource-exhausted
+      timeout: 3s
