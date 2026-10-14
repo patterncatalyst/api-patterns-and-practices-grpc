@@ -1,0 +1,46 @@
+# Ch23 grpc-web & JSON/HTTP transcoding — Envoy, built fresh per stack. Build
+# (from the REPO ROOT, so Stage 1 can reach contracts/, exactly like the app
+# Containerfiles):
+#   docker build -f examples/23-grpc-web-transcoding/envoy/Containerfile \
+#     --build-arg ENVOY_CONFIG=envoy-quarkus.yaml -t ch23-grpc-web-envoy-quarkus .
+#
+# ../compose.yaml builds this image TWICE — once per stack — passing
+# ENVOY_CONFIG so each copy gets the matching static config
+# (envoy-quarkus.yaml or envoy-python.yaml; see those files' header comments
+# for why two static files rather than one templated one).
+#
+# Stage 1 builds a FileDescriptorSet — a binary, self-describing snapshot of
+# the proto schema — from the FROZEN contracts. `buf build` pulls in every
+# transitive import (confirmed at authoring time: the resulting descriptor
+# contains google/protobuf/field_mask.proto and google/protobuf/timestamp.proto
+# alongside shipping/*/v1/*.proto, because routing.proto imports the former
+# and types.proto imports the latter) — grpc_json_transcoder needs those
+# imported types to resolve shipping.routing.v1.GetQuoteRequest/Response's
+# full shape, not just the two files it directly serves.
+#
+# Image pins (re-check with `skopeo list-tags docker://docker.io/bufbuild/buf`
+# and `skopeo list-tags docker://docker.io/envoyproxy/envoy`, confirm each
+# with `skopeo inspect`; bump deliberately):
+#   docker.io/bufbuild/buf:1.73.0               (latest stable at authoring time)
+#   docker.io/envoyproxy/envoy:distroless-v1.40.0 (latest stable distroless tag)
+
+# ── Stage 1: proto descriptor (WITH imports) ────────────────
+FROM docker.io/bufbuild/buf:1.73.0 AS descriptor
+
+WORKDIR /work
+COPY contracts/proto ./proto
+RUN buf build ./proto -o /descriptor.binpb
+
+# ── Stage 2: Envoy, distroless runtime ──────────────────────
+FROM docker.io/envoyproxy/envoy:distroless-v1.40.0
+
+ARG ENVOY_CONFIG=envoy-quarkus.yaml
+
+COPY --from=descriptor --chown=65532:65532 /descriptor.binpb /etc/envoy/descriptor.binpb
+COPY --chown=65532:65532 examples/23-grpc-web-transcoding/envoy/${ENVOY_CONFIG} /etc/envoy/envoy.yaml
+
+EXPOSE 10000 9901
+# The base image's own ENTRYPOINT/CMD (/usr/local/bin/envoy -c
+# /etc/envoy/envoy.yaml, running as the baked-in nonroot UID 65532) is
+# exactly right unchanged — this Containerfile only supplies the config and
+# the descriptor the base image's default command already expects at that path.

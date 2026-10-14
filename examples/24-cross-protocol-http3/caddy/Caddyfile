@@ -1,0 +1,27 @@
+# Ch24 cross-protocol-http3 — a pinned Caddy, serving one static JSON file
+# over HTTPS on :8443. Caddy enables HTTP/3 (QUIC) automatically for any site
+# served over TLS — no extra directive needed (it stopped being an
+# "experimental" opt-in as of Caddy 2.6) — so this plain file server is
+# enough to give app/h3_probe.py a real HTTP/3-over-QUIC endpoint to probe.
+#
+# This is a transport demo, not a gRPC server. Nothing here speaks gRPC;
+# Caddy is not proxying to either RoutingService in this compose stack. It
+# exists solely so the probe has something real to complete a QUIC handshake
+# and an HTTP/3 request against — see the chapter prose and h3_probe.py's
+# module docstring for why that separation matters.
+#
+# `tls internal` mints a fresh, container-local self-signed CA + leaf cert on
+# every start (Caddy's own non-ACME internal issuer) — fine for a transport
+# probe that disables certificate verification (see h3_probe.py); it is not
+# how Ch19/Ch20's TLS/mTLS chapters issue certificates, and this chapter
+# doesn't repeat that ground.
+{
+	auto_https disable_redirects
+}
+
+caddy:8443, localhost:8443 {
+	tls internal
+	root * /srv/www
+	file_server
+	header Content-Type application/json
+}

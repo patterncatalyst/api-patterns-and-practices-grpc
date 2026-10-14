@@ -1,0 +1,105 @@
+# Ch23 grpc-web & JSON/HTTP transcoding ANCHOR — compose topology for
+# shipping.routing.v1.RoutingService.GetQuote calling DOWNSTREAM
+# shipping.quote.v1.QuoteService.GetQuote (the Ch21 two-service loopback
+# shape, minus the tracing/metrics additions — this chapter's point is what
+# sits IN FRONT of the server), PLUS the Ch21 REST front door
+# (POST /booking/quote) on each stack. Both app images are generated from the
+# SAME proto (contracts/proto/shipping/{type,routing,quote}/v1/*.proto). The
+# build context for the app services AND for Envoy is the REPO ROOT so each
+# Containerfile can COPY the proto files it needs straight from contracts/
+# (the single source of truth) — see quarkus/Containerfile,
+# python/Containerfile, and envoy/Containerfile for the exact COPY lines.
+#
+# ONE Envoy container per stack (envoy-quarkus, envoy-python), each built
+# from the SAME envoy/Containerfile but with a different `ENVOY_CONFIG` build
+# arg, so each gets a static config whose "app" cluster points at that one
+# stack's own app container. Each Envoy fronts BOTH the JSON/HTTP transcoder
+# (envoy.filters.http.grpc_json_transcoder, auto_mapping) and the grpc-web
+# unwrapper (envoy.filters.http.grpc_web) on the SAME listener — see
+# envoy/envoy-quarkus.yaml / envoy/envoy-python.yaml.
+#
+# The Grafana LGTM observability stack is opt-in here (`--profile
+# observability`) — this chapter is not about tracing; see Ch21 for that.
+#
+# Usage:
+#   docker compose up --build                            # apps + both Envoys
+#   curl -X POST localhost:8230/booking/quote \
+#     -H 'content-type: application/json' \
+#     -d '{"origin":"USNYC","destination":"NLRTM","cargoKg":1000}'
+#   curl -X POST localhost:10230/shipping.routing.v1.RoutingService/GetQuote \
+#     -H 'content-type: application/json' \
+#     -d '{"origin":{"unLocode":"USNYC"},"destination":{"unLocode":"NLRTM"},"cargo":[{"weightKg":1000}]}'
+#   docker compose run --rm --entrypoint python python -m app.grpcweb_client envoy-quarkus:10000
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/23-grpc-web-transcoding/quarkus/Containerfile
+    container_name: ch23-grpc-web-quarkus
+    ports:
+      - "9230:9000"  # gRPC: RoutingService, QuoteService (native path)
+      - "8230:8080"  # HTTP: POST /booking/quote (the hand-written REST shim)
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/23-grpc-web-transcoding/python/Containerfile
+    container_name: ch23-grpc-web-python
+    ports:
+      - "9231:9000"  # gRPC: RoutingService, QuoteService (native path)
+      - "8231:8000"  # HTTP: POST /booking/quote (the hand-written REST shim)
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── Envoy — one per stack, JSON transcoder + grpc-web, same listener ──────
+  envoy-quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/23-grpc-web-transcoding/envoy/Containerfile
+      args:
+        ENVOY_CONFIG: envoy-quarkus.yaml
+    container_name: ch23-grpc-web-envoy-quarkus
+    ports:
+      - "10230:10000" # JSON/HTTP transcoding AND grpc-web, one listener
+    depends_on:
+      - quarkus
+
+  envoy-python:
+    build:
+      context: ../..
+      dockerfile: examples/23-grpc-web-transcoding/envoy/Containerfile
+      args:
+        ENVOY_CONFIG: envoy-python.yaml
+    container_name: ch23-grpc-web-envoy-python
+    ports:
+      - "10231:10000" # JSON/HTTP transcoding AND grpc-web, one listener
+    depends_on:
+      - python
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default —
+  # this chapter is about browsers and transcoding, not tracing (see Ch21).
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch23-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
