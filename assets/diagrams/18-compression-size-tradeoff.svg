@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 320" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="40" width="410" height="260" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="60" font-size="12" font-weight="700" fill="#1d1d1d">ListRoutes (~5MB, highly repetitive)</text>
+<rect x="460" y="40" width="420" height="260" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="472" y="60" font-size="12" font-weight="700" fill="#1d1d1d">GetQuote (~40 bytes)</text>
+<rect x="50" y="90" width="350" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="225.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Uncompressed</text>
+<text x="225.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">~5.0MB on the wire</text>
+<rect x="50" y="180" width="90" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="95.0" y="203.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Gzip</text>
+<text x="95.0" y="220.0" font-size="11.5" fill="#555555" text-anchor="middle">far smaller</text>
+<rect x="490" y="90" width="70" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="525.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Uncompressed</text>
+<text x="525.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">~40 bytes</text>
+<rect x="490" y="180" width="80" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="530.0" y="203.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Gzip</text>
+<text x="530.0" y="220.0" font-size="11.5" fill="#555555" text-anchor="middle">no real win</text>
+<path d="M225,140 L95,180" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="166.0" y="154.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">compress</text>
+<text x="166.0" y="154.0" font-size="11" fill="#b8650a" text-anchor="middle">compress</text>
+<path d="M525,140 L530,180" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="533.5" y="154.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">compress</text>
+<text x="533.5" y="154.0" font-size="11" fill="#555" text-anchor="middle">compress</text>
+<text x="225" y="255" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Win: big size cut, CPU cost easily amortized</text>
+<text x="670" y="255" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Wash: overhead ~ savings, CPU spent for nothing</text>
+</svg>

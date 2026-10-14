@@ -1,0 +1,95 @@
+# Ch18 performance-tuning — compose topology for
+# shipping.routing.v1.RoutingService.{GetQuote,ListRoutes}.
+#
+# Both services are generated from the SAME proto
+# (contracts/proto/shipping/{type,routing}/v1/*.proto) and implement
+# GetQuote (the Ch7 fast-unary formula) and ListRoutes (a fixed, padded
+# 25-route catalog) identically — see README.md. The build context for both
+# is the REPO ROOT so each Containerfile can COPY the two proto files it
+# needs straight from contracts/ — see quarkus/Containerfile and
+# python/Containerfile for the exact COPY lines.
+#
+# This chapter's teaching point is the set of levers that make gRPC fast
+# under load: channel/stub REUSE (verify.sh runs
+# `docker compose run --rm python python -m app.footgun_client|pooled_client
+# <service>:9000 <calls>` against each service's in-network address), a
+# raised max-inbound-message-size + gzip compression (verify.sh runs
+# `app.gzip_client`), keepalive (verify.sh runs `app.keepalive_client`), and
+# ghz load-testing GetQuote through the dedicated `ghz` service below.
+#
+# The LGTM observability stack is opt-in (`--profile observability`) so CI
+# and a first boot stay fast; both apps are wired for OTLP export but start
+# and serve GetQuote/ListRoutes fine without a collector listening.
+#
+# Usage:
+#   docker compose up --build                          # app stack only
+#   docker compose --profile observability up --build  # + Grafana LGTM
+#   docker compose run --rm python python -m app.footgun_client quarkus:9000 50
+#   docker compose run --rm ghz --insecure --proto /contracts/shipping/routing/v1/routing.proto \
+#     --import-paths /contracts --call shipping.routing.v1.RoutingService.GetQuote \
+#     -d '{}' -c 10 -n 300 -O json quarkus:9000
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/18-performance-tuning/quarkus/Containerfile
+    container_name: ch18-routing-quarkus
+    ports:
+      - "9180:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/18-performance-tuning/python/Containerfile
+    container_name: ch18-routing-python
+    ports:
+      - "9181:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── ghz load generator (one-shot; `docker compose run`, never `up`) ───────
+  # Profiled off so plain `docker compose up`/compose_up never starts it;
+  # `docker compose run --rm ghz ...` auto-enables a service's own profile,
+  # so no extra flag is needed to invoke it. contracts/proto/ is mounted
+  # read-only so ghz can be fed the .proto directly — ghz has no server
+  # reflection support, unlike grpcurl.
+  #
+  # Image pin: ghcr.io/bojand/ghz 0.121.0 (latest stable at authoring time;
+  # bojand/ghz is NOT published to docker.io, only to ghcr.io — verified with
+  # `skopeo list-tags docker://ghcr.io/bojand/ghz`). Re-check the same way
+  # before bumping, like the UBI/grpcurl pins elsewhere in this book.
+  ghz:
+    image: ghcr.io/bojand/ghz:0.121.0
+    profiles: ["ghz"]
+    volumes:
+      - ../../contracts/proto:/contracts:ro
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast. The OTEL_EXPORTER_*
+  # env vars above point at this service's name, which only resolves when
+  # the profile is active — harmless (just unreachable) otherwise.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch18-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
