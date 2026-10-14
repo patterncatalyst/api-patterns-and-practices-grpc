@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="400" height="340" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">TLS (one-way)</text>
+<rect x="460" y="30" width="420" height="340" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="472" y="50" font-size="12" font-weight="700" fill="#1d1d1d">mTLS (two-way)</text>
+<rect x="40" y="70" width="170" height="55" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="125.0" y="95.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="125.0" y="112.5" font-size="11.5" fill="#555555" text-anchor="middle">(no cert)</text>
+<rect x="250" y="70" width="150" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="325.0" y="103.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<rect x="40" y="280" width="360" height="60" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="220.0" y="308.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Client identity: not checked</text>
+<text x="220.0" y="325.0" font-size="11.5" fill="#dddddd" text-anchor="middle">any client with the CA succeeds</text>
+<rect x="480" y="70" width="170" height="55" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="565.0" y="95.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="565.0" y="112.5" font-size="11.5" fill="#555555" text-anchor="middle">+client.crt</text>
+<rect x="700" y="70" width="160" height="55" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="780.0" y="95.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<text x="780.0" y="112.5" font-size="11.5" fill="#555555" text-anchor="middle">client-auth=REQUIRED</text>
+<rect x="480" y="180" width="170" height="55" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="565.0" y="205.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="565.0" y="222.5" font-size="11.5" fill="#555555" text-anchor="middle">(no cert)</text>
+<rect x="480" y="280" width="400" height="60" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="680.0" y="308.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Client identity: verified against ca.crt</text>
+<text x="680.0" y="325.0" font-size="11.5" fill="#dddddd" text-anchor="middle">no cert -&gt; rejected at handshake</text>
+<path d="M210,97 L250,97" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="236.0" y="91.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">server cert only</text>
+<text x="236.0" y="91.0" font-size="11" fill="#555" text-anchor="middle">server cert only</text>
+<path d="M650,97 L700,97" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="681.0" y="91.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">server + client certs</text>
+<text x="681.0" y="91.0" font-size="11" fill="#b8650a" text-anchor="middle">server + client certs</text>
+<path d="M650,207 L700,110" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="681.0" y="152.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">rejected</text>
+<text x="681.0" y="152.5" font-size="11" fill="#555" text-anchor="middle">rejected</text>
+<text x="220" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Figure contrasts one direction of trust with two.</text>
+<text x="670" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Same CA, same server — client-auth is the only difference.</text>
+</svg>

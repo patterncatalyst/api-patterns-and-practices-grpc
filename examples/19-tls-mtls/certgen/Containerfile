@@ -1,0 +1,32 @@
+# Ch19 tls-mtls — certgen: a one-shot cert bootstrap image, never a server.
+#
+# This image ships openssl AND keytool at BUILD time (a cached layer — the
+# UBI10 minimal base plus two microdnf installs); the actual certificate
+# MATERIAL is generated at CONTAINER RUN time by gen-certs.sh (see
+# compose.yaml), fresh on every `docker compose up`/`verify.sh` run. Nothing
+# cryptographic is baked into this image or committed to the repo.
+#
+# keytool is here for one reason, confirmed empirically rather than assumed:
+# Quarkus's gRPC Java (separate-server) mode loads its mTLS trust-store
+# through Vert.x's KeyStoreHelper, which needs an actual Java keystore — and
+# a PKCS12 trust-store openssl builds from a bare certificate (`pkcs12
+# -export -nokeys`) loads with ZERO trust anchors under Java's PKIX
+# validator (`InvalidAlgorithmParameterException: the trustAnchors
+# parameter must be non-empty`), because the resulting PKCS12 entry isn't
+# tagged the way Java's PKCS12 KeyStore provider expects for a trusted
+# certificate. `keytool -importcert` builds a trust-store Java actually
+# recognizes; see gen-certs.sh.
+#
+# Base image pin (re-check with
+# `skopeo list-tags docker://registry.access.redhat.com/ubi10/ubi-minimal`,
+# confirm with `skopeo inspect`; bump deliberately, same discipline as the
+# ubi10/openjdk-25 and ubi10/python-314-minimal pins elsewhere in this book):
+#   registry.access.redhat.com/ubi10/ubi-minimal:10.2-1791891203
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2-1791891203
+
+RUN microdnf install -y openssl java-21-openjdk-headless && microdnf clean all
+
+COPY examples/19-tls-mtls/certgen/gen-certs.sh /gen-certs.sh
+RUN chmod +x /gen-certs.sh
+
+ENTRYPOINT ["/gen-certs.sh"]
