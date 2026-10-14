@@ -40,8 +40,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T20 | AuthN / AuthZ (JWT/OAuth2, per-call, interceptors) | Ch20 | `_docs/20-authn-authz.md` | verified |
 | T21 | Observability (OTel / Prometheus / Grafana / Tempo) | Ch21 | `_docs/21-observability.md` | verified |
 | T22 | Load balancing & service mesh (the L4 problem) | Ch22 | `_docs/22-load-balancing-service-mesh.md` | verified |
-| T23 | gRPC-Web & JSON/HTTP transcoding | Ch23 | `_docs/23-grpc-web-transcoding.md` | planned |
-| T24 | Cross-protocol choices + HTTP/3 | Ch24 | `_docs/24-cross-protocol-http3.md` | planned |
+| T23 | gRPC-Web & JSON/HTTP transcoding | Ch23 | `_docs/23-grpc-web-transcoding.md` | draft |
+| T24 | Cross-protocol choices + HTTP/3 | Ch24 | `_docs/24-cross-protocol-http3.md` | draft |
 | T25 | Testing & CLI (grpcurl/grpcui/QuarkusTest/pytest/ghz) | Ch25 | `_docs/25-testing-and-cli.md` | planned |
 | T26 | Debugging gRPC | Ch26 | `_docs/26-debugging-grpc.md` | planned |
 | T27 | Complete project (capstone) | Ch27 | `_docs/27-complete-project.md` | planned |
@@ -81,8 +81,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 20 | `_docs/20-authn-authz.md` | Part 8 | verified |
 | 21 | `_docs/21-observability.md` | Part 9 | verified |
 | 22 | `_docs/22-load-balancing-service-mesh.md` | Part 9 | verified |
-| 23 | `_docs/23-grpc-web-transcoding.md` | Part 10 | planned |
-| 24 | `_docs/24-cross-protocol-http3.md` | Part 10 | planned |
+| 23 | `_docs/23-grpc-web-transcoding.md` | Part 10 | draft |
+| 24 | `_docs/24-cross-protocol-http3.md` | Part 10 | draft |
 | 25 | `_docs/25-testing-and-cli.md` | Part 11 | planned |
 | 26 | `_docs/26-debugging-grpc.md` | Part 11 | planned |
 | 27 | `_docs/27-complete-project.md` | Part 12 | planned |
