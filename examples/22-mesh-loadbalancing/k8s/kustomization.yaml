@@ -1,0 +1,20 @@
+# Core-resources-only kustomize base for the Ch22 minikube demo. This is the
+# ONLY part of this example the k8s-manifests CI job validates:
+#
+#   kubectl kustomize examples/22-mesh-loadbalancing/k8s | kubeconform -strict -summary
+#
+# `-strict` fails on any resource kubeconform has no schema for, which is
+# exactly why the Istio CustomResources (PeerAuthentication, DestinationRule,
+# VirtualService) live in ../istio/ instead of here — kubeconform has no
+# schema for Istio's CRDs, and mixing them into this base would make the
+# strict check fail on every push, mesh or no mesh.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: mesh-lb-demo
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service-plain.yaml
+  - service-headless.yaml

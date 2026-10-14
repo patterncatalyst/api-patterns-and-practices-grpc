@@ -1,0 +1,12 @@
+# The demo namespace. scripts/bootstrap.sh labels this namespace
+# istio-injection=enabled once Istio is installed — that label alone does
+# NOT mesh anything yet, because deployment.yaml's pod template carries the
+# sidecar.istio.io/inject: "false" annotation, which overrides the
+# namespace-wide default per pod. scripts/run-demo.sh flips that annotation
+# to "true" and does a rollout restart only for the Istio phase of the demo,
+# so phases 1 and 2 (the plain-Service pin and the headless+round_robin fix)
+# run with no mesh involved at all.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mesh-lb-demo

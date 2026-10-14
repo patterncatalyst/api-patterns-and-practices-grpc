@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="40" width="840" height="230" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="60" font-size="12" font-weight="700" fill="#1d1d1d">trace 4bf92f3577b34da6a3ce929d0e0e4736</text>
+<rect x="50" y="70" width="780" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="440.0" y="93.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">POST /booking/quote</text>
+<text x="440.0" y="110.0" font-size="11.5" fill="#555555" text-anchor="middle">REST root span</text>
+<rect x="110" y="140" width="620" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="420.0" y="163.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService/GetQuote</text>
+<text x="420.0" y="180.0" font-size="11.5" fill="#555555" text-anchor="middle">gRPC server span (child)</text>
+<rect x="170" y="210" width="460" height="40" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="400.0" y="228.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">QuoteService/GetQuote</text>
+<text x="400.0" y="245.0" font-size="11.5" fill="#dddddd" text-anchor="middle">gRPC server span (grandchild)</text>
+<path d="M130,120 L130,140" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="136.0" y="124.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">child span, same trace-id</text>
+<text x="136.0" y="124.0" font-size="11" fill="#555" text-anchor="middle">child span, same trace-id</text>
+<path d="M190,190 L190,210" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="196.0" y="194.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">child span, same trace-id</text>
+<text x="196.0" y="194.0" font-size="11" fill="#555" text-anchor="middle">child span, same trace-id</text>
+<text x="440" y="25" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">One REST request -&gt; one trace -&gt; three spans, same trace-id throughout</text>
+</svg>

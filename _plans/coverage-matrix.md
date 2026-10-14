@@ -38,8 +38,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T18 | Performance tuning + ghz | Ch18 | `_docs/18-performance-tuning.md` | verified |
 | T19 | TLS / mTLS | Ch19 | `_docs/19-tls-mtls.md` | verified |
 | T20 | AuthN / AuthZ (JWT/OAuth2, per-call, interceptors) | Ch20 | `_docs/20-authn-authz.md` | verified |
-| T21 | Observability (OTel / Prometheus / Grafana / Tempo) | Ch21 | `_docs/21-observability.md` | planned |
-| T22 | Load balancing & service mesh (the L4 problem) | Ch22 | `_docs/22-load-balancing-service-mesh.md` | planned |
+| T21 | Observability (OTel / Prometheus / Grafana / Tempo) | Ch21 | `_docs/21-observability.md` | verified |
+| T22 | Load balancing & service mesh (the L4 problem) | Ch22 | `_docs/22-load-balancing-service-mesh.md` | verified |
 | T23 | gRPC-Web & JSON/HTTP transcoding | Ch23 | `_docs/23-grpc-web-transcoding.md` | planned |
 | T24 | Cross-protocol choices + HTTP/3 | Ch24 | `_docs/24-cross-protocol-http3.md` | planned |
 | T25 | Testing & CLI (grpcurl/grpcui/QuarkusTest/pytest/ghz) | Ch25 | `_docs/25-testing-and-cli.md` | planned |
@@ -51,7 +51,7 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | # | Topic | Chapter | File | Status |
 |---|---|---|---|---|
 | R1 | Docker/Podman Compose tier | Ch0 / Ch5 | `_docs/00-prerequisites-and-the-lab.md` | verified |
-| R2 | minikube tier (+ the LB problem) | Ch22 / Ch27 | `_docs/22-load-balancing-service-mesh.md` | planned |
+| R2 | minikube tier (+ the LB problem) | Ch22 / Ch27 | `_docs/22-load-balancing-service-mesh.md` | verified |
 | R3 | CRC / OpenShift Local tier | Appendix A | `_docs/99-appendix-a-openshift-crc.md` | planned |
 
 ## Full chapter inventory (28 + appendix)
@@ -79,8 +79,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 18 | `_docs/18-performance-tuning.md` | Part 7 | verified |
 | 19 | `_docs/19-tls-mtls.md` | Part 8 | verified |
 | 20 | `_docs/20-authn-authz.md` | Part 8 | verified |
-| 21 | `_docs/21-observability.md` | Part 9 | planned |
-| 22 | `_docs/22-load-balancing-service-mesh.md` | Part 9 | planned |
+| 21 | `_docs/21-observability.md` | Part 9 | verified |
+| 22 | `_docs/22-load-balancing-service-mesh.md` | Part 9 | verified |
 | 23 | `_docs/23-grpc-web-transcoding.md` | Part 10 | planned |
 | 24 | `_docs/24-cross-protocol-http3.md` | Part 10 | planned |
 | 25 | `_docs/25-testing-and-cli.md` | Part 11 | planned |

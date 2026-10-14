@@ -1,0 +1,73 @@
+# Ch22 mesh-loadbalancing — Python, UBI 10, uv-managed, grpc.aio server +
+# loadclient. ONE image serves two roles, selected by overriding the
+# container command: the Deployment runs the default ENTRYPOINT (the
+# GetQuote server); the demo's load-generation Job overrides `command` to
+# run `python -m app.loadclient` instead. Same pattern Ch7's compose.yaml
+# uses to reuse one built image as both server and reuse-demo client.
+#
+# Build (from the REPO ROOT, so this context can reach contracts/), then
+# load straight into minikube — no registry, no push:
+#   docker build -f examples/22-mesh-loadbalancing/python/Containerfile \
+#     -t ch22-routing-python:dev .
+#   minikube -p grpc-mesh image load ch22-routing-python:dev
+#
+# UBI 10 publishes only the -minimal Python image (no ubi10/python-312).
+# Pin: registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+# (same pin as examples/07-unary-rpcs and examples/19-tls-mtls). Re-check with:
+#   skopeo list-tags docker://registry.access.redhat.com/ubi10/python-314-minimal
+# and confirm with `skopeo inspect`. Bump deliberately.
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217 AS build
+
+# The image runs as UID 1001; the build stage needs root to write /app.
+# Build at the same path the runtime uses: a venv is not relocatable, its
+# console scripts carry the absolute interpreter path.
+USER 0
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv==0.12.24
+
+COPY examples/22-mesh-loadbalancing/python/pyproject.toml ./
+COPY examples/22-mesh-loadbalancing/python/app ./app
+
+RUN uv sync --group dev
+
+# Stage the two proto files this service needs, preserving the package path
+# routing.proto's import statement expects, then generate the stub packages
+# into /app/generated, added to PYTHONPATH below — both the server and
+# loadclient.py import the identical generated packages.
+COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./proto/shipping/routing/v1/routing.proto
+RUN mkdir -p generated && \
+    .venv/bin/python -m grpc_tools.protoc -I proto \
+      --python_out=generated --grpc_python_out=generated \
+      proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto
+
+# Rebuild the venv without the dev group (grpcio-tools and its protoc
+# binary are not needed to run the server, or loadclient.py).
+RUN rm -rf .venv && uv sync --no-dev
+
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+
+WORKDIR /app
+
+COPY --from=build --chown=1001:0 /app/.venv /app/.venv
+COPY --from=build --chown=1001:0 /app/app /app/app
+COPY --from=build --chown=1001:0 /app/generated /app/generated
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/generated:/app" \
+    PYTHONUNBUFFERED=1 \
+    GRPC_HOST=0.0.0.0 \
+    GRPC_PORT=9000
+
+EXPOSE 9000
+USER 1001
+
+# Default role: the GetQuote server. The demo's load-generation Job
+# (see ../../scripts/run-demo.sh) overrides this with
+# `command: ["python", "-m", "app.loadclient"]` against the same image —
+# no second image to build.
+ENTRYPOINT ["python", "-m", "app.main"]

@@ -1,0 +1,29 @@
+# Fix #2: tell every meshed client's sidecar how to balance calls to
+# quote-plain across the three GetQuote pods. ROUND_ROBIN here is an L7,
+# per-REQUEST decision made by Envoy — not a per-connection decision like
+# the plain Service's kube-proxy iptables rule, and not a per-subchannel
+# decision like the headless+round_robin client fix. A single client
+# channel, still one HTTP/2 connection from the client's point of view (now
+# terminating at its own local sidecar), can still have its individual
+# RPCs fanned out across all three pods, because the sidecar — not the
+# client — owns the upstream connections to each pod.
+#
+# Outlier detection is included because it is the natural companion to any
+# load-balancing policy: a pod that starts failing calls is temporarily
+# ejected from the pool so the other two absorb its share automatically,
+# with no client-visible change at all.
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: quote-plain
+  namespace: mesh-lb-demo
+spec:
+  host: quote-plain.mesh-lb-demo.svc.cluster.local
+  trafficPolicy:
+    loadBalancer:
+      simple: ROUND_ROBIN
+    outlierDetection:
+      consecutive5xxErrors: 3
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50

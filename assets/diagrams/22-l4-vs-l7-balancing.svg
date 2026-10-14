@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 300" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="840" height="110" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">L4: one load-balancing decision per CONNECTION</text>
+<rect x="20" y="160" width="840" height="120" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="180" font-size="12" font-weight="700" fill="#1d1d1d">L7: one load-balancing decision per REQUEST</text>
+<rect x="40" y="55" width="260" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="170.0" y="78.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">one HTTP/2 connection</text>
+<text x="170.0" y="95.0" font-size="11.5" fill="#555555" text-anchor="middle">carries req1, req2, req3</text>
+<rect x="620" y="55" width="200" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="720.0" y="78.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod A</text>
+<text x="720.0" y="95.0" font-size="11.5" fill="#555555" text-anchor="middle">(the only pod reached)</text>
+<rect x="40" y="195" width="260" height="50" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="170.0" y="218.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">one HTTP/2 connection</text>
+<text x="170.0" y="235.0" font-size="11.5" fill="#555555" text-anchor="middle">carries req1, req2, req3</text>
+<rect x="620" y="195" width="70" height="40" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="655.0" y="220.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod A</text>
+<rect x="620" y="245" width="70" height="40" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="655.0" y="270.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod B</text>
+<rect x="770" y="220" width="70" height="40" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="805.0" y="245.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Pod C</text>
+<path d="M300,80 L620,80" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="466.0" y="74.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">req1, req2, req3 — all three</text>
+<text x="466.0" y="74.0" font-size="11" fill="#b8650a" text-anchor="middle">req1, req2, req3 — all three</text>
+<path d="M300,215 L620,215" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="466.0" y="209.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">req1</text>
+<text x="466.0" y="209.0" font-size="11" fill="#b8650a" text-anchor="middle">req1</text>
+<path d="M300,225 L620,265" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="466.0" y="239.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">req2</text>
+<text x="466.0" y="239.0" font-size="11" fill="#b8650a" text-anchor="middle">req2</text>
+<path d="M300,235 L770,240" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="541.0" y="231.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">req3</text>
+<text x="541.0" y="231.5" font-size="11" fill="#b8650a" text-anchor="middle">req3</text>
+</svg>

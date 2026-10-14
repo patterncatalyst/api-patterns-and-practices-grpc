@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch21 observability ANCHOR — Quarkus side.
+
+  Same Ch10 two-service loopback shape (RoutingServiceImpl calls DOWNSTREAM
+  QuoteServiceImpl over a loopback @GrpcClient channel, both in this one
+  process on port 9000), PLUS a minimal quarkus-rest endpoint
+  (BookingResource, POST /booking/quote on the HTTP port 8080) that calls
+  RoutingService.GetQuote over its OWN loopback @GrpcClient. No contract
+  change: tracing and metrics ride entirely in gRPC metadata and in
+  Micrometer/OTel's own machinery, not in any proto field.
+
+  - quarkus-opentelemetry auto-instruments the REST endpoint AND both gRPC
+    hops (quarkus.otel.instrument.rest / .grpc default true), injecting a
+    W3C traceparent into the loopback gRPC call's metadata so one REST
+    request produces one trace across all three spans.
+  - quarkus-micrometer-registry-prometheus auto-enables gRPC server metrics
+    the moment quarkus-grpc is also present (no extra config), published at
+    /q/metrics.
+  - The grpc.health.v1.Health service is registered automatically by
+    quarkus-grpc for every @GrpcService bean — no extra dependency or
+    config key (confirmed against the Quarkus 3.40 gRPC guide; see
+    README.md).
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs
+  the three proto files this module needs into src/main/proto/ as part of
+  the image build. For a local, non-container `mvn package`, copy the files
+  by hand first (see README.md).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch21-quarkus-observability</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <!-- `quarkus` packaging (not plain `jar`) binds the quarkus-grpc extension's
+       proto-to-Mutiny code generation to the generate-sources phase, before
+       compile — same reason as every prior anchor. -->
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches every prior anchor's pin: Quarkus latest stable LTS (3.40.x). -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates the Mutiny service interface + client stubs from
+         src/main/proto/**.proto at build time, runs the gRPC server, and
+         registers the built-in grpc.health.v1.Health service automatically
+         for every @GrpcService bean. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+    <!-- The REST front door: POST /booking/quote. quarkus-rest-jackson pulls
+         in quarkus-rest transitively and adds Jackson JSON (de)serialization
+         for the BookingQuote* records below. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-rest-jackson</artifactId>
+    </dependency>
+    <!-- Auto-instruments quarkus-rest AND the gRPC server/client
+         (quarkus.otel.instrument.rest / .grpc, both default true): one root
+         span for the REST handler, a child span for the GetQuote gRPC hop,
+         a grandchild span for the downstream QuoteService hop — one trace,
+         W3C traceparent injected into the gRPC call's metadata
+         automatically, no manual propagation code anywhere in this module. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
+    </dependency>
+    <!-- Micrometer + the Prometheus registry: publishes /q/metrics.
+         quarkus-grpc's server metrics binder turns on automatically the
+         moment quarkus-micrometer is on the classpath — no extra property. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
