@@ -1,0 +1,50 @@
+# Three replicas of the Ch22 GetQuote server (examples/22-mesh-loadbalancing/python).
+# Deliberately plain: no Service-level magic here, the whole chapter is about
+# what two DIFFERENT Service objects (service-plain.yaml, service-headless.yaml)
+# do to calls against these same three pods.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quote
+  labels:
+    app: quote
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quote
+  template:
+    metadata:
+      labels:
+        app: quote
+      annotations:
+        # Overrides the namespace-wide istio-injection=enabled label (see
+        # namespace.yaml) so this base deployment starts UNMESHED. The
+        # Istio phase of scripts/run-demo.sh patches this to "true" and
+        # restarts the rollout.
+        sidecar.istio.io/inject: "false"
+    spec:
+      containers:
+        - name: quote
+          image: ch22-routing-python:dev
+          imagePullPolicy: Never
+          ports:
+            - name: grpc
+              containerPort: 9000
+          readinessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 2
+            periodSeconds: 3
+          livenessProbe:
+            tcpSocket:
+              port: 9000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 96Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
