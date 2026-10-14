@@ -1,0 +1,63 @@
+# Ch25 testing-and-cli — Quarkus, UBI 10, JVM mode (fast-jar), no native.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/25-testing-and-cli/quarkus/Containerfile \
+#     -t ch25-routing-quarkus .
+# compose.yaml sets the build context to the repo root so this Containerfile
+# can COPY the two proto files this service needs straight from
+# contracts/proto/ (the single source of truth) at image-build time. The
+# copy is build-time only — it is never committed into this module (see
+# ../.gitignore).
+#
+# THE GATE: stage 1 runs `mvn verify`, not `mvn package -DskipTests`. verify
+# runs through the test phase, which runs src/test/java/.../RoutingServiceTest.java
+# (a real @QuarkusTest + @GrpcClient in-process call) via Surefire. A red
+# assertion there fails this RUN, which fails `docker build`, which fails
+# `docker compose up --build` in verify.sh, before stage 2 is ever reached —
+# the image literally cannot be built from a broken RoutingServiceImpl.
+#
+# Base image pins (re-check with `skopeo list-tags
+# docker://registry.access.redhat.com/ubi10/openjdk-25`, confirm with
+# `skopeo inspect`; bump deliberately):
+#   registry.access.redhat.com/ubi10/openjdk-25:1.24-15
+#   registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15
+
+# ── Stage 1: Build + test (the CI gate) ─────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25:1.24-15 AS build
+
+WORKDIR /build
+COPY examples/25-testing-and-cli/quarkus/pom.xml .
+COPY examples/25-testing-and-cli/quarkus/src ./src
+
+# Copy only the two proto files RoutingService needs, preserving the package
+# path the import statement in routing.proto expects.
+COPY contracts/proto/shipping/type/v1/types.proto ./src/main/proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./src/main/proto/shipping/routing/v1/routing.proto
+
+# `verify` (NOT `package -DskipTests`) walks the Maven lifecycle through the
+# `test` phase before `package`, so RoutingServiceTest runs here, inside the
+# image build, every time. The extra -Daether.* / -Dmaven.wagon.* flags widen
+# Maven's resolver sync window and retry transient downloads — a slow-network
+# CI mitigation, not a normal local-dev requirement.
+RUN mvn -B verify -Dmaven.javadoc.skip=true \
+      -Daether.syncContext.named.time=300 \
+      -Daether.syncContext.named.time.unit=SECONDS \
+      -Dmaven.wagon.http.retryHandler.count=3 \
+      -Daether.connector.http.retryHandler.count=3
+
+# ── Stage 2: Runtime (fast-jar) ─────────────────────────────
+FROM registry.access.redhat.com/ubi10/openjdk-25-runtime:1.24-15
+
+ENV LANGUAGE='en_US:en'
+
+COPY --from=build --chown=185 /build/target/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /build/target/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /build/target/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /build/target/quarkus-app/quarkus/ /deployments/quarkus/
+
+EXPOSE 9000
+USER 185
+
+ENV JAVA_OPTS_APPEND="-Dquarkus.grpc.server.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
+
+ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
