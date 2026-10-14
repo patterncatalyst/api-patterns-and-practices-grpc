@@ -5,7 +5,7 @@ call (see main.py's server_credentials() and ../README.md) — not the RPC
 itself, so there is nothing new here on the application side.
 
 FindOptimalRoute, ListRoutes, NegotiateRoute, and RecomputeRoutes are
-intentionally left unoverridden: the generated
+left unoverridden: the generated
 `routing_pb2_grpc.RoutingServiceServicer` base class already sets gRPC
 status UNIMPLEMENTED and raises for any method a subclass doesn't override.
 """
@@ -40,7 +40,7 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
             carrier=_CARRIER,
             origin=origin,
             destination=destination,
-            # departs_at / arrives_at intentionally left unset.
+            # departs_at / arrives_at left unset.
         )
         route = types_pb2.Route(
             id=f"rte_{origin.un_locode}-{destination.un_locode}",

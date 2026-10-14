@@ -18,10 +18,10 @@ import shipping.type.v1.Types;
  * scopes: both are the interceptor's job, not this class's.
  *
  * <p>{@code listRoutes} is the method {@code AuthzInterceptor} gates on the
- * {@code routes:admin} scope. It is left unoverridden here, same as
- * {@code findOptimalRoute}, {@code recomputeRoutes}, and
- * {@code negotiateRoute} — the generated {@code RoutingService} interface's
- * default methods already answer {@code UNIMPLEMENTED}. That matters for
+ * {@code routes:admin} scope. Like {@code findOptimalRoute},
+ * {@code recomputeRoutes}, and {@code negotiateRoute}, it is overridden here
+ * only to return {@code UNIMPLEMENTED} — the generated {@code RoutingService}
+ * interface is fully abstract, so every method must be implemented. That matters for
  * this chapter specifically: a token lacking {@code routes:admin} gets
  * {@code PERMISSION_DENIED} from the interceptor and never reaches this
  * class at all. A token that DID carry {@code routes:admin} would still

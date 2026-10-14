@@ -1,5 +1,7 @@
 package com.patterncatalyst.shipping.routing;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -89,7 +91,7 @@ public class AuthzInterceptor implements ServerInterceptor {
 
         String requiredScope = METHOD_SCOPES.get(method);
         if (requiredScope != null) {
-            Set<String> granted = Set.of(String.valueOf(claims.getOrDefault("scope", "")).trim().split("\\s+"));
+            Set<String> granted = new HashSet<>(Arrays.asList(String.valueOf(claims.getOrDefault("scope", "")).trim().split("\\s+")));
             if (!granted.contains(requiredScope)) {
                 return reject(call, method, startNanos, Status.PERMISSION_DENIED
                         .withDescription("token lacks required scope '" + requiredScope + "'"));

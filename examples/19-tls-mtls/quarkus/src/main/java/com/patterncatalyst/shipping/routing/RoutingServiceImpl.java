@@ -36,7 +36,7 @@ public class RoutingServiceImpl implements RoutingService {
                 .setCarrier(CARRIER)
                 .setOrigin(origin)
                 .setDestination(destination)
-                // departsAt / arrivesAt intentionally left unset.
+                // departsAt / arrivesAt left unset.
                 .build();
 
         Types.Route route = Types.Route.newBuilder()
