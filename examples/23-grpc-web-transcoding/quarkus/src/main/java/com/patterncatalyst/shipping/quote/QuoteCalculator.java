@@ -1,0 +1,41 @@
+package com.patterncatalyst.shipping.quote;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+import shipping.type.v1.Types;
+
+/**
+ * Deterministic quote formula, identical on both stacks and identical to every
+ * prior chapter's anchor (Ch5/Ch10/Ch11/Ch18/Ch20/Ch21) so the Quarkus and
+ * Python gRPC responses are byte-for-byte comparable, and so that Envoy's
+ * JSON/HTTP and grpc-web paths return the exact same numbers the native gRPC
+ * and REST-shim paths return — see ../../../../../../README.md:
+ *
+ * <pre>
+ *     quote.currency = "USD"
+ *     quote.amount   = round_half_up(sum(cargo[].weight_kg) * 2.50, 2)
+ * </pre>
+ *
+ * {@code amount} is rendered as a decimal STRING ("2500.00"), never a binary
+ * float, per {@code shipping.type.v1.Money}.
+ */
+public final class QuoteCalculator {
+
+    private static final double RATE_PER_KG = 2.50;
+
+    private QuoteCalculator() {
+    }
+
+    public static Types.Money compute(List<Types.Cargo> cargo) {
+        double totalWeightKg = 0;
+        for (Types.Cargo item : cargo) {
+            totalWeightKg += item.getWeightKg();
+        }
+        String amount = BigDecimal.valueOf(totalWeightKg * RATE_PER_KG)
+                .setScale(2, RoundingMode.HALF_UP)
+                .toPlainString();
+        return Types.Money.newBuilder().setCurrency("USD").setAmount(amount).build();
+    }
+}
