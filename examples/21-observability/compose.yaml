@@ -73,9 +73,9 @@ services:
       # not `wget` (confirmed at authoring time: `docker exec ... which wget`
       # fails) — every prior chapter's identical `wget -qO-` healthcheck has
       # never actually been exercised, because `lgtm` has always been
-      # profile-gated opt-in there. This chapter makes `lgtm` load-bearing
-      # (`depends_on: condition: service_healthy`), so the healthcheck has to
-      # genuinely pass; `curl -fsS` is the fix.
+      # profile-gated opt-in there. This chapter makes `lgtm` a hard dependency
+      # (`depends_on: condition: service_healthy`), so the healthcheck must
+      # actually pass; `curl -fsS` is the fix.
       test: ["CMD", "curl", "-fsS", "http://localhost:3000/api/health"]
       interval: 5s
       timeout: 3s

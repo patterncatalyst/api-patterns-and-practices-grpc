@@ -20,6 +20,11 @@ MINIKUBE_PROFILE="${MINIKUBE_PROFILE:-grpc-ch22}"
 NAMESPACE="mesh-lb-demo"
 MODE="${1:-}"
 
+# Use the same pinned istioctl bootstrap.sh installed, falling back to PATH.
+ISTIO_VERSION="${ISTIO_VERSION:-1.31.1}"
+ISTIOCTL="$SCRIPT_DIR/.bin/istioctl-$ISTIO_VERSION"
+[[ -x "$ISTIOCTL" ]] || ISTIOCTL="istioctl"
+
 echo "==> deleting Istio custom resources (PeerAuthentication, DestinationRule, VirtualService)"
 kubectl --context "$MINIKUBE_PROFILE" delete -f "$EXAMPLE_DIR/istio" --ignore-not-found
 
@@ -28,7 +33,7 @@ kubectl --context "$MINIKUBE_PROFILE" delete namespace "$NAMESPACE" --ignore-not
 
 if [[ "$MODE" == "--full" ]]; then
   echo "==> --full: uninstalling Istio"
-  istioctl uninstall --context="$MINIKUBE_PROFILE" --purge -y || true
+  "$ISTIOCTL" uninstall --context="$MINIKUBE_PROFILE" --purge -y || true
   kubectl --context "$MINIKUBE_PROFILE" delete namespace istio-system --ignore-not-found --wait=true || true
 
   echo "==> --full: deleting minikube profile ${MINIKUBE_PROFILE}"
