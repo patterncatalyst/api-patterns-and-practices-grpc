@@ -1,0 +1,70 @@
+# Ch26 debugging — compose topology for shipping.routing.v1.RoutingService,
+# reusing the same GetQuote formula every prior unary chapter shipped. Both
+# services are generated from the SAME proto
+# (contracts/proto/shipping/{type,routing}/v1/*.proto); the build context for
+# both is the REPO ROOT so each Containerfile can COPY the two proto files it
+# needs straight from contracts/ — see quarkus/Containerfile and
+# python/Containerfile.
+#
+# What this chapter's servers add on top of the Ch7 shape:
+#
+#   - QUOTE_DELAY_MS (default 2000): an artificial delay before GetQuote
+#     responds, on BOTH stacks — the thing this chapter's DEADLINE_EXCEEDED
+#     repro races a client deadline against.
+#   - Server reflection, unchanged (already on by default on both stacks).
+#   - Python ALSO registers grpc.channelz.v1.Channelz on the same port —
+#     quarkus-grpc 3.40.x has no channelz support, so verify.sh only asserts
+#     channelz against the Python stack (see README.md).
+#
+# verify.sh's UNAVAILABLE repro calls each service's OWN in-network address
+# but at port 9999 — a port compose never publishes on either container —
+# from a one-shot python probe container on this same network, so the
+# "nothing listening" condition is guaranteed by this file, not a race
+# against a server that hasn't started yet.
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/26-debugging/quarkus/Containerfile
+    container_name: ch26-routing-quarkus
+    ports:
+      - "9260:9000"
+    environment:
+      - QUOTE_DELAY_MS=2000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/26-debugging/python/Containerfile
+    container_name: ch26-routing-python
+    ports:
+      - "9261:9000"
+    environment:
+      - QUOTE_DELAY_MS=2000
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch26-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
