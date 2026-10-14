@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="50" width="860" height="90" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="70" font-size="12" font-weight="700" fill="#1d1d1d">UNIMPLEMENTED</text>
+<rect x="20" y="162" width="860" height="90" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="182" font-size="12" font-weight="700" fill="#1d1d1d">DEADLINE_EXCEEDED</text>
+<rect x="20" y="274" width="860" height="90" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="294" font-size="12" font-weight="700" fill="#1d1d1d">UNAVAILABLE</text>
+<rect x="20" y="386" width="860" height="90" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="406" font-size="12" font-weight="700" fill="#1d1d1d">TLS HANDSHAKE FAILURE</text>
+<rect x="40" y="68" width="230" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="155.0" y="94.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">UNIMPLEMENTED</text>
+<text x="155.0" y="111.0" font-size="11.5" fill="#555555" text-anchor="middle">FindOptimalRoute call fails</text>
+<rect x="335" y="68" width="230" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="94.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Method never wired</text>
+<text x="450.0" y="111.0" font-size="11.5" fill="#555555" text-anchor="middle">declared in the .proto, no server code</text>
+<rect x="630" y="68" width="230" height="56" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="745.0" y="94.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Implement it, or route elsewhere</text>
+<text x="745.0" y="111.0" font-size="11.5" fill="#dddddd" text-anchor="middle">check reflection describe first</text>
+<rect x="40" y="180" width="230" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="155.0" y="206.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">DEADLINE_EXCEEDED</text>
+<text x="155.0" y="223.0" font-size="11.5" fill="#555555" text-anchor="middle">GetQuote call fails</text>
+<rect x="335" y="180" width="230" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="206.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Budget &lt; work</text>
+<text x="450.0" y="223.0" font-size="11.5" fill="#555555" text-anchor="middle">1s client deadline, ~2s server delay</text>
+<rect x="630" y="180" width="230" height="56" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="745.0" y="206.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Raise the deadline or the budget</text>
+<text x="745.0" y="223.0" font-size="11.5" fill="#dddddd" text-anchor="middle">or speed up the slow path</text>
+<rect x="40" y="292" width="230" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="155.0" y="318.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">UNAVAILABLE</text>
+<text x="155.0" y="335.0" font-size="11.5" fill="#555555" text-anchor="middle">RPC fails, no response</text>
+<rect x="335" y="292" width="230" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="318.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Cold or closed channel</text>
+<text x="450.0" y="335.0" font-size="11.5" fill="#555555" text-anchor="middle">nothing listening at the target</text>
+<rect x="630" y="292" width="230" height="56" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="745.0" y="318.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Fix the target address</text>
+<text x="745.0" y="335.0" font-size="11.5" fill="#dddddd" text-anchor="middle">or wait for the server to start</text>
+<rect x="40" y="404" width="230" height="56" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="155.0" y="430.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Dial fails, no status code</text>
+<text x="155.0" y="447.0" font-size="11.5" fill="#555555" text-anchor="middle">&quot;Failed to dial target host&quot;</text>
+<rect x="335" y="404" width="230" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="430.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TLS client vs plaintext server</text>
+<text x="450.0" y="447.0" font-size="11.5" fill="#555555" text-anchor="middle">(or the reverse)</text>
+<rect x="630" y="404" width="230" height="56" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="745.0" y="430.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Match -plaintext to the server</text>
+<text x="745.0" y="447.0" font-size="11.5" fill="#dddddd" text-anchor="middle">add real TLS, not a flag flip</text>
+<path d="M270,96.0 L335,96.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="308.5" y="90.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cause</text>
+<text x="308.5" y="90.0" font-size="11" fill="#b8650a" text-anchor="middle">cause</text>
+<path d="M565,96.0 L630,96.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="603.5" y="90.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fix</text>
+<text x="603.5" y="90.0" font-size="11" fill="#b8650a" text-anchor="middle">fix</text>
+<path d="M270,208.0 L335,208.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="308.5" y="202.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cause</text>
+<text x="308.5" y="202.0" font-size="11" fill="#b8650a" text-anchor="middle">cause</text>
+<path d="M565,208.0 L630,208.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="603.5" y="202.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fix</text>
+<text x="603.5" y="202.0" font-size="11" fill="#b8650a" text-anchor="middle">fix</text>
+<path d="M270,320.0 L335,320.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="308.5" y="314.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cause</text>
+<text x="308.5" y="314.0" font-size="11" fill="#b8650a" text-anchor="middle">cause</text>
+<path d="M565,320.0 L630,320.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="603.5" y="314.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fix</text>
+<text x="603.5" y="314.0" font-size="11" fill="#b8650a" text-anchor="middle">fix</text>
+<path d="M270,432.0 L335,432.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="308.5" y="426.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cause</text>
+<text x="308.5" y="426.0" font-size="11" fill="#b8650a" text-anchor="middle">cause</text>
+<path d="M565,432.0 L630,432.0" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="603.5" y="426.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">fix</text>
+<text x="603.5" y="426.0" font-size="11" fill="#b8650a" text-anchor="middle">fix</text>
+<text x="155.0" y="30" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Symptom</text>
+<text x="450.0" y="30" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Cause</text>
+<text x="745.0" y="30" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Fix</text>
+</svg>

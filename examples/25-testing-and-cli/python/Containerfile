@@ -1,0 +1,109 @@
+# Ch25 testing-and-cli — Python, UBI 10, uv-managed, grpc.aio server.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/25-testing-and-cli/python/Containerfile \
+#     -t ch25-routing-python .
+# compose.yaml sets the build context to the repo root so this Containerfile
+# can COPY the two proto files this service needs straight from
+# contracts/proto/ (the single source of truth), then run
+# `python -m grpc_tools.protoc` to generate the shipping.* stub packages the
+# app AND tests/test_routing_service.py import.
+#
+# THE GATE: stage 1 runs `pytest tests -q` unconditionally (no `|| true`, no
+# skip flag). A red assertion in tests/test_routing_service.py fails this
+# RUN, which fails `docker build`, which fails `docker compose up --build`
+# in verify.sh — the Python-side mirror of the Quarkus Containerfile's
+# `mvn verify` gate.
+#
+# UBI 10 publishes only the -minimal Python image (no ubi10/python-312).
+# Pin: registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+# Re-check with:
+#   skopeo list-tags docker://registry.access.redhat.com/ubi10/python-314-minimal
+# and confirm with `skopeo inspect`. Bump deliberately.
+
+# ── Stage 1: Build + test (the CI gate) ─────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217 AS build
+
+# The image runs as UID 1001; the build stage needs root to write /app.
+# Build at the same path the runtime uses: a venv is not relocatable, its
+# console scripts carry the absolute interpreter path.
+USER 0
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv==0.12.24
+
+COPY examples/25-testing-and-cli/python/pyproject.toml ./
+COPY examples/25-testing-and-cli/python/app ./app
+COPY examples/25-testing-and-cli/python/tests ./tests
+
+# No uv.lock committed yet (small, pure-Python dependency set); --locked is
+# adopted once a lockfile lands alongside a persistence layer.
+# `--group dev` pulls in grpcio-tools (needed below), pytest, and
+# pytest-asyncio (needed for the test run two steps down) — none of the
+# three ship in the runtime image.
+RUN uv sync --group dev
+
+# Stage the two proto files this service needs, preserving the package path
+# routing.proto's import statement expects, then generate the stub packages
+# into /app/generated — a sibling of app/, added to PYTHONPATH below, so
+# `from shipping.routing.v1 import routing_pb2` resolves the same way it
+# does after a local (non-container) `protoc` run. tests/test_routing_service.py
+# imports the identical generated packages the app does.
+COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./proto/shipping/routing/v1/routing.proto
+RUN mkdir -p generated && \
+    .venv/bin/python -m grpc_tools.protoc -I proto \
+      --python_out=generated --grpc_python_out=generated \
+      proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto
+
+# THE GATE. PYTHONPATH mirrors the runtime ENV below (generated stubs +
+# app/): tests/test_routing_service.py starts a REAL grpc.aio server wired
+# with app.routing_service.RoutingServiceServicer and calls GetQuote on it
+# over an actual ephemeral-port channel — see tests/test_routing_service.py.
+# This RUN ends the `build` stage deliberately BEFORE the dev-dependency
+# trim below — compose.yaml's one-shot `python-tests` service targets this
+# `build` stage directly (`--target build`) to re-run pytest with its
+# dependencies still installed; trimming them here would leave nothing for
+# that one-shot re-run to invoke.
+ENV PYTHONPATH="/app/generated:/app"
+RUN .venv/bin/python -m pytest tests -q
+
+# ── Stage 2: Trim (drops build/test-only deps before the runtime copy) ──────
+# A separate stage, not a second RUN in `build` above, so `docker compose
+# run --target build python-tests` (the one-shot pytest re-run) still finds
+# pytest/pytest-asyncio/grpcio-tools installed.
+FROM build AS trimmed
+
+# grpcio-tools, pytest, and pytest-asyncio are build/test-time only; the
+# runtime image never needs them.
+RUN rm -rf .venv && uv sync --no-dev
+
+# ── Stage 3: Runtime ────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+
+WORKDIR /app
+
+COPY --from=trimmed --chown=1001:0 /app/.venv /app/.venv
+COPY --from=trimmed --chown=1001:0 /app/app /app/app
+COPY --from=trimmed --chown=1001:0 /app/generated /app/generated
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/generated:/app" \
+    PYTHONUNBUFFERED=1 \
+    GRPC_HOST=0.0.0.0 \
+    GRPC_PORT=9000 \
+    OTEL_SERVICE_NAME=ch25-routing-python \
+    OTEL_TRACES_EXPORTER=otlp \
+    OTEL_METRICS_EXPORTER=none \
+    OTEL_LOGS_EXPORTER=none \
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=false
+
+EXPOSE 9000
+USER 1001
+
+# opentelemetry-instrument is a zero-code wrapper: it auto-instruments the
+# grpc.aio server and exports spans to OTEL_EXPORTER_OTLP_ENDPOINT. When no
+# collector is listening there (the `observability` compose profile is off
+# by default), the OTLP exporter just logs failed exports in the
+# background — the server still starts and serves GetQuote.
+ENTRYPOINT ["opentelemetry-instrument", "python", "-m", "app.main"]
