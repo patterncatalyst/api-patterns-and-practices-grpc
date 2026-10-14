@@ -11,7 +11,8 @@ It shows the Chapter 22 load-balancing lesson re-proven on the full system: a
 plain Service pins one long-lived gRPC connection to a single pod; a headless
 Service with client `round_robin` and an Istio L7 DestinationRule each fan the
 same calls across all three replicas — and a traced GetQuote whose trace id is
-logged by both the RoutingService and the QuoteService handler across the mesh.
+logged by both the RoutingService and the QuoteService handler on a deployed
+cluster pod (the in-process RoutingService->QuoteService hop).
 
 ## `./scripts/bootstrap.sh` (installed versions)
 
@@ -87,7 +88,12 @@ target=finalproject-plain.final-project-demo.svc.cluster.local:9000 lb_policy=(d
 distinct pods answering: 3
 ```
 
-## traced call: one trace id logged by BOTH RoutingService and QuoteService, across the mesh
+## traced call: one trace id logged by BOTH RoutingService and QuoteService (on a deployed cluster pod)
+
+<!-- The RoutingService->QuoteService hop runs in-process on the pod, so both handlers
+     log the same trace id. This is the Ch21 propagate-and-log pattern surviving a real
+     cluster deployment; it is NOT a cross-pod/through-the-sidecar trace. -->
+
 
 ```
 --- propagated trace id, logged by BOTH RoutingService and QuoteService (grep across all 3 pods) ---
