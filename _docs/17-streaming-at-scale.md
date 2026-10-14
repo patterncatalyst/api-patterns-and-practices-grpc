@@ -67,6 +67,15 @@ cd examples/17-streaming-at-scale
 
 This brings both services up with `docker compose`, waits for each gRPC server to answer reflection's `list`, then against each of `localhost:9170` (Quarkus) and `localhost:9171` (Python): reads `bkg_demo`'s full six-event stream and checks its count, order, and fields; times that same call and confirms the whole stream took at least six-tenths of a second, proof the events arrived spread over time rather than buffered and dumped; runs the bundled slow consumer against both `bkg_demo` and `bkg_eager` and compares the server-stamped `event.at` deltas between them; reads `bkg_quiet` and confirms both its events arrive, including the one after the two-second gap, with the call's total elapsed time proving the gap was real; and confirms `ReportPositions` and `Sync` still answer `UNIMPLEMENTED`. A real run against both stacks measured `bkg_demo`'s consecutive deltas at roughly 260 milliseconds and `bkg_eager`'s at well under a millisecond — a three-order-of-magnitude gap between a producer that waits and one that doesn't, from the same event content on the same contract.
 
+## What you learned
+
+- HTTP/2 flow control is the transport-level root of backpressure: a per-stream and a per-connection byte window, replenished by `WINDOW_UPDATE` frames a reader only sends once it has actually drained what it already received — a consumer that stops reading makes a sender stop sending, not error or drop data.
+- `Multi` is a full Reactive Streams `Publisher`: it only produces what its subscriber has requested, which is what lets `Multi.createFrom().emitter(...)` paired with `MultiEmitter.onRequest` build a server-streaming RPC that never gets ahead of what the HTTP/2 stream is ready to carry — and what makes `Multi.createFrom().items(list)` safe on the way out even when the list behind it was built eagerly.
+- Python's `async def ... yield` server-streaming handler is pull-based by construction, with no separate demand API needed — the language's own generator-resume protocol is the signal Mutiny's `onRequest` callback exists to provide explicitly.
+- Keepalive PING/ACK traffic is what holds a long-lived, otherwise-quiet stream open against middleboxes that reap idle connections silently; Quarkus exposes it under `quarkus.grpc.server.netty.*`, one level deeper than the top-level `quarkus.grpc.server.*` properties this book has used elsewhere, and Python exposes the same four concerns as `grpc.aio.server(options=...)` channel arguments.
+
+Chapter 18 turns from correctness under load to speed under load: channel and stub reuse (the single most common gRPC performance mistake), keepalive revisited from a connection-pooling angle, message-size and compression trade-offs, and a real `ghz` benchmark run against `RoutingService.GetQuote` and `ListRoutes` rather than the loose, relative timing checks this chapter and Chapter 15 have both leaned on.
+
 ## On the wire
 
 Reading a demand-driven stream over `grpcurl` looks identical to Chapter 8's four-event read — `grpcurl` has no way to see that this server is pacing itself between messages rather than sending all six at once, because from the wire's perspective both look like `DATA` frames arriving when they arrive:
@@ -82,15 +91,6 @@ grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
 ```
 
 — each `at` roughly 260 milliseconds after the one before it, continuing through all six events. The flow-control mechanics Figure 17.1 describes are real but invisible at this layer; seeing the actual `WINDOW_UPDATE` traffic (or its absence once a reader stalls) needs a frame-level trace, for example `GODEBUG=http2debug=2` against a Go HTTP/2 client, or `grpcurl -v` to see headers and trailers without full frame detail. This book doesn't ship a frame-trace capture as part of `verify.sh` — the window and keepalive numbers stay illustrative, exactly as the "Keepalive on a long-lived stream" section says, confirmed by this chapter's prose and figures rather than gated by an assertion.
-
-## What you learned
-
-- HTTP/2 flow control is the transport-level root of backpressure: a per-stream and a per-connection byte window, replenished by `WINDOW_UPDATE` frames a reader only sends once it has actually drained what it already received — a consumer that stops reading makes a sender stop sending, not error or drop data.
-- `Multi` is a full Reactive Streams `Publisher`: it only produces what its subscriber has requested, which is what lets `Multi.createFrom().emitter(...)` paired with `MultiEmitter.onRequest` build a server-streaming RPC that never gets ahead of what the HTTP/2 stream is ready to carry — and what makes `Multi.createFrom().items(list)` safe on the way out even when the list behind it was built eagerly.
-- Python's `async def ... yield` server-streaming handler is pull-based by construction, with no separate demand API needed — the language's own generator-resume protocol is the signal Mutiny's `onRequest` callback exists to provide explicitly.
-- Keepalive PING/ACK traffic is what holds a long-lived, otherwise-quiet stream open against middleboxes that reap idle connections silently; Quarkus exposes it under `quarkus.grpc.server.netty.*`, one level deeper than the top-level `quarkus.grpc.server.*` properties this book has used elsewhere, and Python exposes the same four concerns as `grpc.aio.server(options=...)` channel arguments.
-
-Chapter 18 turns from correctness under load to speed under load: channel and stub reuse (the single most common gRPC performance mistake), keepalive revisited from a connection-pooling angle, message-size and compression trade-offs, and a real `ghz` benchmark run against `RoutingService.GetQuote` and `ListRoutes` rather than the loose, relative timing checks this chapter and Chapter 15 have both leaned on.
 
 ---
 

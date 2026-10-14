@@ -42,7 +42,7 @@ import shipping.tracking.v1.TrackingService;
  *   "bkg_quiet" -&gt; the same demand-driven emitter, reused for a 2-event
  *       feed with one QUIET_GAP_MS pause between them — proving a stream can
  *       sit idle for seconds and still deliver its final event.
- *   "bkg_eager" (or anything else unrecognized) -&gt; the contrast case:
+ *   "bkg_eager" -&gt; the contrast case:
  *       {@link TrackingEvents#eagerSequence} builds and stamps all 6 events
  *       in one tight loop BEFORE the Multi is even constructed, then
  *       {@code Multi.createFrom().items(...)} streams the already-built
