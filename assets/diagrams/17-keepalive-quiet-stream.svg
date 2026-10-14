@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="860" height="150" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">With server keepalive</text>
+<rect x="20" y="210" width="860" height="160" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="32" y="230" font-size="12" font-weight="700" fill="#1d1d1d">Without keepalive</text>
+<rect x="50" y="75" width="140" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="120.0" y="110.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<rect x="690" y="75" width="140" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="760.0" y="110.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<rect x="370" y="65" width="160" height="40" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="450.0" y="90.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">PING (30s)</text>
+<rect x="370" y="115" width="160" height="35" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="138.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ACK</text>
+<rect x="50" y="255" width="140" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="120.0" y="295.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<rect x="690" y="255" width="140" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="760.0" y="295.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<rect x="330" y="255" width="240" height="50" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="450.0" y="285.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">idle gap, no PING sent</text>
+<rect x="330" y="320" width="240" height="40" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="345.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">middlebox reaps the idle connection</text>
+<path d="M190,85 L370,85" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<path d="M530,85 L690,95" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M690,125 L530,130" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M370,135 L190,125" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M190,290 L330,290" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="266.0" y="284.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">last DATA frame, long silence</text>
+<text x="266.0" y="284.0" font-size="11" fill="#555" text-anchor="middle">last DATA frame, long silence</text>
+<path d="M570,340 L690,290" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="636.0" y="309.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">final event: lost</text>
+<text x="636.0" y="309.0" font-size="11" fill="#555" text-anchor="middle">final event: lost</text>
+<text x="450" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Same quiet gap, two keepalive outcomes</text>
+<text x="450" y="390" font-size="10" fill="#555555" text-anchor="middle">Illustrative: the reaping behavior depends on middlebox config, not asserted in verify.sh</text>
+</svg>

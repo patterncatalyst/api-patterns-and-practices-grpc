@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="30" width="860" height="150" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">t0 - consumer reading normally</text>
+<rect x="20" y="210" width="860" height="160" rx="12" fill="#fff8ef" stroke="#ddd"/>
+<text x="32" y="230" font-size="12" font-weight="700" fill="#1d1d1d">t1 - consumer stops reading</text>
+<rect x="50" y="75" width="160" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="130.0" y="103.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<text x="130.0" y="120.0" font-size="11.5" fill="#555555" text-anchor="middle">sender</text>
+<rect x="370" y="75" width="160" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="450.0" y="103.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Stream window</text>
+<text x="450.0" y="120.0" font-size="11.5" fill="#555555" text-anchor="middle">64 KiB credit</text>
+<rect x="690" y="75" width="160" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="770.0" y="103.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="770.0" y="120.0" font-size="11.5" fill="#555555" text-anchor="middle">reading DATA</text>
+<rect x="50" y="255" width="160" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="130.0" y="288.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server</text>
+<text x="130.0" y="305.0" font-size="11.5" fill="#555555" text-anchor="middle">sender</text>
+<rect x="370" y="255" width="160" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="450.0" y="288.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Stream window</text>
+<text x="450.0" y="305.0" font-size="11.5" fill="#dddddd" text-anchor="middle">shrinks to 0</text>
+<rect x="690" y="255" width="160" height="70" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="770.0" y="288.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
+<text x="770.0" y="305.0" font-size="11.5" fill="#555555" text-anchor="middle">not draining buffer</text>
+<rect x="230" y="340" width="440" height="30" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="450.0" y="360.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">sender blocked: no credit left to write</text>
+<path d="M210,95 L370,95" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="296.0" y="89.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA frames</text>
+<text x="296.0" y="89.0" font-size="11" fill="#b8650a" text-anchor="middle">DATA frames</text>
+<path d="M690,115 L530,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="616.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">WINDOW_UPDATE (credit replenished)</text>
+<text x="616.0" y="109.0" font-size="11" fill="#555" text-anchor="middle">WINDOW_UPDATE (credit replenished)</text>
+<path d="M210,280 L370,280" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="296.0" y="274.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA fills window</text>
+<text x="296.0" y="274.0" font-size="11" fill="#b8650a" text-anchor="middle">DATA fills window</text>
+<path d="M530,300 L690,300" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
+<text x="616.0" y="294.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">no WINDOW_UPDATE</text>
+<text x="616.0" y="294.0" font-size="11" fill="#555" text-anchor="middle">no WINDOW_UPDATE</text>
+<text x="450" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Same connection, two moments in time</text>
+</svg>

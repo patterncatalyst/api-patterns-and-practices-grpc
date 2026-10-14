@@ -34,8 +34,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T14 | Evolution / versioning + buf breaking + BSR | Ch14 | `_docs/14-evolution-and-versioning.md` | verified |
 | T15 | Backend I/O concurrency | Ch15 | `_docs/15-backend-io-concurrency.md` | verified |
 | T16 | Async / long-running jobs | Ch16 | `_docs/16-async-long-running-jobs.md` | verified |
-| T17 | Streaming at scale + flow control / backpressure | Ch17 | `_docs/17-streaming-at-scale.md` | planned |
-| T18 | Performance tuning + ghz | Ch18 | `_docs/18-performance-tuning.md` | planned |
+| T17 | Streaming at scale + flow control / backpressure | Ch17 | `_docs/17-streaming-at-scale.md` | verified |
+| T18 | Performance tuning + ghz | Ch18 | `_docs/18-performance-tuning.md` | verified |
 | T19 | TLS / mTLS | Ch19 | `_docs/19-tls-mtls.md` | planned |
 | T20 | AuthN / AuthZ (JWT/OAuth2, per-call, interceptors) | Ch20 | `_docs/20-authn-authz.md` | planned |
 | T21 | Observability (OTel / Prometheus / Grafana / Tempo) | Ch21 | `_docs/21-observability.md` | planned |
@@ -75,8 +75,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 14 | `_docs/14-evolution-and-versioning.md` | Part 5 | verified |
 | 15 | `_docs/15-backend-io-concurrency.md` | Part 6 | verified |
 | 16 | `_docs/16-async-long-running-jobs.md` | Part 6 | verified |
-| 17 | `_docs/17-streaming-at-scale.md` | Part 7 | planned |
-| 18 | `_docs/18-performance-tuning.md` | Part 7 | planned |
+| 17 | `_docs/17-streaming-at-scale.md` | Part 7 | verified |
+| 18 | `_docs/18-performance-tuning.md` | Part 7 | verified |
 | 19 | `_docs/19-tls-mtls.md` | Part 8 | planned |
 | 20 | `_docs/20-authn-authz.md` | Part 8 | planned |
 | 21 | `_docs/21-observability.md` | Part 9 | planned |
