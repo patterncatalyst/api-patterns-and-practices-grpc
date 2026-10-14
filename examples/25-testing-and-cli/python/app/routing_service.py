@@ -1,6 +1,6 @@
 """Ch25 testing-and-cli — a lean RoutingServiceServicer, same shape as every
 earlier chapter's: only GetQuote does real work. FindOptimalRoute,
-ListRoutes, NegotiateRoute, and RecomputeRoutes are intentionally left
+ListRoutes, NegotiateRoute, and RecomputeRoutes are left
 unoverridden — the generated `routing_pb2_grpc.RoutingServiceServicer` base
 class (unlike the Quarkus side's generated INTERFACE) already sets gRPC
 status UNIMPLEMENTED and raises for any method a subclass doesn't override,
@@ -10,7 +10,7 @@ This exact class is what both the container's main.py wires into a real
 `grpc.aio.server()` AND what tests/test_routing_service.py wires into a
 SECOND, test-only `grpc.aio.server()` on an ephemeral port — the same
 servicer code, two different server instances, which is the point: the
-pytest suite exercises the real implementation, not a mock of it.
+pytest suite exercises the real implementation rather than a stand-in.
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
             carrier=_CARRIER,
             origin=origin,
             destination=destination,
-            # departs_at / arrives_at intentionally left unset.
+            # departs_at / arrives_at left unset (default to the zero value).
         )
         route = types_pb2.Route(
             id=f"rte_{origin.un_locode}-{destination.un_locode}",
