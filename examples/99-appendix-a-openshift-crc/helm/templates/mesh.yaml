@@ -1,0 +1,86 @@
+{{- if .Values.mesh.enabled }}
+# Namespace-wide STRICT mTLS: every meshed workload in this project accepts
+# only mesh (sidecar-originated) traffic.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: default
+  labels:
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  mtls:
+    mode: STRICT
+---
+# The OpenShift router is not in the mesh and delivers the h2c/edge Routes'
+# traffic to getquote in cleartext. STRICT at the namespace level would
+# answer every one of those Route requests with a 502 (known issue #12 in
+# the lgtm-crc skill's reference table) — PERMISSIVE here, scoped to this
+# one workload, lets both the Route and sidecar-to-sidecar mTLS traffic in.
+apiVersion: security.istio.io/v1
+kind: PeerAuthentication
+metadata:
+  name: getquote-permissive
+  labels:
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: getquote
+  mtls:
+    mode: PERMISSIVE
+{{- if .Values.mesh.canary.enabled }}
+---
+# getquote-v2: the same image, the same Service, a version: v2 pod label.
+# DestinationRule/VirtualService below split sidecar-to-sidecar traffic
+# between the two; a Route call (router -> Service) is plain kube-proxy
+# round robin across BOTH subsets, since OSSM 3 provisions no ingress
+# gateway and the Route is the edge — the weighted split below only governs
+# calls made by another pod already in the mesh.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: getquote-v2
+  labels:
+    app.kubernetes.io/name: getquote
+    version: v2
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: getquote
+      version: v2
+  template:
+    {{- include "getquote.podTemplate" (dict "root" . "version" "v2") | nindent 4 }}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: getquote
+  labels:
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  host: getquote
+  subsets:
+    - name: v1
+      labels: {version: v1}
+    - name: v2
+      labels: {version: v2}
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: getquote
+  labels:
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  hosts:
+    - getquote
+  http:
+    - route:
+        - destination: {host: getquote, subset: v1}
+          weight: {{ sub 100 .Values.mesh.canary.v2Weight }}
+        - destination: {host: getquote, subset: v2}
+          weight: {{ .Values.mesh.canary.v2Weight }}
+{{- end }}
+{{- end }}

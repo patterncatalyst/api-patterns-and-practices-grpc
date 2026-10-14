@@ -1,0 +1,71 @@
+# Final Project minikube subtree — Python, UBI 10, uv-managed. ONE image
+# serves two roles, selected by overriding the container command: the
+# Deployment runs the default ENTRYPOINT (the mesh server, app/server.py);
+# run-demo.sh's load-generation Job overrides `command` to run
+# `python -m app.loadclient` instead — the Chapter 22 one-image-two-roles
+# pattern, reused verbatim.
+#
+# Build (from the REPO ROOT, so this context can reach contracts/), then load
+# straight into minikube — no registry, no push:
+#   docker build -f examples/27-complete-project/loadclient/Containerfile \
+#     -t ch27-final-project-mesh:dev .
+#   minikube -p grpc-ch27 image load ch27-final-project-mesh:dev
+#
+# Pin (same as every other Python stack in this book; re-check with
+# `skopeo list-tags docker://registry.access.redhat.com/ubi10/python-314-minimal`,
+# confirm with `skopeo inspect`; bump deliberately):
+#   registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506 AS build
+
+USER 0
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv==0.12.24
+
+COPY examples/27-complete-project/loadclient/pyproject.toml ./
+COPY examples/27-complete-project/loadclient/app ./app
+
+RUN uv sync --group dev
+
+# Stage the four proto files this subtree needs, preserving the package
+# paths their import statements expect, then generate the stub packages into
+# /app/generated (added to PYTHONPATH below) — both the server and
+# loadclient.py import the identical generated packages.
+COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./proto/shipping/routing/v1/routing.proto
+COPY contracts/proto/shipping/quote/v1/quote.proto ./proto/shipping/quote/v1/quote.proto
+COPY contracts/proto/shipping/tracking/v1/tracking.proto ./proto/shipping/tracking/v1/tracking.proto
+RUN mkdir -p generated && \
+    .venv/bin/python -m grpc_tools.protoc -I proto \
+      --python_out=generated --grpc_python_out=generated \
+      proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto \
+      proto/shipping/quote/v1/quote.proto proto/shipping/tracking/v1/tracking.proto
+
+# Rebuild the venv without the dev group (grpcio-tools and its protoc binary
+# are not needed to run the server or loadclient.py).
+RUN rm -rf .venv && uv sync --no-dev
+
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791928506
+
+WORKDIR /app
+
+COPY --from=build --chown=1001:0 /app/.venv /app/.venv
+COPY --from=build --chown=1001:0 /app/app /app/app
+COPY --from=build --chown=1001:0 /app/generated /app/generated
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/generated:/app" \
+    PYTHONUNBUFFERED=1 \
+    GRPC_HOST=0.0.0.0 \
+    GRPC_PORT=9000
+
+EXPOSE 9000
+USER 1001
+
+# Default role: the mesh server. run-demo.sh's load-generation Job overrides
+# this with `command: ["python", "-m", "app.loadclient"]` against the same
+# image — no second image to build.
+ENTRYPOINT ["python", "-m", "app.server"]

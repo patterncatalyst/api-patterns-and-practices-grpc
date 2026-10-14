@@ -1,0 +1,20 @@
+getquote deployed to {{ .Release.Namespace }}.
+
+Routes:
+{{- if .Values.routes.h2c }}
+  h2c:         https://getquote-h2c-{{ .Release.Namespace }}.apps-crc.testing   (HTTP/2 to the pod — gRPC works)
+{{- end }}
+{{- if .Values.routes.edge }}
+  edge:        https://getquote-edge-{{ .Release.Namespace }}.apps-crc.testing  (HTTP/1.1 to the pod — gRPC does not)
+{{- end }}
+{{- if .Values.routes.passthrough }}
+  passthrough: https://getquote-passthrough-{{ .Release.Namespace }}.apps-crc.testing (needs the pod to terminate TLS itself)
+{{- end }}
+
+{{- if .Values.mesh.enabled }}
+
+Mesh: STRICT mTLS namespace-wide, PERMISSIVE for getquote (Route-facing).
+{{- if .Values.mesh.canary.enabled }}
+Canary: getquote-v2 at {{ .Values.mesh.canary.v2Weight }}% of mesh-internal traffic.
+{{- end }}
+{{- end }}

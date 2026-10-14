@@ -1,0 +1,21 @@
+# OpenShift Service Mesh 3 (Sail operator), cluster-wide in
+# openshift-operators. Pinned: installPlanApproval Manual + startingCSV;
+# scripts/lib.sh's install_operator approves only the InstallPlan naming
+# this CSV. Re-checked live on this cluster on 2026-10-14:
+#   oc get packagemanifest servicemeshoperator3 -n openshift-marketplace \
+#     -o jsonpath='{range .status.channels[*]}{.name}{"  "}{.currentCSV}{"\n"}{end}'
+# -> stable-3.4  servicemeshoperator3.v3.4.3 (newest stable channel)
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: servicemeshoperator3
+  namespace: openshift-operators
+  labels:
+    app.kubernetes.io/part-of: appendix-a-grpc
+spec:
+  name: servicemeshoperator3
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  channel: stable-3.4
+  startingCSV: servicemeshoperator3.v3.4.3
+  installPlanApproval: Manual

@@ -1,0 +1,12 @@
+# The Final Project's minikube demo namespace — distinct from Chapter 22's
+# own `mesh-lb-demo` namespace, so both chapters' clusters can coexist on the
+# same minikube profile if a reader still has Chapter 22 up. scripts/bootstrap.sh
+# labels this namespace istio-injection=enabled once Istio is installed; that
+# label alone does not mesh anything yet, because deployment.yaml's pod
+# template carries sidecar.istio.io/inject: "false", which overrides the
+# namespace-wide default per pod. scripts/run-demo.sh flips that annotation to
+# "true" for the Istio phase only.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: final-project-demo

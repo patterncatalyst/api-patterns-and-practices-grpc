@@ -1,0 +1,37 @@
+# OpenShift Service Mesh 3 control plane (Sail operator). Istio pinned to an
+# exact release the installed OSSM 3.4.3 offers (v1.26-v1.30); never the
+# floating v1.30-latest. List what the operator accepts with:
+#   oc get crd istios.sailoperator.io -o json | jq -r '.. | .version? | .enum? // empty | .[]' | sort -uV
+# The Istio CR named "default" serves revision "default": pods join with the
+# pod-template label istio.io/rev=default (the chart's mesh.enabled).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    app.kubernetes.io/part-of: appendix-a-grpc
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-cni
+  labels:
+    app.kubernetes.io/part-of: appendix-a-grpc
+---
+apiVersion: sailoperator.io/v1
+kind: IstioCNI
+metadata:
+  name: default
+spec:
+  version: v1.30.5
+  namespace: istio-cni
+---
+apiVersion: sailoperator.io/v1
+kind: Istio
+metadata:
+  name: default
+spec:
+  version: v1.30.5
+  namespace: istio-system
+  updateStrategy:
+    type: InPlace

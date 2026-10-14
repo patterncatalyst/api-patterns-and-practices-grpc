@@ -1,0 +1,18 @@
+# The v1 Deployment. The selector is immutable and intentionally narrow
+# (app.kubernetes.io/name only): turning the mesh/canary on later only adds
+# pod labels (istio.io/rev, version), so helm upgrade never has to fight the
+# selector — the v2 canary Deployment in mesh.yaml owns its own ReplicaSet.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: getquote
+  labels:
+    app.kubernetes.io/name: getquote
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: getquote
+  template:
+    {{- include "getquote.podTemplate" (dict "root" . "version" "v1") | nindent 4 }}

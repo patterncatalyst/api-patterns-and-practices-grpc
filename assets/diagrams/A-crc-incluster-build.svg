@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 260" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="880" height="210" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">in-cluster binary S2I build (no host container engine)</text>
+<rect x="50" y="80" width="190" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="145.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Host: mvn package</text>
+<text x="145.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">-Popenshift (fast-jar)</text>
+<rect x="300" y="80" width="210" height="70" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="405.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">BuildConfig (Source, binary)</text>
+<text x="405.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">ubi10/openjdk-25 S2I</text>
+<rect x="570" y="80" width="180" height="70" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="660.0" y="113.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ImageStream</text>
+<text x="660.0" y="130.0" font-size="11.5" fill="#555555" text-anchor="middle">getquote:v1</text>
+<rect x="790" y="80" width="90" height="70" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
+<text x="835.0" y="113.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Helm</text>
+<text x="835.0" y="130.0" font-size="11.5" fill="#dddddd" text-anchor="middle">Deployment</text>
+<path d="M240,115 L300,115" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="276.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">oc start-build --from-dir</text>
+<text x="276.0" y="109.0" font-size="11" fill="#b8650a" text-anchor="middle">oc start-build --from-dir</text>
+<path d="M510,115 L570,115" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
+<text x="546.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">push</text>
+<text x="546.0" y="109.0" font-size="11" fill="#b8650a" text-anchor="middle">push</text>
+<path d="M750,115 L790,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="776.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">pulls tag</text>
+<text x="776.0" y="109.0" font-size="11" fill="#555" text-anchor="middle">pulls tag</text>
+<text x="860" y="15" font-size="11" fill="#1d1d1d" text-anchor="end" font-weight="700">Figure A.3</text>
+</svg>

@@ -1,0 +1,21 @@
+# Selects v1 and, with the canary on, v2 as well: plain Service/kube-proxy
+# load-balancing is what a Route sees (round-robin across every matching
+# pod); the VirtualService weighted split in mesh.yaml applies only to
+# calls made BY a meshed client, through its own sidecar.
+apiVersion: v1
+kind: Service
+metadata:
+  name: getquote
+  labels:
+    app.kubernetes.io/name: getquote
+    {{- include "getquote.labels" . | nindent 4 }}
+spec:
+  selector:
+    app.kubernetes.io/name: getquote
+  ports:
+    - name: grpc
+      port: {{ .Values.grpcPort }}
+      targetPort: grpc
+    - name: http
+      port: {{ .Values.httpPort }}
+      targetPort: http
