@@ -1,0 +1,5 @@
+{
+  "service": "ch24-cross-protocol-http3-caddy",
+  "transport": "HTTP/3 over QUIC",
+  "note": "This response proves the HTTP/3 transport only. It is not a gRPC call, and this Caddy instance does not proxy to shipping.routing.v1.RoutingService. gRPC-over-HTTP/3 has no native implementation in grpc-java or grpcio as of this writing."
+}

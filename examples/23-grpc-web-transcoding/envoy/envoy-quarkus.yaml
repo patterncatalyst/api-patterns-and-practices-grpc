@@ -1,0 +1,84 @@
+# Ch23 grpc-web & JSON/HTTP transcoding — Envoy static config, Quarkus stack.
+# Identical to envoy-python.yaml except for the upstream cluster's address
+# (quarkus:9000 here, python:9000 there) — kept as two static files, not one
+# templated file, because this Envoy image has no shell in its runtime stage
+# (distroless) to run a template engine against at container start.
+#
+# Listener 10000 (mapped to host 10230 by ../compose.yaml) runs ONE filter
+# chain for BOTH JSON/HTTP transcoding and grpc-web, in this order:
+#   grpc_web            — unwraps a grpc-web-framed POST into a native gRPC
+#                          call (content-type application/grpc-web+proto ->
+#                          application/grpc). A JSON request's content-type
+#                          doesn't match this filter's trigger, so it passes
+#                          through untouched.
+#   grpc_json_transcoder — for anything NOT already application/grpc (i.e. a
+#                          plain JSON POST), decodes the JSON body against
+#                          the baked-in proto descriptor and re-encodes it as
+#                          a native gRPC call. A request the grpc_web filter
+#                          already converted to application/grpc passes
+#                          through this filter untouched — it only acts on
+#                          non-gRPC content types.
+#   router               — forwards the now-native-gRPC call to the "app"
+#                          cluster over HTTP/2.
+admin:
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 9901 }
+
+static_resources:
+  listeners:
+    - name: ingress
+      address:
+        socket_address: { address: 0.0.0.0, port_value: 10000 }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: app, timeout: 15s }
+                http_filters:
+                  - name: envoy.filters.http.grpc_web
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_web.v3.GrpcWeb
+                  - name: envoy.filters.http.grpc_json_transcoder
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.grpc_json_transcoder.v3.GrpcJsonTranscoder
+                      proto_descriptor: /etc/envoy/descriptor.binpb
+                      services:
+                        - shipping.routing.v1.RoutingService
+                      auto_mapping: true
+                      convert_grpc_status: true
+                      print_options:
+                        add_whitespace: false
+                        always_print_primitive_fields: true
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: app
+      connect_timeout: 5s
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config:
+            http2_protocol_options: {}
+      load_assignment:
+        cluster_name: app
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: quarkus
+                      port_value: 9000

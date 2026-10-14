@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 340" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
+<defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
+<rect x="20" y="20" width="880" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Native gRPC over HTTP/2 (one stream)</text>
+<rect x="20" y="180" width="880" height="130" rx="12" fill="#fafafa" stroke="#ddd"/>
+<text x="32" y="200" font-size="12" font-weight="700" fill="#1d1d1d">grpc-web over HTTP/1.1 (what a browser&#x27;s fetch/XHR actually sends)</text>
+<rect x="40" y="60" width="200" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="140.0" y="88.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">HEADERS frame</text>
+<text x="140.0" y="105.0" font-size="11.5" fill="#555555" text-anchor="middle">request metadata</text>
+<rect x="290" y="60" width="260" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="420.0" y="88.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">DATA frame(s)</text>
+<text x="420.0" y="105.0" font-size="11.5" fill="#555555" text-anchor="middle">1-byte flag + 4-byte length + message</text>
+<rect x="600" y="60" width="280" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="740.0" y="88.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">HEADERS frame (trailers)</text>
+<text x="740.0" y="105.0" font-size="11.5" fill="#555555" text-anchor="middle">grpc-status, grpc-message</text>
+<rect x="40" y="220" width="200" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
+<text x="140.0" y="248.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">fetch() / XHR</text>
+<text x="140.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">one HTTP/1.1 response</text>
+<rect x="290" y="220" width="260" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
+<text x="420.0" y="248.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">DATA frame</text>
+<text x="420.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">flag 0x00 + length + message</text>
+<rect x="600" y="220" width="280" height="60" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
+<text x="740.0" y="248.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TRAILER frame</text>
+<text x="740.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">flag 0x80 + length + &quot;grpc-status: 0\r\n...&quot;</text>
+<path d="M240,90 L290,90" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="271.0" y="84.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">one HTTP/2 stream</text>
+<text x="271.0" y="84.0" font-size="11" fill="#555" text-anchor="middle">one HTTP/2 stream</text>
+<path d="M550,90 L600,90" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<path d="M240,250 L290,250" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="271.0" y="244.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">same response body</text>
+<text x="271.0" y="244.0" font-size="11" fill="#555" text-anchor="middle">same response body</text>
+<path d="M550,250 L600,250" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
+<text x="581.0" y="244.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">concatenated</text>
+<text x="581.0" y="244.0" font-size="11" fill="#555" text-anchor="middle">concatenated</text>
+<text x="460" y="15" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Why a browser can&#x27;t just open a native gRPC channel</text>
+</svg>
