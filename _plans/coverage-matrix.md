@@ -36,8 +36,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | T16 | Async / long-running jobs | Ch16 | `_docs/16-async-long-running-jobs.md` | verified |
 | T17 | Streaming at scale + flow control / backpressure | Ch17 | `_docs/17-streaming-at-scale.md` | verified |
 | T18 | Performance tuning + ghz | Ch18 | `_docs/18-performance-tuning.md` | verified |
-| T19 | TLS / mTLS | Ch19 | `_docs/19-tls-mtls.md` | planned |
-| T20 | AuthN / AuthZ (JWT/OAuth2, per-call, interceptors) | Ch20 | `_docs/20-authn-authz.md` | planned |
+| T19 | TLS / mTLS | Ch19 | `_docs/19-tls-mtls.md` | verified |
+| T20 | AuthN / AuthZ (JWT/OAuth2, per-call, interceptors) | Ch20 | `_docs/20-authn-authz.md` | verified |
 | T21 | Observability (OTel / Prometheus / Grafana / Tempo) | Ch21 | `_docs/21-observability.md` | planned |
 | T22 | Load balancing & service mesh (the L4 problem) | Ch22 | `_docs/22-load-balancing-service-mesh.md` | planned |
 | T23 | gRPC-Web & JSON/HTTP transcoding | Ch23 | `_docs/23-grpc-web-transcoding.md` | planned |
@@ -77,8 +77,8 @@ while still guaranteeing no mapped-and-claimed chapter silently disappears.
 | 16 | `_docs/16-async-long-running-jobs.md` | Part 6 | verified |
 | 17 | `_docs/17-streaming-at-scale.md` | Part 7 | verified |
 | 18 | `_docs/18-performance-tuning.md` | Part 7 | verified |
-| 19 | `_docs/19-tls-mtls.md` | Part 8 | planned |
-| 20 | `_docs/20-authn-authz.md` | Part 8 | planned |
+| 19 | `_docs/19-tls-mtls.md` | Part 8 | verified |
+| 20 | `_docs/20-authn-authz.md` | Part 8 | verified |
 | 21 | `_docs/21-observability.md` | Part 9 | planned |
 | 22 | `_docs/22-load-balancing-service-mesh.md` | Part 9 | planned |
 | 23 | `_docs/23-grpc-web-transcoding.md` | Part 10 | planned |

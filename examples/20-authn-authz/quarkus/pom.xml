@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch20 authn-authz — Quarkus side.
+
+  Implements shipping.routing.v1.RoutingService.GetQuote behind a single
+  @GlobalInterceptor: AuthzInterceptor verifies a bearer JWT's HS256
+  signature and expiry (JwtVerifier), then checks the method-scoped
+  requirement from METHOD_SCOPES before RoutingServiceImpl ever runs. The
+  quote formula and the four UNIMPLEMENTED methods are unchanged from
+  Chapter 5/Chapter 12 — this chapter is about what has to be true about the
+  CALLER before the handler runs, not the handler's own math.
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs
+  the two proto files this service needs into src/main/proto/ as part of the
+  image build (see Containerfile), where the quarkus-grpc extension's
+  code-generation picks them up automatically — no extra Maven plugin
+  configuration needed. For a local, non-container `mvn package`, run the
+  copy by hand first (see README.md).
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch20-quarkus-authn-authz</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <!-- The `quarkus` packaging type (not plain `jar`) activates the custom
+       Maven lifecycle that binds proto code generation to the
+       generate-sources phase, BEFORE compile — required because this
+       module generates Java sources from src/main/proto/**.proto. -->
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <!-- Matches every prior anchor's pin: Quarkus latest stable LTS (3.40.x). -->
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates Mutiny stubs from src/main/proto/**.proto at build time
+         and runs the gRPC server; AuthzInterceptor is registered against it
+         via @GlobalInterceptor — no separate protoc/protobuf-maven-plugin
+         configuration needed. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+    <!-- The ONE extra dependency this chapter adds over Chapter 12: a
+         CDI-managed com.fasterxml.jackson.databind.ObjectMapper, used by
+         JwtVerifier to decode a JWT's base64url-decoded claims segment into
+         a Map. Signature verification itself uses only the JDK's
+         javax.crypto.Mac — see JwtVerifier's class Javadoc for why this is
+         the "dependency-light" choice over quarkus-oidc/SmallRye JWT. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-jackson</artifactId>
+    </dependency>
+    <!-- Automatically instruments the gRPC server (quarkus.otel.instrument.grpc,
+         on by default) so GetQuote calls produce spans once an OTLP endpoint
+         is reachable (the opt-in `observability` compose profile). The SDK's
+         OTLP exporter fails soft (exports are async / off the request path)
+         when no collector is reachable, so the app starts fine without it. -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

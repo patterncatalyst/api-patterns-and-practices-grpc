@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ch19 tls-mtls — Quarkus side.
+
+  Implements shipping.routing.v1.RoutingService.GetQuote, byte-for-byte the
+  Ch7 formula — this chapter's subject is the transport underneath the call,
+  not the call itself, so GetQuote is unchanged and the other four RPCs
+  still return UNIMPLEMENTED, same discipline as every prior anchor.
+
+  The *.proto files are NOT committed under src/main/proto/ in this module —
+  contracts/proto/ is the single source of truth. The Containerfile COPYs
+  the two proto files this service needs into src/main/proto/ as part of the
+  image build, where the quarkus-grpc extension's code generation picks them
+  up automatically.
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.patterncatalyst.shipping</groupId>
+  <artifactId>ch19-quarkus-tls-mtls</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <packaging>quarkus</packaging>
+
+  <properties>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
+    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
+    <quarkus.platform.version>3.40.1</quarkus.platform.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>${quarkus.platform.artifact-id}</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- Generates the Mutiny service interface + client stubs from
+         src/main/proto/**.proto at build time, and runs the gRPC server
+         (TLS/mTLS configured entirely through application.properties —
+         see quarkus.grpc.server.ssl.* below, no extra dependency needed). -->
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <groupId>${quarkus.platform.group-id}</groupId>
+        <artifactId>quarkus-maven-plugin</artifactId>
+        <version>${quarkus.platform.version}</version>
+        <extensions>true</extensions>
+        <executions>
+          <execution>
+            <goals>
+              <goal>build</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>

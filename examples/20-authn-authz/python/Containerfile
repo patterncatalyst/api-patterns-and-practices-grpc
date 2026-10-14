@@ -1,0 +1,89 @@
+# Ch20 authn-authz — Python, UBI 10, uv-managed, grpc.aio server.
+# Build (from the REPO ROOT, so this context can reach contracts/):
+#   docker build -f examples/20-authn-authz/python/Containerfile \
+#     -t ch20-routing-python .
+# compose.yaml sets the build context to the repo root for exactly this
+# reason — contracts/proto/ is the single source of truth for the .proto
+# files, and this build COPIES the two files this service needs into a
+# proto/ staging directory, then runs `python -m grpc_tools.protoc` to
+# generate the shipping.* stub packages the app AND the bundled
+# app/mint_token.py both import. The copy and the generated stubs are
+# build-time only — neither is committed (see ../.gitignore).
+#
+# UBI 10 publishes only the -minimal Python image (no ubi10/python-312).
+# Pin matches every prior anchor's:
+#   registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+# Re-check with:
+#   skopeo list-tags docker://registry.access.redhat.com/ubi10/python-314-minimal
+# and confirm with `skopeo inspect`. Bump only after re-verifying the tag.
+
+# ── Stage 1: Build ──────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217 AS build
+
+# The image runs as UID 1001; the build stage needs root to write /app.
+# Build at the same path the runtime uses: a venv is not relocatable, its
+# console scripts carry the absolute interpreter path.
+USER 0
+WORKDIR /app
+
+RUN pip install --no-cache-dir uv==0.12.24
+
+COPY examples/20-authn-authz/python/pyproject.toml ./
+COPY examples/20-authn-authz/python/app ./app
+
+# No uv.lock committed yet (small, pure-Python dependency set); --locked is
+# adopted once a lockfile lands alongside a persistence layer.
+# `--group dev` pulls in grpcio-tools (needed below, not at runtime).
+RUN uv sync --group dev
+
+# Stage the two proto files this service needs, preserving the package path
+# routing.proto's import statement expects, then generate the stub packages
+# into /app/generated — a sibling of app/, added to PYTHONPATH below, so
+# `from shipping.routing.v1 import routing_pb2` resolves the same way it
+# does after a local (non-container) `protoc` run. mint_token.py imports no
+# generated stubs itself (it only signs claims), but shares this same image.
+COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto
+COPY contracts/proto/shipping/routing/v1/routing.proto ./proto/shipping/routing/v1/routing.proto
+RUN mkdir -p generated && \
+    .venv/bin/python -m grpc_tools.protoc -I proto \
+      --python_out=generated --grpc_python_out=generated \
+      proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto
+
+# Rebuild the venv without the dev group (grpcio-tools and its protoc
+# binary are not needed to run the server or the bundled token minter).
+RUN rm -rf .venv && uv sync --no-dev
+
+# ── Stage 2: Runtime ────────────────────────────────────────
+FROM registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217
+
+WORKDIR /app
+
+COPY --from=build --chown=1001:0 /app/.venv /app/.venv
+COPY --from=build --chown=1001:0 /app/app /app/app
+COPY --from=build --chown=1001:0 /app/generated /app/generated
+
+ENV PATH="/app/.venv/bin:$PATH" \
+    PYTHONPATH="/app/generated:/app" \
+    PYTHONUNBUFFERED=1 \
+    GRPC_HOST=0.0.0.0 \
+    GRPC_PORT=9000 \
+    OTEL_SERVICE_NAME=ch20-routing-python \
+    OTEL_TRACES_EXPORTER=otlp \
+    OTEL_METRICS_EXPORTER=none \
+    OTEL_LOGS_EXPORTER=none \
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317 \
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED=false
+
+EXPOSE 9000
+USER 1001
+
+# opentelemetry-instrument is a zero-code wrapper: it auto-instruments the
+# grpc.aio server and exports spans to OTEL_EXPORTER_OTLP_ENDPOINT. When no
+# collector is listening there (the `observability` compose profile is off
+# by default), the OTLP exporter just logs failed exports in the
+# background — the server still starts and serves GetQuote.
+#
+# verify.sh overrides this ENTRYPOINT with `docker compose run --entrypoint
+# python ... -m app.mint_token <case>` to run the bundled token minter from
+# this same built image — no second image, no network, no IdP.
+ENTRYPOINT ["opentelemetry-instrument", "python", "-m", "app.main"]

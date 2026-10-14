@@ -1,0 +1,75 @@
+# Ch20 authn-authz — compose topology for
+# shipping.routing.v1.RoutingService behind a JWT-validating + per-method
+# authorizing interceptor (AuthzInterceptor on both stacks).
+#
+# Default `docker compose up` brings up: quarkus, python. Both are generated
+# from the SAME proto (contracts/proto/shipping/{type,routing}/v1/*.proto)
+# and gate every non-reflection call on a bearer JWT — see ../README.md for
+# the interceptor contract and the per-method scope map.
+#
+# The token minter (python/app/mint_token.py) runs from the ALREADY-BUILT
+# python image via `docker compose run --entrypoint python`, never `up` —
+# see verify.sh's mint_token() helper. It needs no server and no network; it
+# only signs claims with the shared demo secret in app/auth.py.
+#
+# The build context for both app services is the REPO ROOT so each
+# Containerfile can COPY the two proto files it needs straight from
+# contracts/ (the single source of truth) — see quarkus/Containerfile and
+# python/Containerfile for the exact COPY lines.
+#
+# The LGTM observability stack is opt-in (`--profile observability`) so CI
+# and a first boot stay fast; both apps are wired for OTLP export but start
+# and serve GetQuote fine without a collector listening.
+#
+# Usage:
+#   docker compose up --build                          # app stack only
+#   docker compose --profile observability up --build  # + Grafana LGTM
+#   docker compose run --rm --entrypoint python python -m app.mint_token valid
+
+services:
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/20-authn-authz/quarkus/Containerfile
+    container_name: ch20-routing-quarkus
+    ports:
+      - "9200:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/20-authn-authz/python/Containerfile
+    container_name: ch20-routing-python
+    ports:
+      - "9201:9000"
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://lgtm:4317
+
+  # ─── Observability (opt-in) ────────────────────────────────────────────
+  # `docker compose --profile observability up` to include. Off by default
+  # so CI's examples job (and a first boot) stay fast. The OTEL_EXPORTER_*
+  # env vars above point at this service's name, which only resolves when
+  # the profile is active — harmless (just unreachable) otherwise.
+  lgtm:
+    image: docker.io/grafana/otel-lgtm:0.36.0
+    container_name: ch20-lgtm
+    profiles: ["observability"]
+    ports:
+      - "3000:3000" # Grafana UI
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "9090:9090" # Prometheus / Mimir query
+      - "3100:3100" # Loki
+      - "3200:3200" # Tempo
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s

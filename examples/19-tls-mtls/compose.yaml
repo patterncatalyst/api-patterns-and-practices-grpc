@@ -1,0 +1,81 @@
+# Ch19 tls-mtls — compose topology for a TLS/mTLS-only
+# shipping.routing.v1.RoutingService.GetQuote.
+#
+# Both services are generated from the SAME proto
+# (contracts/proto/shipping/{type,routing}/v1/*.proto) and implement
+# GetQuote identically (the Ch7 formula, unchanged) — this chapter's subject
+# is the transport underneath the call, not the call itself. The build
+# context for both is the REPO ROOT so each Containerfile can COPY the two
+# proto files it needs straight from contracts/ — see quarkus/Containerfile
+# and python/Containerfile for the exact COPY lines.
+#
+# `certgen` is a ONE-SHOT init service (never left running — see
+# certgen/gen-certs.sh): it mints a fresh local CA plus a server identity
+# (shared by both services; its SAN list covers both) and a client identity
+# into the named volume `certs`, every time this stack comes up. Both
+# `quarkus` and `python` declare `depends_on: certgen: condition:
+# service_completed_successfully`, so a plain `docker compose up` runs
+# certgen to completion first automatically — no extra `docker compose run`
+# step needed, and certgen never stays "up" as a daemon; it exits 0 and
+# compose proceeds.
+#
+# certgen ALSO copies ca.crt/client.crt/client.key into ./.host-out, a
+# bind-mounted host directory (gitignored — see ../.gitignore), so
+# verify.sh's host-side grpcurl — the same self-contained binary
+# examples/_lib/lib.sh downloads for every other chapter — can present them
+# with plain -cacert/-cert/-key flags without needing root access to
+# Docker's internal named-volume storage.
+#
+# GRPC_CLIENT_AUTH (REQUIRED by default on both services) is how verify.sh
+# demonstrates this chapter's progression without two separate stacks:
+# re-running `docker compose up -d` with GRPC_CLIENT_AUTH=NONE recreates
+# both servers in "TLS only" mode (no client cert requested); re-running it
+# again with GRPC_CLIENT_AUTH=REQUIRED (or unset) recreates them back into
+# this example's steady state, full mTLS.
+#
+# Usage:
+#   docker compose up --build                                   # mTLS (default)
+#   GRPC_CLIENT_AUTH=NONE docker compose up -d --build           # TLS only
+
+services:
+  certgen:
+    build:
+      context: ../..
+      dockerfile: examples/19-tls-mtls/certgen/Containerfile
+    container_name: ch19-certgen
+    volumes:
+      - certs:/certs
+      - ./.host-out:/host-out
+
+  quarkus:
+    build:
+      context: ../..
+      dockerfile: examples/19-tls-mtls/quarkus/Containerfile
+    container_name: ch19-routing-quarkus
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+    ports:
+      - "9190:9000"
+    environment:
+      - GRPC_CLIENT_AUTH=${GRPC_CLIENT_AUTH:-REQUIRED}
+    volumes:
+      - certs:/certs:ro
+
+  python:
+    build:
+      context: ../..
+      dockerfile: examples/19-tls-mtls/python/Containerfile
+    container_name: ch19-routing-python
+    depends_on:
+      certgen:
+        condition: service_completed_successfully
+    ports:
+      - "9191:9000"
+    environment:
+      - GRPC_CLIENT_AUTH=${GRPC_CLIENT_AUTH:-REQUIRED}
+    volumes:
+      - certs:/certs:ro
+
+volumes:
+  certs: {}
