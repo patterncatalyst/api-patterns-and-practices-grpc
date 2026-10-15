@@ -1,0 +1,15 @@
+{
+  "name": "api-patterns-grpc-presentation-shared",
+  "version": "1.0.0",
+  "description": "Shared Red Hat deck scaffold for the API Patterns & Practices: gRPC decks (100 concepts + Quarkus + Python implementations). Bundled deck-helpers.js, Scene diagram engine (dgen.py), brand assets, and rendered book figures reused by every deck.",
+  "private": true,
+  "scripts": {
+    "diagrams": "python3 build_diagrams.py",
+    "figures": "python3 -I render_svgs.py"
+  },
+  "author": "Robert Sedor",
+  "license": "MIT",
+  "dependencies": {
+    "pptxgenjs": "^4.0.1"
+  }
+}
