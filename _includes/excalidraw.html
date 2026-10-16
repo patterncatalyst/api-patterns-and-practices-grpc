@@ -20,11 +20,10 @@
 {%- assign source_path = diagram_base | append: ".excalidraw" | relative_url -%}
 
 <figure class="excalidraw-embed">
-  <object type="image/svg+xml"
-          data="{{ svg_path }}"
-          aria-label="{{ include.alt | escape }}">
-    {{ include.alt | escape }}
-  </object>
+  <img src="{{ svg_path }}"
+       alt="{{ include.alt | escape }}"
+       loading="lazy"
+       decoding="async" />
 
   {%- if include.caption -%}
     <figcaption class="excalidraw-embed__caption">{{ include.caption | escape }}</figcaption>
