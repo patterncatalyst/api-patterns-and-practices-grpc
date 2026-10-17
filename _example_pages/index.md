@@ -38,8 +38,23 @@ More examples land here as new chapters ship.
 | [21-observability](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/21-observability) | OTel trace spanning REST→gRPC→`QuoteService` (trace-id continuity), Prometheus metrics, and `grpc.health.v1` — the LGTM stack wired in | Both | [Ch21]({{ '/docs/21-observability/' | relative_url }}) |
 | [22-mesh-loadbalancing](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/22-mesh-loadbalancing) | The L4 single-connection pin on minikube — plain Service pins to one pod; headless+`round_robin` and Istio each fan out across 3 replicas (run on minikube, not CI) | Cluster | [Ch22]({{ '/docs/22-load-balancing-service-mesh/' | relative_url }}) |
 | [23-grpc-web-transcoding](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/23-grpc-web-transcoding) | One `GetQuote`, four doors — native gRPC, a REST shim, Envoy JSON/HTTP transcoding (`auto_mapping`), and a grpc-web framed client — all reaching the same RPC | Both | [Ch23]({{ '/docs/23-grpc-web-transcoding/' | relative_url }}) |
-| [24-cross-protocol-http3](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/24-cross-protocol-http3) | `GetQuote` over HTTP/2 (gated + a `ghz` baseline) alongside an honest HTTP/3 transport demo (Caddy + aioquic QUIC) — the transport, not gRPC-over-HTTP/3 | Both | [Ch24]({{ '/docs/24-cross-protocol-http3/' | relative_url }}) |
+| [24-cross-protocol-http3](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/24-cross-protocol-http3) | `GetQuote` over HTTP/2 (gated + a `ghz` baseline) alongside a real HTTP/3 transport demo (Caddy + aioquic QUIC) — the transport, not gRPC-over-HTTP/3 | Both | [Ch24]({{ '/docs/24-cross-protocol-http3/' | relative_url }}) |
 | [25-testing-and-cli](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/25-testing-and-cli) | Reflection probes (`grpcurl`), `@QuarkusTest`+`@GrpcClient` and `pytest` in-process suites gated at image-build, and a pinned `ghz` smoke | Both | [Ch25]({{ '/docs/25-testing-and-cli/' | relative_url }}) |
 | [26-debugging](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/26-debugging) | Reproduce `UNIMPLEMENTED` / `DEADLINE_EXCEEDED` / `UNAVAILABLE` / TLS-handshake failures and diagnose them with reflection, channelz, and `GRPC_TRACE` | Both | [Ch26]({{ '/docs/26-debugging-grpc/' | relative_url }}) |
 | [27-complete-project](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/27-complete-project) | The final project — all three services, all four RPC modes, mTLS + JWT + OTel + ghz in one CI-gated Compose stack; a run-by-hand minikube tier solves the LB problem | Both | [Ch27]({{ '/docs/27-complete-project/' | relative_url }}) |
 | [99-appendix-a-openshift-crc](https://github.com/{{ site.github_username }}/{{ site.github_repo }}/tree/main/examples/99-appendix-a-openshift-crc) | OpenShift Local (CRC) — gRPC over Routes (only passthrough carries native gRPC), OSSM STRICT mTLS + a weighted canary, in-cluster build (run on CRC, not CI) | Cluster | [App. A]({{ '/docs/99-appendix-a-openshift-crc/' | relative_url }}) |
+
+## Running an example
+
+Each directory is self-contained — a `README.md`, a `compose.yaml`, and a
+`verify.sh` that calls the running service and asserts response semantics
+against the shared Protobuf contract under `contracts/proto/`, not just a status
+code. The cluster-tier examples ship `k8s/` or `helm/` instead and run on
+minikube or CRC.
+
+```bash
+cd examples/05-contract-first
+./verify.sh
+```
+
+See [Prerequisites & the Lab]({{ '/docs/00-prerequisites-and-the-lab/' | relative_url }}) for the full toolchain setup.
