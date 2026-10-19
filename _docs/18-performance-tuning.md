@@ -6,6 +6,18 @@ description: "Channel and stub reuse revisited, keepalive, max-message-size, gzi
 duration: "28 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Measure the cost of channel-per-call versus one reused channel/stub, and explain why gRPC "pooling" means one multiplexed channel, not a literal connection pool.
+- Configure keepalive's three knobs (ping interval, permitted-ping floor, idle-ping toggle) and know what each one guards against.
+- Reason about max-message-size caps, recognizing that the sender and the receiver each enforce their own independently-configured limit.
+- Decide when gzip compression is a wire-size win (`ListRoutes`) versus a CPU cost for no benefit (`GetQuote`).
+- Run and interpret a `ghz` load-test benchmark (RPS, error rate, p99 latency) against a live gRPC service.
+
+## Why this matters
+
 Chapter 7 mentioned the #1 gRPC performance mistake in passing — build a channel once, reuse it forever — and moved on to the generated stub-to-stub path it was really about. This chapter comes back to collect on that promise, and brings three more levers with it. `RoutingService.GetQuote`, the same fast unary call Chapter 7 served, and `RoutingService.ListRoutes`, Chapter 13's paginated catalog, are the same two RPCs this chapter's example reuses — no new RPC, no contract change, because performance tuning is almost never a schema problem. It's a question of how a client holds its connection, how big a message either side will tolerate, whether the bytes on the wire are compressed, and how a server reacts when an idle connection goes quiet. Get all four right and the two RPCs this chapter already had on hand are all it takes to show the difference.
 
 The code is in `examples/18-performance-tuning/`. The run script there (`verify.sh`) builds and starts both stacks, runs four bundled Python demo clients against each one, drives a real `ghz` load-test run, and asserts every claim this chapter makes; its `README.md` covers what it does and how to drive it by hand.
@@ -202,3 +214,10 @@ cites for `grpcio` 1.83 (`grpc.keepalive_time_ms`,
 `grpc.http2.min_ping_interval_without_data_ms`, and the rest) and the
 `quarkus-grpc` 3.40.1 config keys this chapter cites continue to resolve
 identically on a future point release of either.*
+
+## For deeper coverage
+
+- [grpc.io — Performance best practices](https://grpc.io/docs/guides/performance/) — the general and language-specific tuning guidance this chapter's channel-reuse, message-size, and compression levers all draw from.
+- Ben Evans & Jim Gough, *Optimizing Cloud Native Java*, 2nd ed. — O'Reilly, 2024 — JVM-side tuning that complements this chapter's Quarkus-side measurements.
+- Jonathan Schneider, *SRE with Java Microservices* — O'Reilly, 2020 — load testing and latency-percentile interpretation, the same vocabulary this chapter's `ghz` run reports in.
+- Cloud Native Design Patterns — "Appendix L: Caching" — response-size and latency trade-offs adjacent to this chapter's message-size and compression decisions.

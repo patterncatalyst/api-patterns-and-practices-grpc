@@ -6,6 +6,17 @@ description: "WatchShipment as the live-tracking hot path: one request opening a
 duration: "20 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why `WatchShipment` server-streaming beats polling `GetShipmentStatus` on a timer for a live-tracking feed.
+- Trace a server-streaming call's HTTP/2 mechanics: one stream, one `DATA` frame per event, guaranteed ordering, and a half-close instead of a sentinel value.
+- Implement a server-streaming handler with Quarkus's `Multi<T>` and Python's async-generator (`yield`) shapes.
+- Identify what this chapter's fixed four-event example leaves open: flow-control backpressure and keepalive on a long-lived stream.
+
+## Why this matters
+
 Chapter 7 traced `GetQuote` from a typed call on one stub, through a reused channel, to a typed call on the other side — one request, one response, one HTTP/2 stream that opens and closes before the caller's code moves past the call. `TrackingService.WatchShipment` keeps the channel and the stub-to-stub shape Chapter 7 built, but changes what rides the stream: instead of one response closing the exchange, the server sends a sequence of `TrackingEvent`s over the life of a voyage, and the caller reads them as they arrive. This is server-streaming, the second of the four RPC shapes Chapter 2 named and the first one this site implements. `WatchShipment` is the shipping domain's live-tracking hot path — the call the booking UI makes once to watch a shipment move from booked to delivered, instead of asking "has anything changed?" on a timer.
 
 ## When one response isn't the shape
@@ -135,3 +146,10 @@ grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
 ```
 
 Four events, in this exact order, then the stream ends — no fifth message, no trailing error. Swap `9080` for `9081` and the same request against the Python stack produces the identical four events in the identical order, proving the same claim Chapter 5 made for `GetQuote`: two independently generated implementations, built from the same `.proto` file, produce byte-for-byte comparable wire output — this time across an entire stream instead of a single response.
+
+## For deeper coverage
+
+- Hüseyin Babal, *gRPC Microservices in Go* (Packt) — worked server-streaming service patterns, including the live-feed case `WatchShipment` implements here.
+- [grpc.io — Core concepts: server-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/) — the half-close and ordering guarantees this chapter names.
+- [Quarkus gRPC — writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation) — `Multi<T>`-returning handlers on the Mutiny code generation this chapter's Quarkus example uses.
+- *Cloud Native Design Patterns* — "Event-Driven" chapter — decoupled facts pushed as they happen, the same push-over-poll argument this chapter makes for `WatchShipment` over `GetShipmentStatus` polling.

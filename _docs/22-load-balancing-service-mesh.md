@@ -6,6 +6,18 @@ description: "The L4 single-connection problem behind a plain Kubernetes Service
 duration: "27 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why a Kubernetes `ClusterIP` Service's pick-once-per-TCP-connection routing silently pins a long-lived gRPC channel to a single pod, even with multiple healthy replicas.
+- Fix the pin client-side with a headless Service (`clusterIP: None`) plus a `dns:///` channel target and `grpc.lb_policy_name=round_robin`.
+- Contrast that client-side fix with Istio's sidecar-based L7 balancing, which re-picks a backend per HTTP/2 stream instead of per connection, with zero client code change.
+- Enable STRICT `PeerAuthentication` mTLS and recognize a sidecar-rejected call as a transport-level connection reset, not a gRPC status code.
+- Configure Istio `VirtualService` retries/timeouts and `DestinationRule` outlier detection, and explain why a retry is a fresh load-balancing pick rather than a replay to the same pod.
+
+## Why this matters
+
 Chapter 7 established the rule every example since has followed without comment: build one `grpc.aio` channel, reuse it for the life of the process, never dial a fresh one per call. That discipline is correct, and every chapter in this book has rewarded it — a channel is one long-lived HTTP/2 connection, and reusing it is what lets gRPC multiplex hundreds of concurrent calls over a single socket instead of paying a TLS handshake and a TCP three-way handshake per request. This chapter puts that same correctly-built, correctly-reused channel behind a Kubernetes `Deployment` running three replicas of `RoutingService.GetQuote`, and shows the failure mode a single-container Compose stack can never expose: the channel's one connection terminates at exactly one of those three pods, and it never moves. Every chapter before this one ran against one server process, so "the client's one connection goes to the one server" was never a choice — it was the only option. The moment a service has more than one replica, which is the moment it is actually ready to carry production traffic, reusing one connection turns into a routing decision nobody actually made.
 
 This chapter's example is different from every other one in the book in one respect: it needs a running Kubernetes cluster, so it runs on minikube by hand rather than inside CI. `examples/22-mesh-loadbalancing/`'s `README.md` covers the full procedure; `scripts/bootstrap.sh` starts minikube and installs Istio, and `scripts/run-demo.sh` builds the server image, deploys it, and runs the three phases this chapter walks through. There is no `verify.sh` in that directory, and `scripts/validate.py`'s `cluster-dir-no-verify` check fails the build if one ever appears there, because the clusterless `examples` CI matrix auto-discovers every `verify.sh` it finds and would try to run this one without a cluster to run it against. The contract is untouched: `GetQuoteRequest`/`GetQuoteResponse` are byte-for-byte what Chapter 5 defined, and the pod-identity signal this chapter's whole demo depends on — `x-served-by: <HOSTNAME>` — is a response trailer, gRPC metadata riding outside the message entirely, plus a server log line. `git diff main -- contracts/` stays empty.
@@ -262,3 +274,10 @@ discipline as Chapter 7's and Chapter 19's identical pin), and that a
 minikube profile on a machine with less than the roughly 4 CPU / 6 GiB this
 chapter's `bootstrap.sh` requests still schedules Istio's control plane and
 three application replicas without eviction.*
+
+## For deeper coverage
+
+- Cloud Native Design Patterns — "Appendix I — L7 Routing & Traffic Management" chapter, for the four-layer (edge/gateway/mesh/in-app) view this chapter's L4-versus-L7 split is one slice of.
+- Michael T. Nygard, *Release It!, Second Edition*, Pragmatic Bookshelf, 2018 — retries, timeouts, and the failure-isolation thinking behind this chapter's outlier-detection policy.
+- [Istio — Traffic Management concepts](https://istio.io/latest/docs/concepts/traffic-management/) and [`PeerAuthentication` reference](https://istio.io/latest/docs/reference/config/security/peer_authentication/).
+- [Kubernetes — Headless Services](https://kubernetes.io/docs/concepts/services-networking/service/#headless-services).

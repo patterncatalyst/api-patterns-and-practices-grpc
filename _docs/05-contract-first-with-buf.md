@@ -6,6 +6,18 @@ description: "Gate the shipping proto with buf lint, buf build, and buf breaking
 duration: "22 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Gate a proto change with `buf lint`, `buf build -o /dev/null`, and `buf breaking` before either stack generates a line of code from it.
+- Explain why contract-first beats code-first once a second, independently-built stack consumes the same `.proto` file.
+- Generate client and server stubs from `routing.proto`/`types.proto` on both Quarkus (`quarkus:generate-code` under `quarkus` packaging) and Python (`grpc_tools.protoc`).
+- Implement `RoutingService.GetQuote` identically on both stacks, including the `HALF_UP` rounding rule that keeps `Money.amount` byte-for-byte comparable.
+- Verify two independently-generated servers agree, using `grpcurl` and `verify.sh`'s field-level assertions rather than a bare `OK` status.
+
+## Why this matters
+
 Chapter 3 named the message types. Chapter 4 mapped them to JSON at the edges. Neither chapter ran anything. This one does: `shipping.routing.v1.RoutingService.GetQuote` goes from a worked example on paper to a call you make with `grpcurl` and watch succeed, served identically by a Quarkus process and a Python process that have never read each other's source. The thing that makes "identically" a checkable claim rather than a hope is the same `.proto` file both of them compile, and the three `buf` commands that gate every change to it before either stack ever sees it.
 
 ## Contract-first versus code-first, for a generated wire format
@@ -178,3 +190,10 @@ One quirk worth knowing before it surprises you: `grpcurl` happily accepts a req
 The gates this chapter wires — `buf lint`, `buf build`, `buf breaking` — run against every later change to this contract, which means every streaming method Part 3 adds, every error detail Chapter 11 attaches, and every field Chapter 13 reconsiders all pass through the same three commands before a stack generates a line of code from them. `GetQuote` itself keeps serving as this site's anchor: Chapter 7 opens up what `quarkus-grpc` and `grpcio` actually generate from a unary RPC and why; Chapter 10 puts a real deadline on this exact call instead of letting it run unbounded; Chapter 14 returns to `buf breaking` and spells out precisely which proto changes it catches and which category of change still requires a new package version. The four `UNIMPLEMENTED` methods sitting beside `GetQuote` in `routing.proto` are promises this chapter made and later chapters keep — `NegotiateRoute` streams once Part 3 covers bidirectional RPCs, and `RecomputeRoutes` returns a pollable `Operation` once Part 6 covers async work.
 
 <div class="callout callout--safe"><p class="callout__title">Decision</p><p>Run this chapter's choice through the same lens Chapter 2 established. Contract-first costs something code-first doesn't: a review step before either stack writes a handler, and a CI job that has to run before every merge rather than after. It pays that cost back exactly where this contract lives — generated code on two independently-deployed stacks, each compiled from the proto rather than hand-synchronized against it, where a silent divergence wouldn't surface as a lint warning but as two services that compile cleanly and disagree about what a message means. <code>buf breaking</code> is what makes that payoff concrete: it turns a reused field number or a removed field — the failure class this site treats as non-retryable, because no amount of resending a request fixes a schema the two sides no longer agree on — into a failed build instead of a production incident discovered when one stack's deploy reaches a client still expecting the old shape. A single team with one implementation and no second consumer could skip the proto review and still ship correctly; the moment a second generated stack exists, as both do from this chapter forward, the contract is the only thing standing between "two implementations of one service" and "two services that happen to share a name."</p></div>
+
+## For deeper coverage
+
+- Clément Jean, *gRPC Go for Professionals* (Packt, 2023) — the Protocol Buffers language, schema design, and schema evolution behind the contract this chapter gates.
+- *Cloud Native Design Patterns* — "API Registry" chapter — one authoritative, versioned home for a `.proto` contract with compatibility rules gating breaking changes in CI, the same role `buf breaking` plays here.
+- [Buf docs](https://buf.build/docs/) — `buf.yaml`, the `lint` and `breaking` rule sets, and the `STANDARD` lint ruleset this chapter's `buf.yaml` selects.
+- [Protocol Buffers documentation](https://protobuf.dev/) — the proto3 language reference behind `routing.proto` and `types.proto`.

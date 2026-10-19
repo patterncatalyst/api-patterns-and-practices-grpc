@@ -6,6 +6,18 @@ description: "Channel and transport credentials, certificate management, a Compo
 duration: "24 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Configure TLS and mTLS channel/transport credentials on both Quarkus (`quarkus.grpc.server.ssl.*`) and Python (`grpc.ssl_server_credentials`).
+- Distinguish a transport-layer handshake failure from a gRPC application status code, and recognize the different error shapes each stack produces.
+- Toggle `client-auth`/`require_client_auth` to move a service from one-way TLS to mutual TLS, and explain what each direction of trust buys.
+- Build a certificate bootstrap (CA, server certificate with SANs, client certificate) with `openssl`, and avoid the PEM-vs-Java-keystore trust-store pitfall.
+- Plan the migration from a Compose-local certificate bootstrap to cert-manager-issued certificates on a real cluster.
+
+## Why this matters
+
 Chapter 18 closed by turning from making an existing plaintext connection fast to making it private and mutually authenticated. Every example before this one dialed `RoutingService.GetQuote` with `grpc.aio.insecure_channel` or `quarkus.grpc.server.plain-text=true` — correct for a book whose subject was request shape, streaming, and throughput, but not a configuration any of those services could run with outside a laptop. This chapter closes that gap without touching the contract at all: TLS and mTLS live entirely in how a channel is built and how a server is configured, never in a `.proto` file, so `GetQuote` — the same unary anchor Chapter 7 served and Chapter 18 tuned — is the RPC under test again, unchanged down to its formula. What changes is everything underneath it: the bytes on the wire are now encrypted, the client verifies the server's identity before trusting a single response, and — once this chapter turns on mutual TLS — the server verifies the client's identity right back.
 
 The code is in `examples/19-tls-mtls/`. The run script there (`verify.sh`) builds and starts both stacks, brings up a one-shot certificate-bootstrap service ahead of either server, and asserts every claim this chapter makes against both of them, in two phases; its `README.md` covers what it does and how to drive it by hand.
@@ -213,3 +225,10 @@ hold on a future `quarkus-grpc` point release, and that a Docker Engine
 other than the Linux-native one this book was authored against still
 produces host-readable files under the `certs` named volume's bind-mounted
 export directory.*
+
+## For deeper coverage
+
+- [grpc.io — Authentication guide](https://grpc.io/docs/guides/auth/) — gRPC's built-in TLS, ALTS, and token-based authentication mechanisms, the catalog this chapter's TLS half and Chapter 20's JWT half both come from.
+- [cert-manager](https://cert-manager.io/) — the Kubernetes certificate issuance and rotation controller this chapter's "Progression toward a real cluster" section names as the production replacement for `certgen`.
+- Liz Rice, *Container Security*, 2nd ed. — O'Reilly, 2025 — service identity and mutual authentication in containerized environments.
+- Cloud Native Design Patterns — "Security" chapter — the broader authn/authz pattern catalog this chapter's TLS/mTLS mechanics sit inside.

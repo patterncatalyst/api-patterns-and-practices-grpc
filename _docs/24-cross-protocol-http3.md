@@ -6,6 +6,18 @@ description: "gRPC versus REST-over-HTTP/2 versus WebSockets, and gRPC over HTTP
 duration: "22 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Choose between gRPC, REST-over-HTTP/2 (SSE/chunked), and WebSockets for a new streaming interaction based on who controls both ends, which direction data flows, and how much contract discipline the team wants.
+- Explain what QUIC's independent per-stream delivery fixes — HTTP/2's transport-level head-of-line blocking — and what it does not fix, since gRPC's own framing is defined specifically in terms of HTTP/2.
+- State precisely why "gRPC over HTTP/3" is a distinct, not-yet-implemented transport binding in both `grpc-java` and `grpcio`, rather than a free upgrade of the existing HTTP/2 implementation.
+- Run a `ghz` load-test baseline against `GetQuote` and assert loose, relative latency/throughput bounds instead of hardware-specific absolutes.
+- Treat an HTTP/3 transport probe (`aioquic` against Caddy) as capability-gated and non-fatal in CI, distinct from a correctness gate that must never be skipped.
+
+## Why this matters
+
 Every prior chapter in this part answered a narrower question than the one this one closes with: given that a call is already gRPC, how does a browser, a REST client, or a JSON caller reach it? This chapter steps back a level, to the choice that happens before any of that — when a team is deciding how a new streaming interaction should travel across the wire at all, gRPC is one option among at least three realistic ones, and the right answer depends on who is calling, how many directions data flows, and what tooling the team already trusts. It also closes with the question every engineer asks the moment they hear "HTTP/3 fixes TCP's problems": does gRPC get to use it yet? As of this writing, no — grpc-java and grpcio both still speak gRPC exclusively over HTTP/2, and this chapter states that directly instead of hedging around it. `RoutingService.GetQuote`, unchanged from every earlier chapter, is still the call this chapter measures; nothing in the proto contract moves.
 
 The code is in `examples/24-cross-protocol-http3/`. The run script there (`verify.sh`) builds and starts both stacks, proves `GetQuote` correct over native gRPC, runs a real `ghz` load-test baseline against it, and then runs a separate, clearly-labeled HTTP/3 transport probe that is non-fatal if it can't complete; its `README.md` covers what it does and how to drive it by hand.
@@ -152,3 +164,9 @@ UDP outright; and that the claim at this chapter's center — that grpc-java and
 grpcio have no native gRPC-over-HTTP/3 transport — still holds against
 whatever release of either project a reader is running, since this is
 exactly the kind of gap an upstream project can close in a later release.*
+
+## For deeper coverage
+
+- Gough, J., Bryant, D. & Auburn, M., *Mastering API Architecture*, O'Reilly, 2022 — the broader transport/style decision this chapter's three-way comparison narrows to gRPC/REST/WebSockets.
+- Cloud Native Design Patterns — "Appendix A — Protocols in Depth" chapter, for the same decision framed across REST, gRPC, and GraphQL.
+- [RFC 9114 — HTTP/3](https://www.rfc-editor.org/rfc/rfc9114) and [RFC 9000 — QUIC](https://www.rfc-editor.org/rfc/rfc9000), the specs behind what this chapter's probe actually negotiates.

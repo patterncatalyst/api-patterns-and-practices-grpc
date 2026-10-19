@@ -6,6 +6,18 @@ description: "OpenTelemetry tracing and Micrometer/Prometheus metrics riding acr
 duration: "18 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Trace a `POST /booking/quote` request across a REST-to-gRPC seam and a second downstream gRPC hop as one trace with three spans, with zero manual span-propagation code on Quarkus or Python.
+- Explain what traces, metrics, and health each answer, and name the standard, vendor-neutral protocol behind each — OpenTelemetry, Prometheus's text format, and `grpc.health.v1.Health`.
+- Wire up `grpc.health.v1.Health` on both stacks, including why Python needs `grpc_health.v1.health.aio.HealthServicer` rather than the classic synchronous implementation under `grpc.aio`.
+- Read Prometheus-format gRPC server metrics produced automatically by `quarkus-micrometer-registry-prometheus` versus a hand-rolled `MetricsInterceptor` built on `prometheus-client`.
+- Cross-check a `traceparent`-propagated trace id independently against Tempo's own stored trace, not just a log grep.
+
+## Why this matters
+
 Chapter 20's interceptor logged two things about every call: the method name and how it ended, `UNAUTHENTICATED` or `PERMISSION_DENIED` or whatever status the handler itself returned. That log line answers "what happened" for one call, read by one engineer, in one terminal. It does not answer "where did the time go across three services," "is this error rate new in the last ten minutes," or "is this particular instance still capable of taking traffic" — three different questions, asked by three different tools, each needing a different shape of signal. This chapter wires up all three: a trace that follows one request across a REST boundary and two gRPC hops, a metric that counts and times every call a server handles, and a health check a load balancer or orchestrator polls without understanding anything about shipping routes or quotes. None of it touches `shipping.routing.v1.RoutingService` or `shipping.quote.v1.QuoteService`'s proto definitions — tracing and metrics ride entirely in gRPC metadata and in the OpenTelemetry/Micrometer SDKs' own machinery, and health is served by gRPC's own standard `grpc.health.v1.Health` service, not a bespoke endpoint this chapter invents.
 
 The code is in `examples/21-observability/`. The run script there (`verify.sh`) builds and starts both stacks — including, for the first time in this book, an always-on Grafana LGTM stack rather than an opt-in one — and asserts every claim this chapter makes against both of them; its `README.md` covers what it does and how to drive it by hand.
@@ -142,3 +154,10 @@ Swap port `8210`/`9210` for `8211`/`9211` and the Python stack answers all three
 ---
 
 *Verification status: <span class="status status--verified">verified</span>. `examples/21-observability/verify.sh` was run end to end against both stacks, twice, with the always-on `lgtm` service included in the bring-up: `POST /booking/quote` returned the correct quote (`USD`/`2500.00`/`rte_USNYC-NLRTM`/`MAERSK`) on both Quarkus (port 8210) and Python (port 8211); the SAME trace id appeared in a Routing-handler log line and a Quote-handler log line in each stack's own `docker compose logs` output; Tempo's `/api/traces/<id>` endpoint showed three distinct `service.name`/`rpc.service` values per trace on both runs (exceeding the two-service-minimum the check requires); each app's own metrics endpoint (`/q/metrics` on Quarkus, `/metrics` on Python) showed a nonzero gRPC server metric count; and `grpc.health.v1.Health/Check` answered `SERVING` on both stacks. One real defect was found and fixed during this verification, not assumed away: the `grafana/otel-lgtm:0.36.0` image has no `wget` binary, so its healthcheck was changed to `curl`; and the Python health servicer had to use `grpc_health.v1.health.aio.HealthServicer`, not the classic synchronous one, to work under `grpc.aio`.*
+
+## For deeper coverage
+
+- Charity Majors, Liz Fong-Jones & George Miranda, *Observability Engineering*, O'Reilly, 2022 — the three-signals framing (traces, metrics, logs/health) this chapter builds on.
+- Cloud Native Design Patterns — "Observability" chapter, for the same three-signal model applied across a full platform rather than one REST-to-gRPC seam.
+- [OpenTelemetry — Semantic Conventions](https://opentelemetry.io/docs/specs/semconv/) — the `rpc.service`/`rpc.method` attributes this chapter's spans rely on.
+- [grpc.io — Health checking](https://grpc.io/docs/guides/health-checking/) — the `grpc.health.v1.Health` protocol both stacks implement.

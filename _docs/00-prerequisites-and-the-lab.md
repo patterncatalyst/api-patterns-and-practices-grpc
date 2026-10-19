@@ -6,6 +6,18 @@ description: "Toolchain pins, the Docker Compose lab with opt-in LGTM tracing, a
 duration: "25 min"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Bring up the Ch0 lab with `docker compose up --build` and opt into the Grafana LGTM observability profile with `--profile observability`.
+- Call a gRPC server that has no local `.proto` file on hand, using `grpcurl -plaintext <host>:<port> list` and server reflection.
+- Explain why `contracts/proto/` is the single source of truth and how each example's Containerfile copies and compiles it at build time, never committing generated stubs.
+- Name the shipping domain's core nouns — `Booking`, `Cargo`, `Location`, `Route`, `Leg`, `Money` — and why `Location` and `Money` are reused by value instead of by reference.
+- Run `verify.sh` and read what its pass/fail means for a chapter's Compose stack.
+
+## Why this matters
+
 Every hands-on chapter from here forward hands you a running gRPC service in two languages, generated from one Protobuf contract. This chapter is where that becomes true on your machine. It pins the toolchain each example builds against, brings up the Compose stack that boots both stacks side by side, shows how to call a server that `curl` can't talk to, and fixes the shipping/cargo vocabulary every later proto, service name, and diagram refers back to. Nothing here touches message or service design — that starts in Chapter 3. This chapter proves the plumbing works, so it's never the thing you're debugging once the real protocol design begins.
 
 ## Toolchain pins
@@ -138,3 +150,10 @@ Swap `9000` for `9001` to run the identical two commands against the Python stac
 ## Where this goes next
 
 Chapter 1 steps back from the lab to the decision this site spends its first part justifying: when a service boundary should speak gRPC instead of REST, and what that trade actually costs. Chapter 3 is where Protobuf itself gets a real treatment — fields, tags, encoding, why defaults can't distinguish "zero" from "unset." Chapter 5 returns to this exact example and replaces its canned `GetQuote` with the real, independently-computed formula both stacks must agree on, which is also the first chapter whose `verify.sh` asserts response semantics instead of a single hardcoded field. Everything this chapter set up — the toolchain, the Compose shape, the domain vocabulary, reflection as the default way to call a server — stays constant from here forward; only what's behind each RPC gets more real.
+
+## For deeper coverage
+
+- Hüseyin Babal, *gRPC Microservices in Go* (Packt) — service patterns and the toolchain discipline behind a runnable gRPC lab.
+- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly) — service boundaries and what an internal service's lab environment needs to prove.
+- [grpc.io — Server reflection](https://grpc.io/docs/guides/reflection/) and [buf](https://buf.build) docs — the reflection protocol and the contract-linting tool this chapter's lab pins.
+- Cloud Native Design Patterns — the *Setting Up* chapter, for the same shared-vocabulary-and-canonical-system approach this chapter takes with the shipping domain.

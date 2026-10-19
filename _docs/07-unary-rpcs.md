@@ -6,6 +6,17 @@ description: "The stub-to-stub path for a unary call in both stacks, the channel
 duration: "20 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Trace a unary `GetQuote` call from a typed client stub, across the protobuf wire, to a typed server handler and back, on Quarkus and Python.
+- Explain the channel/stub split — why a channel is expensive and a stub is cheap.
+- Spot the per-call channel-construction anti-pattern and move the channel to a once-at-startup location on either stack.
+- Choose a blocking vs. reactive/`async` stub for a unary call from the concurrency-model axis.
+
+## Why this matters
+
 Chapter 5 proved that `shipping.routing.v1.RoutingService.GetQuote` runs the same way on a Quarkus process and a Python process built from one `.proto` file. This chapter opens up what each toolchain actually generated to make that call possible, and introduces the two objects every gRPC client is built from: a channel and a stub. `GetQuote` is unary — the simplest of the four RPC shapes Chapter 6 named — which makes it the cleanest place to see the stub-to-stub path end to end before Chapter 8 complicates the picture with a stream on one side of the call.
 
 ## What "unary" buys you
@@ -107,3 +118,10 @@ reuse_client: ok — 3 calls on one reused channel/stub, all quote.amount=3001.2
 ```
 
 Three calls, one channel object identity, one stub object identity, printed once and never rebuilt — run the same script against `python:9000` instead and the only thing that changes is which server answers. The generated code took care of getting a typed request onto the wire and a typed response back off it; keeping the connection underneath that round trip from being rebuilt on every call is the one piece this chapter leaves to the calling code, on both stacks, every time.
+
+## For deeper coverage
+
+- Clément Jean, *gRPC Go for Professionals* (Packt, 2023) — the generated client surface, channels, and stubs.
+- [grpc.io — Core concepts: channels](https://grpc.io/docs/what-is-grpc/core-concepts/).
+- [Quarkus gRPC — service consumption and `@GrpcClient`](https://quarkus.io/guides/grpc-service-consumption).
+- grpc-java `ManagedChannel` lifecycle; Python `grpc.aio` channel API.

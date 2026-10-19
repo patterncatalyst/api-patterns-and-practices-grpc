@@ -6,6 +6,18 @@ description: "The interceptor chain as gRPC's cross-cutting seam: logging and ti
 duration: "18 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Implement a server-side interceptor (`io.grpc.ServerInterceptor` / `grpc.aio.ServerInterceptor`) that runs before a handler ever sees a request.
+- Chain multiple interceptors and control their order with `@GlobalInterceptor`/`@RegisterInterceptor` and `Prioritized` on Quarkus, or the ordered `interceptors=[...]` list on Python.
+- Reject an unauthenticated call with `UNAUTHENTICATED` before the handler runs, by reading `Metadata`/`invocation_metadata`.
+- Distinguish headers from trailers and know which one carries information only known at `close(status, trailers)`.
+- Decide whether a concern belongs in an interceptor or in the handler, using the "unmodified in front of every method" test.
+
+## Why this matters
+
 Chapter 11 gave `RoutingService.GetQuote` a precise way to fail: a canonical code, a safe message, a typed detail. Nothing in that chapter asked where the code gets checked for logging, where a request gets timed, or where a missing credential gets rejected before the handler that would have returned `NOT_FOUND` or `OK` ever runs. Those questions don't belong inside `GetQuote` itself — every one of them applies identically to `FindOptimalRoute`, to `NegotiateRoute`, to any RPC a service adds next year, and writing the same timing call and the same metadata check at the top of every handler is the kind of duplication that drifts the moment one handler's copy gets updated and the other eleven don't. gRPC's interceptor is the seam built for exactly this: code that sits between the transport and the handler, runs for every call that passes through it, and never has to be remembered by whoever writes the next RPC.
 
 ## What an interceptor is, and where it sits
@@ -147,3 +159,10 @@ grpcurl -plaintext -H 'authorization: Bearer demo-token' \
 ```
 
 The first call never reaches `RoutingServiceImpl`/`RoutingServiceServicer` at all — `AuthLoggingInterceptor` closes it with `UNAUTHENTICATED` the moment it finds no `authorization` entry in the request's metadata, and the server's own log shows exactly that: a `grpc_call ... status=UNAUTHENTICATED` line with no `GetQuote: ...` line beneath it, because the handler never ran to produce one. The second call carries the header, the interceptor lets it through, and the identical Chapter 5 formula answers: `1000 kg × 2.50 = 2500.00`. Swap port `9120` for `9121` and the Python stack answers both calls identically — same rejection with no header, same quote with it — because `examples/12-interceptors/verify.sh` asserts precisely that for both stacks before it prints `PASS`.
+
+## For deeper coverage
+
+- [grpc.io — Interceptors](https://grpc.io/docs/guides/interceptors/) — the official shape of the server- and client-side interceptor API this chapter builds on.
+- [Quarkus gRPC reference guide](https://quarkus.io/guides/grpc-reference) — `@GlobalInterceptor`/`@RegisterInterceptor`, ordering, and the CDI-managed interceptor lifecycle.
+- Cloud Native Design Patterns, Appendix G — "Balancing Coupling" — the dimensions (integration strength, distance, volatility) behind this chapter's test for what belongs in a cross-cutting seam versus a handler.
+- Clément Jean, *gRPC Go for Professionals*, Packt, 2023 — cross-cutting middleware patterns applied to a gRPC service.

@@ -6,6 +6,17 @@ description: "Canonical status codes as the contract, the rich error model built
 duration: "20 min"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Classify a `GetQuote` failure into the correct canonical status code (`INVALID_ARGUMENT`, `NOT_FOUND`, `FAILED_PRECONDITION`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `INTERNAL`) instead of defaulting to `INTERNAL`.
+- Build a rich `google.rpc.Status` carrying typed details (`ErrorInfo`, `BadRequest`, `RetryInfo`) with `StatusProto.toStatusRuntimeException` on Quarkus and `grpc_status.rpc_status.to_status` on Python.
+- Decide whether a failure is safe to retry from its code and the call's idempotency, not from a guess.
+- Map a gRPC status code and its structured details onto an HTTP response at the REST→gRPC seam.
+
+## Why this matters
+
 `RoutingService.GetQuote` fails in three different ways, and none of them call for the same response. A caller that leaves `destination` empty sent a malformed request; no amount of retrying fixes that. A caller that asks for a quote from a UN/LOCODE this routing engine has no path out of is asking a question with a real, stable answer: no. A caller that happens to land during a transient blip in the routing engine's own dependencies is asking a question that would succeed in two seconds if asked again. gRPC's canonical status codes exist precisely so a client can tell these three apart without parsing a sentence. This chapter builds the rich error model on top of that code, `google.rpc.Status` and its typed details, and draws the line between a failure worth retrying and one that isn't, using the same `GetQuote` anchor Chapter 5 built and Chapter 10 put a deadline on.
 
 ## The canonical status codes are the contract
@@ -148,3 +159,10 @@ ERROR:
 ```
 
 The `Code` is what a client branches its retry logic on; the `Message` in this chapter's implementation also names the structured `details[]` entry, so the failure is legible from the plain-text message alone and precise when a client unpacks the `BadRequest`, `ErrorInfo`, or `RetryInfo` riding in the same trailers. `examples/11-error-handling/verify.sh` asserts both.
+
+## For deeper coverage
+
+- [grpc.io — Error handling](https://grpc.io/docs/guides/error/) — the canonical status codes and how a server and client are expected to use them.
+- [`google/rpc/error_details.proto`](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto) — the canonical source for `ErrorInfo`, `BadRequest`, and `RetryInfo`, the three detail types this chapter packs into a `Status`.
+- Cloud Native Design Patterns, Appendix E — "API Error Handling" — the same stable-code/safe-message/retryable-flag contract applied across REST, gRPC, Kafka, and GraphQL.
+- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021 — the broader case for treating failure classification as part of a service's contract, not an afterthought.

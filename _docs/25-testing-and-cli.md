@@ -6,6 +6,18 @@ description: "grpcurl, grpcui, Insomnia and Yaak, server reflection, QuarkusTest
 duration: 26 minutes
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Place each testing layer — in-process (`@QuarkusTest`/pytest), integration (`verify.sh` + `grpcurl`), load (`ghz`), manual exploration (`grpcui`/Insomnia/Yaak) — correctly on the gRPC test pyramid.
+- Use gRPC server reflection to `list`/`describe` a service with `grpcurl`, and explain why Python's `grpcio-reflection` can resolve a service symbol but not an individual method symbol.
+- Build an in-process `grpc.aio` test fixture on an OS-assigned ephemeral port after ruling out `grpc_testing` for lacking asyncio support.
+- Wire a build-stage test gate (`mvn verify`; `pytest` with no skip flag) that actually fails `docker build`, and prove it by seeding a wrong assertion and watching it fail.
+- Run `ghz` against `GetQuote` and assert loose, relative throughput/latency bounds instead of hardware-specific absolutes.
+
+## Why this matters
+
 Every chapter so far has proven its claims the same way this book proves
 its own: `verify.sh` builds a container, calls it over the wire, and checks
 the fields that come back. That script is itself a kind of test suite, and
@@ -455,3 +467,10 @@ on a future point release of `quarkus-grpc` or `grpcio`, that
 changed upstream, and that the `ghz` bounds (`p99 < 1.5s`, `rps > 20`) hold
 on meaningfully slower or more contended hardware than the authoring
 machine.*
+
+## For deeper coverage
+
+- Cloud Native Design Patterns — "Appendix O — API Testing with Newman" chapter, for the same CLI-driven, CI-gated API testing philosophy applied to REST collections.
+- [`grpcurl`](https://github.com/fullstorydev/grpcurl) and [`grpcui`](https://github.com/fullstorydev/grpcui) — the reflection-driven CLI and GUI tools this chapter's test pyramid names.
+- [`ghz`](https://ghz.sh/) — the gRPC benchmarking/load-testing tool behind this chapter's load layer.
+- [Quarkus — gRPC guide](https://quarkus.io/guides/grpc), including its "Testing your services" section on `@QuarkusTest` + `@GrpcClient` self-wiring.

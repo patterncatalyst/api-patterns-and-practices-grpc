@@ -6,6 +6,18 @@ description: "The server-owned Operation pattern with progress streaming, cancel
 duration: "24 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Design a server-owned `Operation` record (`id`, `kind`, `done`, `progress_pct`, `message`) as a handle to work that outlives the RPC that started it.
+- Explain why `GetOperation`, `WatchOperation`, and `CancelOperation` belong on a dedicated `OperationsService` instead of `RoutingService`, and the quarkus-grpc source-breakage that forces the split.
+- Choose between client-paced polling (`GetOperation`) and server-paced streaming (`WatchOperation`) for a long-running job.
+- Distinguish server-owned cancellation (`CancelOperation`) from request-scoped cancellation (closing a watch stream), and implement a cooperative, `done`-checking cancellation guard.
+- Build a rerunnable reconcile RPC like `RecomputeRoutes`, and explain why "rerunnable" is a different property than single-call idempotency.
+
+## Why this matters
+
 `RecomputeRoutes` has sat in `routing.proto` since Chapter 5's contract, returning `UNIMPLEMENTED` through every chapter that called `RoutingService` for something else — the one RPC in the service whose job was never a single request-response round trip but a background job that outlives the call that started it. This chapter gives it a body, and gives it three companions: `GetOperation`, `WatchOperation`, and `CancelOperation`, all added to the contract for this chapter, all operating on the same server-owned record, `shipping.type.v1.Operation` — and all three declared on a brand-new service, `OperationsService`, rather than tacked onto `RoutingService` itself. Chapter 15 asked how a server keeps answering other requests while one request's work is I/O-bound; this chapter asks a related but different question — what happens when a request's work doesn't finish inside the request at all, when the answer to "is this done yet" is "not yet, check back," and the client needs something to check back *with*.
 
 ## Why a call can't just wait
@@ -199,3 +211,10 @@ grpcurl -plaintext -d '{"operationId":"op_<id-from-above>"}' \
 ```
 
 `done` is `true` and `progress_pct` stopped short of 100 — the server-owned job actually stopped, not merely a client that stopped asking. Swap `9160` for `9161` and every one of these four calls behaves identically against the Python stack; `examples/16-async-long-running-jobs/verify.sh` asserts exactly that, for both stacks, on every run.
+
+## For deeper coverage
+
+- [AIP-151 — Long-running operations](https://google.aip.dev/151) — the `google.longrunning.Operations` shape this chapter's `OperationsService` deliberately narrows to one creating service and one job kind.
+- Cloud Native Design Patterns — "Workflows and Jobs" chapter — background-job and reconcile-loop patterns beyond this chapter's single `RecomputeRoutes` example.
+- [grpc.io — Core concepts: server streaming](https://grpc.io/docs/what-is-grpc/core-concepts/#server-streaming-rpc) — the RPC shape `WatchOperation` reuses from Chapter 8's `WatchShipment`.
+- Chris Richardson, *Microservices Patterns* — Manning, 2018 — asynchronous messaging and saga coordination for work that outlives a single request.

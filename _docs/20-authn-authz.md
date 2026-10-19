@@ -6,6 +6,18 @@ description: "JWT/OAuth2 bearer tokens in call metadata, a signature-and-expiry-
 duration: "26 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Implement a server interceptor that decodes and verifies a JWT's HMAC signature and expiry, returning `UNAUTHENTICATED` on any failure.
+- Separate authentication (`UNAUTHENTICATED`) from per-method authorization (`PERMISSION_DENIED`) using a method-to-scope map.
+- Use a constant-time comparison (`MessageDigest.isEqual`) to avoid turning signature verification into a timing oracle.
+- Explain why mTLS (connection identity) and JWTs (request identity) are complementary mechanisms, not alternatives.
+- Mint and verify test tokens (valid, expired, bad-signature, wrong-scope) to exercise every interceptor branch.
+
+## Why this matters
+
 Chapter 12's `AuthLoggingInterceptor` checked one thing about every call: whether an `authorization` entry existed in the request's metadata at all. It never looked at what that entry said — `Bearer demo-token` passed the check exactly as well as a forged string typed by hand, because presence was the whole test. That gap was a scope choice, not an oversight: Chapter 12 was about where a cross-cutting concern belongs, not about cryptography, and a real credential check would have buried the interceptor pattern under machinery the chapter didn't need yet. This chapter builds that machinery: a JSON Web Token with a signature the server verifies, an expiry it checks, and a scope it uses to decide not just *whether* a caller is who they claim, but *what that caller is allowed to call*. `RoutingService.GetQuote` is still the RPC under test — no proto field changes, because authentication and authorization live entirely in metadata and in the interceptor sitting in front of the handler, exactly where Chapter 12 left them.
 
 The code is in `examples/20-authn-authz/`. The run script there (`verify.sh`) builds and starts both stacks, mints four distinct tokens at runtime, and asserts every claim this chapter makes against both of them; its `README.md` covers what it does and how to drive it by hand.
@@ -158,3 +170,10 @@ Three different calls, three different outcomes, from a server that never ran `R
 ---
 
 *Verification status: <span class="status status--verified">verified</span>. `examples/20-authn-authz/verify.sh` was run end to end against both stacks: reflection answered with no token, a `valid` token returned the correct `GetQuote` quote, a missing/bad-signature/expired token was rejected with `UNAUTHENTICATED` in every case, and a `wrong-scope` token calling `ListRoutes` was rejected with `PERMISSION_DENIED` — on both Quarkus (port 9200) and Python (port 9201). The cross-check's HMAC computation was independently confirmed against a freshly-minted `valid` token using Python's stdlib `hmac`/`hashlib` (matching signature byte for byte); the `openssl` CLI form shown above was not re-run in the authoring sandbox, which has no `openssl` binary installed — confirm it with a local `openssl` before relying on that exact command.*
+
+## For deeper coverage
+
+- [grpc.io — Authentication guide](https://grpc.io/docs/guides/auth/) — gRPC's token-based authentication APIs, the category `AuthzInterceptor`'s bearer-token check belongs to.
+- Quarkus — OpenID Connect (`quarkus-oidc`) guide — the production replacement this chapter names for `JwtVerifier`'s hand-rolled HMAC check, verifying against a real IdP's JWKS endpoint instead of a shared secret.
+- Cloud Native Design Patterns — "Security" chapter — the broader authn/authz pattern catalog this chapter's interceptor-based JWT check is one instance of.
+- Liz Rice, *Container Security*, 2nd ed. — O'Reilly, 2025 — secret management and service identity, the concerns behind this chapter's "shared secret is a demo prop, not a design" callout.
