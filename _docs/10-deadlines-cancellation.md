@@ -6,6 +6,17 @@ description: "A deadline as an absolute budget that travels with a call, propaga
 duration: "21 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Distinguish a deadline (an absolute point in time) from a timeout (a relative duration) and explain why only a deadline survives multi-hop propagation correctly.
+- Carve a downstream deadline from an inbound one — `Context.current().getDeadline()` on Quarkus, `context.time_remaining()` on Python — minus a margin, and fail fast when the remaining budget is zero or negative.
+- Explain how each stack propagates cancellation to in-flight work: a Mutiny `Uni` subscriber going away versus an `asyncio.CancelledError`, and why a blocked thread can't honor either.
+- Apply the retryability rule for `DEADLINE_EXCEEDED`: safe to retry only when the call is idempotent and the caller still has budget left.
+
+## Why this matters
+
 Every `RoutingService.GetQuote` call this site has shown so far ran to completion in milliseconds, so nothing about timing has mattered yet. Chapter 2 named "deadline and budget" as one of the five axes a call's shape has to answer, and flagged this exact call as the one with the tightest version of that answer — a slice of the booking service's own REST budget, carved off before a downstream hop. This chapter makes that carving real. `RoutingService.GetQuote` now calls a second service, `QuoteService.GetQuote`, over its own gRPC hop, and that downstream service is slow enough — an artificial two-second delay — that the caller's deadline decides the outcome. A generous deadline gets a quote. A tight one gets `DEADLINE_EXCEEDED`, in well under two seconds, because the server on the other end of that hop finds out its answer no longer matters and stops producing it.
 
 ## Deadline, not timeout
@@ -120,3 +131,10 @@ grpcurl -plaintext -max-time 10 -d '{
 ```
 
 Swap port `9100` for `9101` and the Python stack answers identically: the same tight deadline fails with the same code, the same generous one returns the same quote — `1000kg × 2.50 = "2500.00"`, the same formula every earlier chapter's `GetQuote` has used. `verify.sh` asserts both outcomes against both stacks before it prints `PASS`: `DEADLINE_EXCEEDED` for the 1-second call, and `quote.currency`, `quote.amount`, `route.id`, `route.legs[0].carrier`, and `route.price.amount` for the 10-second one. `QuoteService`'s own two-second delay never changes between these two calls — the only thing that changes is how much of it the caller's deadline can afford, which is the whole chapter in one assertion.
+
+## For deeper coverage
+
+- Sam Newman, *Building Resilient Distributed Systems: Patterns and Practices for Stable Software* (O'Reilly, 2026) — budgets, timeouts, and the deadline-propagation discipline this chapter applies to a two-hop gRPC chain.
+- *Cloud Native Design Patterns* — "Failure Modes" chapter — timeout and cancellation as failure-handling patterns, the broader frame this chapter's `DEADLINE_EXCEEDED` case fits into.
+- [grpc.io — Deadlines guide](https://grpc.io/docs/guides/deadlines/) — the `grpc-timeout` header and per-stack deadline APIs (`Deadline`, `time_remaining()`) this chapter reads from.
+- [Quarkus gRPC — client configuration](https://quarkus.io/guides/grpc-service-consumption) — `quarkus.grpc.clients."service-name".deadline` and why it's a fixed ceiling rather than a propagated budget.

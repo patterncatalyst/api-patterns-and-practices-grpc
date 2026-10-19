@@ -6,6 +6,17 @@ description: "The browser problem, grpc-gateway and Envoy transcoding, and the R
 duration: "24 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why a browser's `fetch()`/`XMLHttpRequest` cannot speak native gRPC — no raw HTTP/2 frame control, no HTTP/2 trailer API — and what gap each of grpc-web and JSON transcoding closes.
+- Configure Envoy's `grpc_web` and `grpc_json_transcoder` HTTP filters from one build-time `FileDescriptorSet`, including why transitive well-known-type imports (`field_mask.proto`, `timestamp.proto`) have to be present in it.
+- Decode a grpc-web response by hand: the 5-byte length-prefixed data frame plus the high-bit-flagged trailer frame carrying `grpc-status`/`grpc-message`.
+- Choose between a hand-written REST shim, `auto_mapping` JSON transcoding, and grpc-web for a given caller, and state the real trade-off each makes.
+
+## Why this matters
+
 Chapter 22 put `RoutingService.GetQuote` behind three replicas and a mesh, and every fix in that chapter assumed the caller already speaks gRPC: a client holding one long-lived HTTP/2 channel, reused across calls, exactly as Chapter 7 built it. This chapter's caller cannot make that assumption true. A browser's `fetch()` and `XMLHttpRequest` cannot open a raw HTTP/2 stream, cannot send gRPC's binary length-prefixed frames, and cannot read the HTTP/2 trailers gRPC uses to carry its final status — three separate gaps, not one. Nothing about `RoutingService` changes to close them: the fix lives entirely in a proxy sitting in front of the exact same server every prior chapter has called directly, and this chapter builds that proxy twice, once per stack, and drives it four different ways against the identical `GetQuote` RPC.
 
 The code is in `examples/23-grpc-web-transcoding/`. The run script there (`verify.sh`) builds and brings up both app stacks and both Envoy proxies, then checks all four paths; its `README.md` covers what it does and how to drive it by hand.
@@ -167,3 +178,10 @@ stacks and both Envoy containers built and started, and native gRPC, the
 REST shim, the JSON/HTTP transcoder, and the grpc-web filter all returned the
 expected quote on both the Quarkus and the Python stack, including the
 non-fatal malformed-JSON -> HTTP 400 check.*
+
+## For deeper coverage
+
+- Cloud Native Design Patterns — "Appendix A — Protocols in Depth" chapter, for the REST/gRPC/GraphQL wire-format comparison this chapter's browser gap is one instance of.
+- [grpc-web](https://github.com/grpc/grpc-web) — the project and wire-framing spec this chapter's `grpcweb_client.py` implements by hand.
+- [Envoy — gRPC-JSON transcoder filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/grpc_json_transcoder_filter) reference.
+- [Google Cloud Endpoints — gRPC Transcoding](https://cloud.google.com/endpoints/docs/grpc/transcoding) — the `google.api.http` annotation mechanism this chapter deliberately opts out of, explained in depth.

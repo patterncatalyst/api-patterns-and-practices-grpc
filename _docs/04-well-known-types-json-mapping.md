@@ -6,6 +6,18 @@ description: "Timestamp, Duration, FieldMask, Any, Struct, and the wrapper types
 duration: "19 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Name the well-known types (`Timestamp`, `Duration`, `FieldMask`, `Any`, `Struct`, the wrapper types) and pick the right one for a given field shape.
+- Read the canonical proto3-to-JSON mapping table and predict how any field renders — field-name casing, `Timestamp` as RFC 3339, 64-bit integers as strings.
+- Explain why `grpcurl` prints snake_case while every library's JSON encoder emits camelCase, and why both are the same mapping.
+- State why `shipping.type.v1.Money` uses two decimal strings instead of a `double` or an `int64` cents field.
+- Convert a native date-time value to and from `google.protobuf.Timestamp` on both Quarkus and Python.
+
+## Why this matters
+
 Chapter 3 decoded `Money{currency: "USD", amount: "1250.00"}` down to fourteen wire bytes and explained why no field name ever appears in them. That's the right way to think about a message between two generated stubs that both read the same `.proto`. It's the wrong way to think about a message read by a human running `grpcurl`, a browser calling through a REST gateway, or a log line a developer has to eyeball at 2 a.m. — none of those readers has the `.proto` file loaded, and none of them wants to hand-decode a VARINT. proto3 solves that with a second, officially specified representation of every message: JSON. The mapping between the two isn't a convention this site invented; it's part of the Protocol Buffers specification itself, implemented identically by every generator, which is exactly why `shipping.routing.v1.RoutingService.FindOptimalRoute`'s response looks the same whether `protoc`'s Java backend or its Python backend produced the code that serialized it.
 
 That mapping only covers scalars, messages, and enums outright. A handful of concepts — a point in time, a span of time, a sparse list of field paths, a value whose schema isn't known until runtime — don't have a native proto3 type, so Google ships them as ordinary `.proto` files, compiled into every language's standard library alongside the compiler itself: the **well-known types**. `shipping/type/v1/types.proto` already imports one of them without comment; this chapter makes that import, and the five or six types like it, the main subject.
@@ -129,3 +141,10 @@ Swap port `9007` for `9008` and run the identical command against the Python sta
 This chapter's mapping table is the thing every later chapter assumes without re-deriving: Chapter 10 sends a `Duration`-shaped deadline budget down the same call chain Chapter 2 named; Chapter 11 wraps `google.rpc.Status.details` around an `Any` holding a typed error payload; Chapter 13 builds `ListRoutes`'s pagination and projection logic directly on the `FieldMask` introduced here; and the REST site's own OpenAPI contract keeps rendering `Money`, `Location`, and every `Timestamp`-backed field through this exact JSON shape at the one seam both sites share. Chapter 5 is where all of this stops being a table to read and starts being a response you call for yourself: `RoutingService.GetQuote`, generated on both stacks from the same `.proto`, gated by `buf`, and checked by a `verify.sh` that asserts response fields the way this chapter's own example already does.
 
 <div class="callout callout--safe"><p class="callout__title">Decision</p><p>Choosing <code>Timestamp</code> over a raw <code>int64</code> epoch, and <code>FieldMask</code> over a bespoke <code>repeated string</code> of field names, both come down to the same two axes from Chapter 2's framework, even though neither is strictly about RPC shape. Failure class is the sharper one: a raw epoch integer's failure mode is a <em>silent</em> misread — seconds decoded as milliseconds lands a date fifty-some years in the wrong direction with no parse error, no non-<code>OK</code> status, nothing a caller's retry logic or <code>buf breaking</code> would ever catch, because the field still type-checks as an integer either way. <code>Timestamp</code> and <code>FieldMask</code> convert that into a loud failure instead: a value that doesn't parse as RFC 3339 is a JSON decode error, not a plausible-looking wrong answer, and a field mask path that doesn't exist on the target message is a validation error a server can reject before it ever computes a response. The other axis is evolution, which Chapter 14 covers in full: a <code>FieldMask</code>-driven <code>ListRoutes</code> keeps working unmodified the day a new field is added to <code>Route</code>, because the mask names paths the caller already knows about and the server doesn't have to special-case; a bespoke "which fields do you want" enum would need a new value, a new server branch, and a new release on both sides for the same change. Reach for the well-known type whenever the alternative is a convention two independently-deployed services have to agree on silently; write the scalar by hand only when there's no well-known type that already names the exact shape you need, the way <code>Money</code>'s decimal-string case has none.</p></div>
+
+## For deeper coverage
+
+- Clément Jean, *gRPC Go for Professionals* (Packt) — schema design choices like `Money`-as-decimal-string and when to reach for a well-known type over a bespoke field.
+- [Protocol Buffers — JSON Mapping reference](https://protobuf.dev/programming-guides/json/) — the canonical proto3-to-JSON table this chapter's own table is built from.
+- [Protocol Buffers — Well-Known Types](https://protobuf.dev/reference/protobuf/google.protobuf/) — the full `Timestamp`/`Duration`/`FieldMask`/`Any`/`Struct`/wrapper-type reference.
+- Cloud Native Design Patterns — the *API Error Handling* appendix, where `google.rpc.Status.details` wraps an `Any` the way this chapter introduces it.

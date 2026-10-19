@@ -6,6 +6,18 @@ description: "TrackingService.ReportPositions and .Sync — folding a stream of 
 duration: "19 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Implement `ReportPositions` (client-streaming) by folding an inbound `Multi`/`request_iterator` into one response on both stacks.
+- Explain the half-close mechanism that lets a client signal "done sending" without closing the whole RPC.
+- Implement `Sync` (bidirectional streaming) and explain why two independent directions on one stream beat two separate streaming calls bolted together.
+- Spot the buffer-everything-in-memory anti-pattern in `collect().asList()` and replace it with an incremental fold.
+- Choose client-streaming or bidirectional over unary or server-streaming using the five RPC-shape axes.
+
+## Why this matters
+
 Chapter 8 pointed `TrackingService.WatchShipment` at the shape where the server has more to say than the client does: one request, a sequence of responses, streamed as events happen. The shipping contract names two more shapes on the same service, and both invert that relationship instead of repeating it. `ReportPositions` is the opposite of `WatchShipment` — many requests from the client, one response from the server. `Sync` refuses to pick a direction at all — both sides send whenever they have something to say, on the same connection, independently. Four RPC shapes exist because four distinct relationships between request count and response count exist, and this chapter closes out the set `TrackingService` was built to demonstrate: client-streaming and bidirectional.
 
 ## Client-streaming: folding a sequence into one answer
@@ -123,3 +135,10 @@ printf '%s\n' \
 ```
 
 Swap `9090` for `9091` and the Python stack answers identically: `accepted_count: 3` for the first call, two `SyncResponse` messages in the same order for the second. `verify.sh` asserts both numbers directly against both stacks — `accepted_count` via a single JSON field read, the `Sync` response count via the shared harness's `json_stream_count` helper, which counts concatenated JSON objects on `grpcurl`'s stdout rather than assuming a fixed shape — so "folds three into one" and "echoes two into two, in order" are checked claims for every chapter rebuild, not a one-time observation written into this prose.
+
+## For deeper coverage
+
+- Clément Jean, *gRPC Go for Professionals* (Packt, 2023) — the four RPC shapes a `.proto` file can declare, including the `stream` keyword placements behind `ReportPositions` and `Sync`.
+- [grpc.io — Core concepts: client-streaming and bidirectional-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/) — the half-close and independent-directions mechanics this chapter names.
+- *Cloud Native Design Patterns* — "Balancing Coupling" chapter — the coupling cost of a long-lived bidirectional stream against two independent request/response calls, the trade-off behind this chapter's `Sync`-versus-two-streams argument.
+- [Quarkus gRPC — writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation) — the `Multi<Request>`-in/`Uni`-or-`Multi`-out signatures this chapter's Quarkus handlers implement.

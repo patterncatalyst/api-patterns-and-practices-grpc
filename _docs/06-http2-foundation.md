@@ -6,6 +6,18 @@ description: "Streams, frames, multiplexing, and HPACK — the HTTP/2 machinery 
 duration: "20 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain how HTTP/2 multiplexes many streams over one TCP connection and map a gRPC call onto its stream and `HEADERS`/`DATA` frames.
+- Explain what HPACK buys a gRPC channel, and why the benefit is scoped to one connection's lifetime.
+- State the three additive reasons gRPC is fast: binary protobuf's per-message cost, one persistent connection, and multiplexing.
+- Hand-decode a nested message's bytes on the wire, including why a wire-type key never needs to track nesting depth.
+- Recognize the Kubernetes caveat a single long-lived multiplexed connection creates for an L4 load balancer.
+
+## Why this matters
+
 Chapter 5 generated stubs on both stacks and called `RoutingService.GetQuote` over a real connection for the first time. Nothing about that call's binary framing, its one TCP connection, or its header compression got a name yet — the example worked, which is the point of an example, but "it worked" isn't the same claim as "it's fast." gRPC is a contract (Chapter 3), a code-generation pipeline (Chapter 5), and a transport. This chapter is the transport: HTTP/2's binary framing, its streams, the single connection that carries all of them, and the header compression that keeps a connection's overhead from growing with every call. Chapter 3 already measured protobuf's byte-for-byte advantage over JSON in isolation; this chapter adds the connection-level advantage layered on top of it, and gives you a number for both, measured against the same `GetQuoteResponse` this site has used as its anchor example since Chapter 2.
 
 ## One connection, many streams
@@ -88,3 +100,10 @@ ok — byte 16 is 0x12 -> field 2 (route), wire type 2 (LEN)
 ```
 
 The size comparison serializes the same message two ways — `SerializeToString()` for protobuf, `google.protobuf.json_format.MessageToJson()` for proto3 JSON — and asserts the protobuf form is smaller, which is the message-level third of "gRPC is fast" from this chapter, measured rather than assumed. The byte checks that follow are the hand-decode from the previous section, run against the real serialized bytes instead of the worked numbers in the prose. Neither check touches a live connection: this example stays consistent with the site's other docker-free companions, with no server and no port, because HTTP/2's own multiplexing and HPACK behavior need two processes holding a connection open to observe directly — a measurement this book leaves to a packet capture, not a CI assertion.
+
+## For deeper coverage
+
+- [RFC 9113 — HTTP/2](https://www.rfc-editor.org/rfc/rfc9113) — the streams, frames, and frame types (`HEADERS`, `DATA`, `SETTINGS`) this chapter builds on.
+- [RFC 7541 — HPACK: Header Compression for HTTP/2](https://www.rfc-editor.org/rfc/rfc7541) — the static/dynamic table mechanism behind this chapter's header-compression section.
+- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly, 2021) — inter-service communication trade-offs, including when a binary, multiplexed protocol like gRPC earns its cost over REST.
+- *Cloud Native Design Patterns* — "Communications" chapter — the four interaction styles, including why gRPC is the default for internal, server-to-server calls like the one this chapter measures.

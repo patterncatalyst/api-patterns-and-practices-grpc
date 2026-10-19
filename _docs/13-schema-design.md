@@ -6,6 +6,17 @@ description: "Message granularity, request and response envelopes, pagination wi
 duration: "22 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Size a protobuf message around one reusable concept, and choose between nesting a field and referencing it by id.
+- Wrap even a single scalar in a dedicated `FooRequest`/`FooResponse` envelope so the schema can grow a field without breaking an existing caller.
+- Page a collection with an opaque, server-defined `page_token` rather than a client-supplied offset or page number.
+- Project a response with `google.protobuf.FieldMask`, using `FieldMaskUtil.merge`/`FieldMask.MergeMessage` so an unset mask stays backward compatible.
+
+## Why this matters
+
 `RoutingService.ListRoutes` has sat in `routing.proto` since Chapter 5, returning `UNIMPLEMENTED` through every chapter that followed — the one RPC in the service whose job was never about a single call's correctness but about a whole catalog's shape. This chapter is where it finally gets a body. Pagination and field-mask projection aren't RPC-shape questions the way a deadline or a status code is; they're schema-design questions, about how a message is built before the first line of handler code runs. Part 5 opens here: after four chapters on keeping a single call reliable, this one steps back to the messages themselves — how big to make one, how to wrap a response so it can grow, and how a client gets exactly the fields it asked for out of a catalog neither side wants to ship in full on every call.
 
 The code is in `examples/13-schema-design/`. The run script there (`verify.sh`) builds and starts both stacks and asserts the pagination and field-mask claims this chapter makes; its `README.md` covers what it does and how to drive it by hand.
@@ -151,3 +162,11 @@ grpcurl -plaintext -d '{"pageSize":1,"fieldMask":{"paths":["id","price"]}}' \
 ```
 
 `legs` is gone — not empty, not null, simply never written. Swap `9130` for `9131` and every one of these three calls returns byte-identical JSON from the Python stack; `examples/13-schema-design/verify.sh` asserts exactly that, plus the no-overlap claim between the two pages, for both stacks on every run.
+
+## For deeper coverage
+
+- [Google AIP-158 — Pagination](https://google.aip.dev/158) — the opaque-page-token convention this chapter's `ListRoutes` follows.
+- [Google AIP-161 — Field masks](https://google.aip.dev/161) — the standard this chapter's `FieldMask` projection implements.
+- [Protocol Buffers — Proto3 language guide](https://protobuf.dev/programming-guides/proto3/) — message design, nesting, and the well-known types (`FieldMask` among them).
+- Cloud Native Design Patterns, "Composition" — the same granularity and envelope questions applied to composing responses across services.
+- Clément Jean, *gRPC Go for Professionals*, Packt, 2023 — Protobuf schema design in depth.

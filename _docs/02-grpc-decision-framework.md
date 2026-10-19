@@ -6,6 +6,18 @@ description: "Five axes for classifying any call — RPC shape, sync vs. stream,
 duration: "16 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Classify any gRPC interaction by its RPC shape — unary, server-streaming, client-streaming, or bidirectional.
+- Decide whether a call should block synchronously or hold a stream open, based on what the interaction actually costs.
+- Carve a deadline as a slice of an inbound request's own budget, instead of inventing one from scratch.
+- Tell a retryable gRPC status code (`UNAVAILABLE`, budget-permitting `DEADLINE_EXCEEDED`) from a non-retryable one (`INVALID_ARGUMENT`, `NOT_FOUND`).
+- Pick a concurrency model — blocking, reactive, virtual threads, or `grpc.aio` — based on whether a method's bottleneck is waiting or computing.
+
+## Why this matters
+
 `RoutingService.GetQuote` is a single request that returns a single response in well under a second. `TrackingService.WatchShipment` opens a connection that stays open for hours, pushing an event every time a container's position changes. `RoutingService.RecomputeRoutes` kicks off work that might take minutes and hands back an `Operation` to poll instead of an answer. All three are gRPC methods against the same Protobuf contract, served by the same two stacks, and they are three different shapes, not variations on one — treating them as interchangeable is how a service ends up blocking a thread for an hour or polling a stream that was never going to produce a second message.
 
 
@@ -89,3 +101,10 @@ Concurrency model closes the loop. `GetQuote`'s work is dominated by the round t
 ## Where this goes next
 
 The five axes named here don't require Protocol Buffers or Buf to make sense in the abstract, but every concrete example in this site runs through both, so Chapter 3 goes deep on the contract language — messages, field numbers, the wire encoding that makes gRPC's binary framing cheaper than JSON — and Chapter 4 covers the well-known types that map to and from JSON at the edges. Chapter 5 turns `GetQuote` from a worked example into a running one: both stacks generate stubs from the same `.proto` file and get asserted against the contract in CI, the earliest point where "unary, tight deadline, I/O-bound" becomes a thing you can call with `grpcurl` and watch succeed. Deadlines get their full treatment in Chapter 10, the rich error model in Chapter 11, backend concurrency in Chapter 15, and the cross-protocol comparison seeded here gets measured in full in Chapter 24. Every one of those chapters closes with the same Decision callout this one just taught you how to read.
+
+## For deeper coverage
+
+- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly) — deadline budgets and failure classification across a chain of inter-service calls.
+- Hüseyin Babal, *gRPC Microservices in Go* (Packt) — concurrency and performance trade-offs behind the four RPC shapes.
+- [grpc.io — Status codes and their use](https://grpc.io/docs/guides/status-codes/) — the canonical retryability reference behind this chapter's failure-class axis.
+- Cloud Native Design Patterns — the *API Error Handling* appendix, for the same stable-code/retryable-flag error contract applied across REST, gRPC, Kafka, and GraphQL.

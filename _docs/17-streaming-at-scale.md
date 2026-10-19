@@ -6,6 +6,18 @@ description: "Flow control and backpressure, HTTP/2 window dynamics, reactive ba
 duration: "26 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain HTTP/2 flow control (per-stream and per-connection windows, `WINDOW_UPDATE` frames) as the transport-level root of backpressure.
+- Contrast demand-driven backpressure mechanisms: Mutiny's `Multi`/`MultiEmitter.onRequest` versus Python's pull-based async generator (`yield`).
+- Diagnose the quarkus-grpc bridge's prefetch-timing subtlety (`request(256)` landing before `onRequest` is registered) and apply the `maybeStart` fix.
+- Configure gRPC keepalive (ping interval, permitted-ping floor, idle-ping toggle) on both Quarkus (`quarkus.grpc.server.netty.*`) and Python (`grpc.aio.server(options=...)`).
+- Build and drive a slow-consumer client to observe backpressure pacing on a live stream.
+
+## Why this matters
+
 Chapter 8 built `WatchShipment` as a four-event, millisecond-long demonstration and closed by naming two questions it left open: what happens when a server produces events faster than a client can read them, and what keeps a stream alive across the minutes or days a real voyage's tracking feed might sit quiet. Both questions only bite once a stream outlives the toy case — a fixed, four-item list a server can build and send before the reader has even started paying attention. This chapter puts a real answer on each one, on the same RPC, by changing *how* `WatchShipment` produces its events rather than changing the contract: a demand-driven feed on both stacks, a slow reader to pace against, and a keepalive configuration that survives a quiet stretch.
 
 The code is in `examples/17-streaming-at-scale/`. The `verify.sh` script there builds and runs both stacks, drives a bundled slow-reading client against each, and asserts the timing claims this chapter makes; its `README.md` covers the full mode table and a real run's numbers.
@@ -108,3 +120,10 @@ generated bridge's initial `request(256)` landing before `onRequest` is
 registered) holds across future `quarkus-grpc` releases rather than being an
 implementation detail of the pinned 3.40.1 version this chapter verified
 against.*
+
+## For deeper coverage
+
+- [grpc.io — Keepalive guide](https://grpc.io/docs/guides/keepalive/) — the PING/ACK mechanics and the client/server configuration options this chapter's table maps onto both stacks.
+- Cloud Native Design Patterns — "Stream Processing" chapter — backpressure and flow-control concerns beyond one `WatchShipment`-shaped stream.
+- Martin Kleppmann & Chris Riccomini, *Designing Data-Intensive Applications*, 2nd ed. — O'Reilly, 2026 — the general theory of backpressure and flow control in streaming systems.
+- Clément Jean, *gRPC Go for Professionals* — Packt, 2023 — streaming and flow-control patterns from this project's own bibliography.

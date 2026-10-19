@@ -8,6 +8,18 @@ description: "Run the gRPC services on OpenShift Local (CRC): gRPC over Routes w
 duration: "24 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why an edge- or reencrypt-terminated OpenShift Route can't complete a native gRPC client's ALPN-negotiated TLS handshake, and when to reach for `passthrough` instead.
+- Build and push a Quarkus image inside the cluster via binary S2I (`BuildConfig`/`ImageStream`), and name the two Quarkus properties (`quarkus.openshift.namespace`, `quarkus.openshift.version`) that commonly get this wrong.
+- Configure OpenShift Service Mesh 3 `PeerAuthentication` for namespace-wide STRICT mTLS plus a scoped PERMISSIVE carve-out for Route-facing traffic.
+- Stand up a `DestinationRule`/`VirtualService` weighted canary and verify the split from a response trailer plus the server's own log line.
+- Wire zero-code OpenTelemetry Java-agent injection to a collector, including matching the agent's exporter protocol to the collector's listening port.
+
+## Why this matters
+
 Every example before this one ran on something you control end to end: a Compose stack on your own machine, or a minikube cluster where you install exactly the Kubernetes primitives the chapter asks for. OpenShift is different in one way that matters a great deal to a gRPC service: it ships its own HTTP ingress layer, the Route, with its own TLS termination choices, and those choices are made by a router you did not write and mostly cannot change — only configure. Chapter 6 spent an entire chapter establishing that gRPC's wire contract is non-negotiable about one thing: it needs HTTP/2, end to end, with trailers carrying the final status after the response body. Put a gRPC service behind the wrong kind of Route, and that non-negotiable requirement quietly breaks, often with an error message that points nowhere near the real cause. This appendix runs `shipping.quote.v1.QuoteService.GetQuote` — the same frozen contract Ch27's final project serves — on OpenShift Local (CRC), and the headline result is not a tidy "it works": it is a live-cluster discovery that an edge-terminated Route on OpenShift 4.22.14 cannot carry a native gRPC client's TLS handshake *at all*, regardless of the annotation the official documentation tells you to add. That finding, and the real evidence behind it, is most of what makes this appendix worth reading rather than skipping.
 
 The deployment target changes nothing about the contract. `contracts/proto/shipping/quote/v1/quote.proto` and its `shipping/type/v1/types.proto` import are copied — never edited — into `examples/99-appendix-a-openshift-crc/quarkus/src/main/proto/` by `scripts/deploy.sh`, the same pattern Ch27's Containerfile uses for its own four proto files. `git diff main -- contracts/` stays empty for this entire appendix. What is different is everything downstream of the contract: instead of a hand-rolled `certgen` script and `quarkus.grpc.server.ssl.*` properties doing application-level mTLS the way Ch19 and Ch27 do it, this server runs **plaintext** gRPC and leans on OpenShift Service Mesh 3's sidecar to carry mTLS transparently — the same architectural choice Ch22 makes with Istio on minikube, here with Red Hat's OSSM 3 (the Sail operator) instead. Instead of a Docker build or a `kubectl apply` against manifests you wrote, the image is built *inside* the cluster, with no container engine on the host, and the workload reaches the outside world through Routes instead of NodePorts, port-forwards, or tunnels.
@@ -207,3 +219,11 @@ packagemanifest` before starting (OLM catalogs drift), and re-confirm the
 router's ALPN behavior if running against a newer OpenShift release, since
 this is exactly the kind of platform-internal detail a future OpenShift
 version could change.*
+
+## For deeper coverage
+
+- OpenShift documentation — Route configuration and TLS termination types (edge, passthrough, reencrypt).
+- Red Hat OpenShift Service Mesh documentation — `PeerAuthentication` and mTLS modes (STRICT, PERMISSIVE).
+- [grpc.io — Core concepts](https://grpc.io/docs/what-is-grpc/core-concepts/) — the HTTP/2 and ALPN requirements behind this chapter's Route findings.
+- Cloud Native Design Patterns — Appendix S, "Running Example 05 on OpenShift Local," companion coverage of the same platform.
+- Cloud Native Design Patterns — Appendix R, "Running Example 05 on minikube," the architectural parallel to this appendix's `DestinationRule`/`VirtualService` canary on a different cluster.

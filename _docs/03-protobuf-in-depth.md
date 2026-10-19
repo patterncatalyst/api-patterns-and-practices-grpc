@@ -6,6 +6,18 @@ description: "The proto3 language in full: scalars, messages, enums, oneof, map,
 duration: "24 min"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Map every proto3 scalar type to its wire type (VARINT, I64, I32, LEN) and explain why `sint32`/`sint64` exist alongside `int32`/`int64`.
+- Choose between `repeated`, `map<K, V>`, and `oneof` for a given field shape, and state the contract each one enforces.
+- Explain why a field's tag number, not its name, is protobuf's real wire-level contract, and why reusing a shipped tag number corrupts old data silently.
+- Hand-decode a small message's wire bytes field by field, using the key-byte formula `(field_number << 3) | wire_type`.
+- State why proto3 has no `required` keyword and how the `optional` keyword restores field-presence information a bare scalar can't carry.
+
+## Why this matters
+
 Chapter 2 gave you a lens for classifying a call. This chapter gives you the language for describing the data that call carries. Every type this book's shipping domain uses — `Booking`, `Cargo`, `Money`, `Route` — is a `.proto` message, and every one lives in one place: `contracts/proto/`, read once by `buf` and generated into both the Quarkus and the Python stack. That arrangement is the gRPC analog of something the sibling REST site already leans on hard: the same `Booking` and `Money` shapes that site models as JSON Schema components, this site models as proto messages — two contract languages describing the same domain nouns, because the nouns don't change when the transport does. A JSON Schema can describe a number's range; it cannot tell a parser which bits on the wire belong to that number. Protobuf's type system and its wire format are the same document, and understanding both is what this chapter is for.
 
 ## Scalars, messages, and the wire types underneath them
@@ -112,3 +124,10 @@ cd examples/03-protobuf
 Chapter 4 picks up the well-known types named only in passing here — `Timestamp`, `Duration`, `FieldMask`, `Struct`, the wrapper types — and the proto3-to-JSON mapping that lets `Booking.created_at` render as an RFC 3339 string at the REST↔gRPC seam without either side hand-rolling a converter. Chapter 14 returns to tag numbers as an evolution problem: which changes `buf breaking` passes, which silently corrupt old data, and why the field-number contract introduced here is what that gate enforces.
 
 <div class="callout"><p class="callout__title">On the wire</p><p>Run <code>examples/03-protobuf/verify.sh</code> yourself before moving on. It does three things worth watching: <code>buf build</code> compiles the real <code>contracts/</code> module from scratch, proving the proto you just read about actually parses as one coherent Buf module; <code>python -m grpc_tools.protoc</code> generates fresh Python stubs for <code>shipping.type.v1</code> into a throwaway virtualenv, proving the generated code and the hand-written proto agree; and <code>roundtrip.py</code> hand-decodes a serialized <code>Money</code>'s 14 bytes field-by-field with a 20-line VARINT reader, checking <code>byte 0 == 0x0A</code> and <code>byte 5 == 0x12</code> against the exact tag-number arithmetic worked through above, before parsing the bytes back with the generated stub and asserting every field — including a nested message, an enum, a map, a repeated field, and a well-known <code>Timestamp</code> — survived the trip.</p></div>
+
+## For deeper coverage
+
+- Clément Jean, *gRPC Go for Professionals* (Packt) — Protobuf language, schema design, and the evolution concerns tag numbers exist to protect.
+- [Protocol Buffers — Language Guide (proto3)](https://protobuf.dev/programming-guides/proto3/) — the canonical scalar types, wire types, and field-presence reference.
+- [buf — breaking change detection](https://buf.build/docs/breaking/overview/) — the tool this chapter's tag-number contract feeds into.
+- Cloud Native Design Patterns — the *Versioning & Evolution* appendix, for what counts as a breaking change in protobuf alongside REST and GraphQL's own versioning stories.
