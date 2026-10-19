@@ -6,6 +6,18 @@ description: "The three paradigms behind a single call — REST, gRPC, GraphQL �
 duration: "16 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Contrast REST, gRPC, and GraphQL's mental models — resource, procedure, and graph — for the same client intent.
+- Compare the three paradigms on fetching/round-trips and on what actually travels on the wire (JSON text vs. binary protobuf).
+- Trace how a `.proto` file compiles into a client stub and a server skeleton, and explain why `curl` can't call a gRPC method directly.
+- Identify the REST→gRPC seam in the shipping domain and state why `booking` calls `RoutingService` over gRPC internally while staying REST at the edge.
+- List at least two places gRPC loses to REST (browser access, HTTP caching, huge payloads, ad hoc debugging).
+
+## Why this matters
+
 A booking service needs one thing before it can confirm a shipment: a price and a route for a load of cargo moving from USNYC to NLRTM. Three different API paradigms can answer that question, and each one imposes a different mental model on the caller before a single byte crosses the wire. REST asks the caller to think in resources. gRPC asks it to think in typed method calls. GraphQL asks it to think in a graph the caller traverses. The three live side by side in most real systems, including the one this site shares with its sibling REST tutorial, and picking among them by design rather than by habit is the subject of this chapter and the next.
 
 This chapter builds the vocabulary; Chapter 2 turns it into a decision framework with explicit axes. For now, the goal is to see the three mental models clearly enough to recognize which one a given interaction already fits, and to understand what happens between a client calling a method and a server receiving a request — the mechanism that makes gRPC behave so differently from the other two once code is running.
@@ -111,3 +123,10 @@ Put the wins and losses together and a rough shape emerges: gRPC fits calls that
 ## Where this goes next
 
 This chapter built the vocabulary: three paradigms, three axes that separate them, and the stub-to-stub mechanism that makes a gRPC call behave so differently from a REST or GraphQL one once it's running. Chapter 2 turns that vocabulary into a decision: a five-axis framework applied directly to the shipping domain's actual services, closing with the explicit Decision callout this book uses from there forward. Chapter 3 goes deeper into the `.proto` contract — the full protobuf type system and the wire encoding behind the binary format discussed here — and Chapter 5 puts a running contract-first service behind `RoutingService.GetQuote` using Buf, the anchor the hands-on chapters build from.
+
+## For deeper coverage
+
+- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly) — the service-boundary reasoning behind choosing an internal RPC protocol over a public-facing one.
+- Clément Jean, *gRPC Go for Professionals* (Packt) — the `.proto`-to-stub compilation step this chapter traces by hand.
+- [grpc.io — Core concepts: what is gRPC](https://grpc.io/docs/what-is-grpc/core-concepts/) — the canonical stub/skeleton and HTTP/2-framing reference.
+- Cloud Native Design Patterns — the *Communications* chapter, for the same REST-at-the-edge/gRPC-internally/GraphQL-for-composed-reads defaults applied across a whole system.

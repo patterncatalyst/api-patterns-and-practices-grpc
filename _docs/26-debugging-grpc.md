@@ -6,6 +6,18 @@ description: "Reflection and channelz, common failure modes, decoding frames, an
 duration: "20 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Tell a real gRPC status (`UNIMPLEMENTED`, `DEADLINE_EXCEEDED`) apart from a failure that happens before a connection exists (`UNAVAILABLE` on a cold channel, a TLS/plaintext mismatch) by reading whether the error text carries a `Code:` line.
+- Diagnose `DEADLINE_EXCEEDED` as a budget-versus-work problem using `grpcurl -max-time` against an artificially delayed `GetQuote`.
+- Use server reflection (`grpcurl list`/`describe`) to discover a service's shape with no local `.proto` file, and know where `grpc-java` and `grpcio-reflection` diverge on method-level `describe`.
+- Query `grpc.channelz.v1.Channelz/GetServers` for live connection and call-count data from a running Python service.
+- Enable `GRPC_TRACE`/`GRPC_VERBOSITY` on a C-core-backed caller (`grpc-python`) to get wire-level call and connectivity-state trace output.
+
+## Why this matters
+
 Chapter 25 proved a service behaves correctly. This chapter is about the moment it doesn't — a call comes back wrong, or not at all, and the question is no longer "does it work" but "where, exactly, did this fail." `RoutingService.GetQuote` is the RPC under test again, the same formula every unary chapter has shipped, but this chapter is not really about `GetQuote`. It is about four shapes a gRPC failure takes, how to tell them apart from the client side without adding a debugger to the server, and the three tools — reflection, channelz, and the `GRPC_TRACE`/`GRPC_VERBOSITY` environment variables — that answer "why" once a failure has a name.
 
 The code is in `examples/26-debugging/`. The run script there (`verify.sh`) builds and starts both stacks, reproduces all four failure modes against each one, then runs the diagnosis pass; its `README.md` covers what it does and how to drive it by hand.
@@ -248,3 +260,10 @@ one real captured run — a reader's own run will show the same four kinds of
 line with different timestamps, thread IDs, and object addresses, since
 those vary every run by construction, and `verify.sh` asserts only that
 output appeared at all, not these exact bytes.*
+
+## For deeper coverage
+
+- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021 — resilient inter-service calls and the failure handling this chapter's four failure modes fall under.
+- Cloud Native Design Patterns — Appendix M, "Failure Modes."
+- [grpc.io — Debugging](https://grpc.io/docs/guides/debugging/) — channelz, health checking, and CSDS tooling for inspecting a running gRPC server.
+- [grpc.io — Reflection](https://grpc.io/docs/guides/reflection/) — the protocol `grpcurl list`/`describe` rely on.

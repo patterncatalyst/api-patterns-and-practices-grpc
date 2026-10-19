@@ -6,6 +6,18 @@ description: "Quarkus event-loop vs @Blocking worker pool vs @RunOnVirtualThread
 duration: "26 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why a Quarkus gRPC server's small, fixed event-loop pool means one blocking call can stall every other caller scheduled on it, regardless of idle CPU.
+- Choose between the event loop, `@Blocking`'s worker pool, and `@RunOnVirtualThread`'s per-call virtual thread for a given blocking call.
+- Name `@RunOnVirtualThread`'s real caveats — native-code pinning and `ThreadLocal`-based pooling — rather than treating it as a universal upgrade.
+- Offload a blocking call in Python with `asyncio.to_thread` instead of calling it in-line on `grpc.aio`'s single event loop.
+- Explain when the GIL does and doesn't bottleneck concurrent work, distinguishing I/O-bound from CPU-bound.
+
+## Why this matters
+
 Chapter 10 ended its cancellation story with a promise: the two-second delay that chapter cancelled mid-flight was modeled as a Mutiny pipeline or an `asyncio` coroutine specifically because only a cancellable abstraction lets a server stop work a caller no longer wants. This chapter asks the question that promise deferred — not "can this server stop working when told to," but "can this server start enough work at once in the first place." `RoutingService.FindOptimalRoute` gets its body here, backed by a database lookup and a file read that together take about 400 milliseconds, and the whole chapter is about one decision: which thread runs those 400 milliseconds. Get it right and eight callers finish in the time one would have taken. Get it wrong and a service with plenty of CPU to spare still queues requests behind each other, one at a time, because the thread that was supposed to be accepting the ninth connection spent the whole window waiting on a disk.
 
 The code is in `examples/15-backend-io-concurrency/`. The run script there (`verify.sh`) builds and starts both stacks and asserts the concurrency claims this chapter makes; its `README.md` covers what it does and how to drive it by hand.
@@ -126,3 +138,10 @@ behavior (what `starvingContext()` depends on to make the starving path's
 serialization reproducible regardless of host core count) continues to
 return the same context on repeated calls across future Quarkus/Vert.x
 point releases.*
+
+## For deeper coverage
+
+- [Quarkus — Reactive architecture](https://quarkus.io/guides/quarkus-reactive-architecture) — the event-loop/worker-pool split `@Blocking` and `@RunOnVirtualThread` dispatch onto.
+- [Python — `asyncio.to_thread`](https://docs.python.org/3/library/asyncio-task.html#asyncio.to_thread) — the offload mechanism this chapter's correct-mode Python path uses, and the thread-pool executor it schedules onto.
+- Cloud Native Design Patterns, "Anti-Patterns" — blocking the one shared resource everyone depends on is the same "coupling sneaking back in" failure shape this chapter's starving mode makes visible.
+- Hüseyin Babal, *gRPC Microservices in Go*, Packt — performance and scaling patterns for a gRPC service under concurrent load.

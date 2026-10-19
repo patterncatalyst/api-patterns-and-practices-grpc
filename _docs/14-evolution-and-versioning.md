@@ -6,6 +6,18 @@ description: "Field numbers as the contract, reserved, backward/forward compatib
 duration: "24 min read"
 ---
 
+## Learning objectives
+
+By the end of this chapter you can:
+
+- Explain why a field's number, not its name, is the part of a protobuf contract that can never move once a message ships.
+- Classify a schema change as safe (add a field or RPC, widen a numeric type, rename) or breaking (renumber, reuse a number, retype, remove a field a reader needs).
+- State precisely what `reserved` does and does not buy — it blocks reuse of a retired number, it does not make the deletion itself safe.
+- Decide when an additive change is enough and when a change needs a new package version (`v1` to `v2`) instead.
+- Read a `buf breaking` failure and explain why `FILE`'s `FIELD_NO_DELETE` rejects a deletion even when the field was `reserved` first.
+
+## Why this matters
+
 `shipping.routing.v1.GetQuoteRequest` has shipped. Chapter 5 built it, Chapter 10 put a deadline on calling it, Chapter 11 taught it to fail with a code a client can act on. None of that matters if the next change to `routing.proto` quietly changes what field 3 means to a client compiled against last week's version of the file. gRPC's wire format doesn't carry field names — it carries field numbers, and a message that's valid Protobuf only means one thing if every reader and every writer agrees on what those numbers stand for. This chapter is about keeping that agreement intact as the schema moves: what changes a field number tolerates, what `reserved` actually buys you, when a package needs a new major version instead of a new field, and the `buf breaking` gate that turns all of this from a code-review discipline into a command that exits non-zero when someone gets it wrong.
 
 ## Field numbers are the contract
@@ -167,3 +179,10 @@ proto/shipping/routing/v1/routing.proto:14:1:Previously present field "3" with n
 ```
 
 Field 3 didn't get a new type or a new name here — the same `cargo` field moved to a new number, which `buf breaking` reports identically to a deletion, because from an old reader's point of view that's exactly what happened: whatever a new writer now sends at number 7, nothing at number 3 arrives anymore, and number 7 means nothing to code still compiled against the old file. The fix in a real schema is never "renumber it back" under time pressure — it's deciding, with the two compatibility directions from this chapter in mind, whether the change belongs in a new field at a new number or in a new package altogether.
+
+## For deeper coverage
+
+- [Protocol Buffers — Updating a message type](https://protobuf.dev/programming-guides/proto3/#updating) — the official list of safe and unsafe schema edits this chapter's two lists are built from.
+- Buf — breaking-change detection (`buf breaking`, the `FILE` vs. `WIRE_JSON` rule categories) — the gate `contracts/buf.yaml` wires in.
+- Cloud Native Design Patterns, Appendix B — "Versioning & Evolution" — the same compatibility rules applied across REST, protobuf, and GraphQL.
+- Clément Jean, *gRPC Go for Professionals*, Packt, 2023 — schema evolution, covered as its own topic.
