@@ -26,7 +26,7 @@
 <text x="670.0" y="290.0" font-size="11.5" fill="#555555" text-anchor="middle">&quot;amount&quot;: &quot;4200.00&quot;   (string, not a number)</text>
 <rect x="500" y="360" width="340" height="70" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="670.0" y="393.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpcurl&#x27;s printed OUTPUT (default)</text>
-<text x="670.0" y="410.0" font-size="11.5" fill="#555555" text-anchor="middle">&quot;departs_at&quot;: &quot;...&quot;  — snake_case, same value</text>
+<text x="670.0" y="410.0" font-size="11.5" fill="#555555" text-anchor="middle">&quot;departs_at&quot;: &quot;...&quot; : snake_case, same value</text>
 <path d="M390,120 L500,120" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="451.0" y="114.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">proto3 JSON mapping</text>
 <text x="451.0" y="114.0" font-size="11" fill="#b8650a" text-anchor="middle">proto3 JSON mapping</text>
@@ -36,5 +36,5 @@
 <path d="M670,300 L670,360" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
 <text x="670.0" y="320.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">grpcurl renders, doesn&#x27;t send</text>
 <text x="670.0" y="320.0" font-size="11" fill="#555" text-anchor="middle">grpcurl renders, doesn&#x27;t send</text>
-<text x="30" y="465" font-size="11" fill="#555555" text-anchor="start">grpcurl ACCEPTS camelCase or snake_case on input, but PRINTS responses in snake_case by default — the wire/library JSON above is camelCase either way.</text>
+<text x="30" y="465" font-size="11" fill="#555555" text-anchor="start">grpcurl ACCEPTS camelCase or snake_case on input, but PRINTS responses in snake_case by default: the wire/library JSON above is camelCase either way.</text>
 </svg>

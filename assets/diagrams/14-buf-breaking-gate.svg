@@ -30,11 +30,11 @@
 <text x="890.0" y="87.5" font-size="11.5" fill="#555555" text-anchor="middle">gate passes</text>
 <text x="890.0" y="102.5" font-size="11.5" fill="#555555" text-anchor="middle">candidate merges</text>
 <rect x="800" y="185" width="180" height="90" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
-<text x="890.0" y="220.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100 — gate fails</text>
+<text x="890.0" y="220.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100: gate fails</text>
 <text x="890.0" y="237.5" font-size="11.5" fill="#dddddd" text-anchor="middle">destination_un_locode deleted</text>
 <text x="890.0" y="252.5" font-size="11.5" fill="#dddddd" text-anchor="middle">weight_kg: double -&gt; int32</text>
 <rect x="800" y="340" width="180" height="80" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
-<text x="890.0" y="370.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100 — gate fails</text>
+<text x="890.0" y="370.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">exit 100: gate fails</text>
 <text x="890.0" y="387.5" font-size="11.5" fill="#dddddd" text-anchor="middle">legacy_notes deleted</text>
 <text x="890.0" y="402.5" font-size="11.5" fill="#dddddd" text-anchor="middle">reserved or not: still caught</text>
 <path d="M220,205 L560,80" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>

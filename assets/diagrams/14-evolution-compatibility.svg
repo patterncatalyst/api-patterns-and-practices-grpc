@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 490" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="36" width="920" height="190" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="56" font-size="12" font-weight="700" fill="#1d1d1d">Safe — every existing reader&#x27;s interpretation of every existing field number is unchanged</text>
+<text x="32" y="56" font-size="12" font-weight="700" fill="#1d1d1d">Safe: every existing reader&#x27;s interpretation of every existing field number is unchanged</text>
 <rect x="20" y="250" width="920" height="190" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="270" font-size="12" font-weight="700" fill="#1d1d1d">Breaking — an old reader misreads new bytes, or a reader&#x27;s bytes stop arriving</text>
+<text x="32" y="270" font-size="12" font-weight="700" fill="#1d1d1d">Breaking: an old reader misreads new bytes, or a reader&#x27;s bytes stop arriving</text>
 <rect x="40" y="76" width="200" height="90" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="140.0" y="111.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">rename field</text>
 <text x="140.0" y="128.5" font-size="11.5" fill="#555555" text-anchor="middle">origin_un_locode -&gt; origin</text>

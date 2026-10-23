@@ -17,7 +17,7 @@
 <text x="235.0" y="248.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">GIL released for the call&#x27;s duration</text>
 <text x="235.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">(CPython has always done this for I/O)</text>
 <rect x="40" y="300" width="390" height="65" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
-<text x="235.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">8 concurrent offloaded calls genuinely</text>
+<text x="235.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">8 concurrent offloaded calls</text>
 <text x="235.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">OVERLAP -- each thread blocks on its</text>
 <text x="235.0" y="355.0" font-size="11.5" fill="#555555" text-anchor="middle">own I/O, GIL is free the whole time</text>
 <rect x="490" y="220" width="410" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>

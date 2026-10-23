@@ -34,10 +34,10 @@
 <text x="246.0" y="124.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">status=OK, duration_ms</text>
 <text x="246.0" y="124.0" font-size="11" fill="#b8650a" text-anchor="middle">status=OK, duration_ms</text>
 <path d="M600,185 L120,185" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
-<text x="366.0" y="179.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">missing authorization: call.close(UNAUTHENTICATED) / context.abort(...) — Handler never runs</text>
-<text x="366.0" y="179.0" font-size="11" fill="#555" text-anchor="middle">missing authorization: call.close(UNAUTHENTICATED) / context.abort(...) — Handler never runs</text>
-<text x="20" y="30" font-size="11" fill="#1d1d1d" text-anchor="start" font-weight="700">Server-side interceptor chain — registration order: global interceptors before service-specific ones</text>
+<text x="366.0" y="179.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">missing authorization: call.close(UNAUTHENTICATED) / context.abort(...): Handler never runs</text>
+<text x="366.0" y="179.0" font-size="11" fill="#555" text-anchor="middle">missing authorization: call.close(UNAUTHENTICATED) / context.abort(...): Handler never runs</text>
+<text x="20" y="30" font-size="11" fill="#1d1d1d" text-anchor="start" font-weight="700">Server-side interceptor chain, registration order: global interceptors before service-specific ones</text>
 <text x="20" y="225" font-size="11" fill="#1d1d1d" text-anchor="start">Quarkus: the ServerCall itself is wrapped (ForwardingServerCall) so close(status, trailers) logs whatever status the handler actually closes with.</text>
-<text x="20" y="242" font-size="11" fill="#1d1d1d" text-anchor="start">Python: the resolved RpcMethodHandler&#x27;s behavior function is wrapped the same way — cardinality-matched so NegotiateRoute&#x27;s bidi stream works too.</text>
-<text x="20" y="268" font-size="11" fill="#1d1d1d" text-anchor="start">Same auth hook gates GetQuote (implemented) and the four UNIMPLEMENTED RoutingService methods alike — the interceptor doesn&#x27;t know or care which handler is behind it.</text>
+<text x="20" y="242" font-size="11" fill="#1d1d1d" text-anchor="start">Python: the resolved RpcMethodHandler&#x27;s behavior function is wrapped the same way, cardinality-matched so NegotiateRoute&#x27;s bidi stream works too.</text>
+<text x="20" y="268" font-size="11" fill="#1d1d1d" text-anchor="start">Same auth hook gates GetQuote (implemented) and the four UNIMPLEMENTED RoutingService methods alike: the interceptor doesn&#x27;t know or care which handler is behind it.</text>
 </svg>
