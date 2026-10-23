@@ -591,13 +591,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Same trace-id, new span-id \u2014 what verify.sh's log grep confirms",
+   "text": "Same trace-id, new span-id: what verify.sh's log grep confirms",
    "fontSize": 11,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "Same trace-id, new span-id \u2014 what verify.sh's log grep confirms",
+   "originalText": "Same trace-id, new span-id: what verify.sh's log grep confirms",
    "lineHeight": 1.25,
    "baseline": 11
   }

@@ -1132,13 +1132,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "The call that started the job returns long before the job finishes \u2014 the Operation record is the only thing that outlives it.",
+   "text": "The call that started the job returns long before the job finishes: the Operation record is the only thing that outlives it.",
    "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "The call that started the job returns long before the job finishes \u2014 the Operation record is the only thing that outlives it.",
+   "originalText": "The call that started the job returns long before the job finishes: the Operation record is the only thing that outlives it.",
    "lineHeight": 1.25,
    "baseline": 13
   }

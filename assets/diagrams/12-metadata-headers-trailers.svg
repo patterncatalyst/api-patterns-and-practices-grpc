@@ -30,8 +30,8 @@
 <path d="M810,450 L150,450" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="486.0" y="444.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">TRAILERS: status, counts, timing</text>
 <text x="486.0" y="444.0" font-size="11" fill="#b8650a" text-anchor="middle">TRAILERS: status, counts, timing</text>
-<text x="20" y="30" font-size="11" fill="#1d1d1d" text-anchor="start" font-weight="700">Call timeline — HEADERS arrive before the first message, TRAILERS arrive at close(status, trailers)</text>
+<text x="20" y="30" font-size="11" fill="#1d1d1d" text-anchor="start" font-weight="700">Call timeline: HEADERS arrive before the first message, TRAILERS arrive at close(status, trailers)</text>
 <text x="20" y="545" font-size="11" fill="#1d1d1d" text-anchor="start">A header carries what the caller knew in advance: authorization, request-id, anything decided before the call started.</text>
-<text x="20" y="562" font-size="11" fill="#1d1d1d" text-anchor="start">A trailer carries what the callee only learned by the end: final status, counts, timing — set only when close(status, trailers) runs.</text>
-<text x="20" y="579" font-size="11" fill="#1d1d1d" text-anchor="start">Metadata (Java) / invocation_metadata (Python) is the map that carries both — the one thing an interceptor reads on the way in and writes on the way out.</text>
+<text x="20" y="562" font-size="11" fill="#1d1d1d" text-anchor="start">A trailer carries what the callee only learned by the end: final status, counts, timing, set only when close(status, trailers) runs.</text>
+<text x="20" y="579" font-size="11" fill="#1d1d1d" text-anchor="start">Metadata (Java) / invocation_metadata (Python) is the map that carries both: the one thing an interceptor reads on the way in and writes on the way out.</text>
 </svg>

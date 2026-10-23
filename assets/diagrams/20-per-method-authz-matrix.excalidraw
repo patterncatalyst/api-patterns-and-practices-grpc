@@ -1202,13 +1202,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Same token, same connection, three different outcomes \u2014 authorization is decided per method call, never once per connection.",
+   "text": "Same token, same connection, three different outcomes: authorization is decided per method call, never once per connection.",
    "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "Same token, same connection, three different outcomes \u2014 authorization is decided per method call, never once per connection.",
+   "originalText": "Same token, same connection, three different outcomes: authorization is decided per method call, never once per connection.",
    "lineHeight": 1.25,
    "baseline": 13
   }

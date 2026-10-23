@@ -737,13 +737,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "All 30 GetQuote calls over this channel answer from Pod A \u2014 B and C never see one.",
+   "text": "All 30 GetQuote calls over this channel answer from Pod A: B and C never see one.",
    "fontSize": 11,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "All 30 GetQuote calls over this channel answer from Pod A \u2014 B and C never see one.",
+   "originalText": "All 30 GetQuote calls over this channel answer from Pod A: B and C never see one.",
    "lineHeight": 1.25,
    "baseline": 11
   }

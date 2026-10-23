@@ -23,7 +23,7 @@
 <text x="1090.0" y="217.5" font-size="11.5" fill="#555555" text-anchor="middle">Quarkus + Python</text>
 <text x="1090.0" y="232.5" font-size="11.5" fill="#555555" text-anchor="middle">(next: Ch. 7)</text>
 <rect x="470" y="340" width="280" height="80" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
-<text x="610.0" y="378.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">rejected — build fails</text>
+<text x="610.0" y="378.0" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">rejected: build fails</text>
 <text x="610.0" y="395.0" font-size="11.5" fill="#dddddd" text-anchor="middle">change never reaches either stack</text>
 <path d="M180,210 L220,210" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="206.0" y="204.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">gated</text>

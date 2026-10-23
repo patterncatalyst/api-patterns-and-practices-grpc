@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="20" width="450" height="280" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Nest — Leg&#x27;s identity depends on its parent Route</text>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Nest: Leg&#x27;s identity depends on its parent Route</text>
 <rect x="490" y="20" width="450" height="280" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="502" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Reference by id — Carrier has its own lifecycle</text>
+<text x="502" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Reference by id: Carrier has its own lifecycle</text>
 <rect x="145" y="60" width="200" height="72" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="245.0" y="94.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Route</text>
 <text x="245.0" y="111.0" font-size="11.5" fill="#555555" text-anchor="middle">repeated Leg legs</text>

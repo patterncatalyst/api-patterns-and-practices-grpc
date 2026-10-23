@@ -1074,13 +1074,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Same CA, same server \u2014 client-auth is the only difference.",
+   "text": "Same CA, same server: client-auth is the only difference.",
    "fontSize": 11,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "Same CA, same server \u2014 client-auth is the only difference.",
+   "originalText": "Same CA, same server: client-auth is the only difference.",
    "lineHeight": 1.25,
    "baseline": 11
   }

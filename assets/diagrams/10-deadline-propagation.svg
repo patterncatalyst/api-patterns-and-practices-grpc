@@ -15,7 +15,7 @@
 <rect x="740" y="95" width="220" height="110" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="850.0" y="140.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteService</text>
 <text x="850.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
-<text x="850.0" y="172.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — fits in ~9.9s</text>
+<text x="850.0" y="172.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay: fits in ~9.9s</text>
 <rect x="40" y="395" width="220" height="110" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="150.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Booking service</text>
 <text x="150.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">(REST handler)</text>
@@ -27,7 +27,7 @@
 <rect x="740" y="395" width="220" height="110" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="850.0" y="440.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteService</text>
 <text x="850.0" y="457.5" font-size="11.5" fill="#555555" text-anchor="middle">.GetQuote</text>
-<text x="850.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — abandoned at ~0.9s</text>
+<text x="850.0" y="472.5" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay: abandoned at ~0.9s</text>
 <path d="M260,120 L390,120" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <text x="325.0" y="112.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">GetQuote, deadline 10s</text>
 <text x="325.0" y="112.0" font-size="11" fill="#555" text-anchor="middle">GetQuote, deadline 10s</text>
@@ -52,5 +52,5 @@
 <path d="M390,475 L260,475" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
 <text x="325.0" y="491.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DEADLINE_EXCEEDED</text>
 <text x="325.0" y="491.0" font-size="11" fill="#b8650a" text-anchor="middle">DEADLINE_EXCEEDED</text>
-<text x="500" y="605" font-size="12" fill="#555555" text-anchor="middle">QuoteService&#x27;s ~2s delay never changes — only the budget each caller hands it does.</text>
+<text x="500" y="605" font-size="12" fill="#555555" text-anchor="middle">QuoteService&#x27;s ~2s delay never changes: only the budget each caller hands it does.</text>
 </svg>
