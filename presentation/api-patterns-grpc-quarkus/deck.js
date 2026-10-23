@@ -1130,6 +1130,32 @@ divider("A", "Appendix",
   addNotes(s, "Appendix A of the book ports this same GetQuote contract onto OpenShift Local, unchanged: same shipping.quote.v1.QuoteService.GetQuote RPC, same frozen proto, deployed with an in-cluster S2I build instead of a pulled container image. ServedByInterceptor is the one piece of code worth showing in full here, because it's the same convention the mesh-and-load-balancing chapter uses, ported to Java: a response trailer, not a proto field, so it adds zero bytes to the contract and exists purely so grpcurl -v or a load client can tell which pod actually answered a given call: the whole point of a canary demo on a real cluster. The absence in this module's pom.xml and application.properties is just as important as what's present: no quarkus.grpc.server.ssl.* anywhere, because on OpenShift Local this service runs inside OpenShift Service Mesh 3's mesh, and STRICT PeerAuthentication terminates mTLS in the Envoy sidecar instead of in the JVM: the same infrastructure-versus-application-layer choice the mesh chapter's STRICT mTLS section makes on minikube with plain Istio.");
 }
 
+
+/* --- Scan to explore (QR codes) --- */
+{
+  const s = S();
+  addContentTitle(s, "SCAN TO EXPLORE", "Take it with you");
+
+  s.addImage({ path: `${ASSETS}/qr-grpc-site.png`, x: 2.30, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("The site", { x: 1.55, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("Chapters, the Protobuf contracts, and both-stack runnable examples", { x: 1.45, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/api-patterns-and-practices-grpc", { x: 1.45, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 10, color: COLOR.red, align: "center", valign: "middle" });
+
+  s.addImage({ path: `${ASSETS}/qr-hub.png`, x: 7.93, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("Workshops & Tutorials", { x: 7.18, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("The whole series: every workshop, tutorial, and deck in one place", { x: 7.08, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/patterncatalyst-workshops-tutorials-list", { x: 7.08, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 9, color: COLOR.red, align: "center", valign: "middle" });
+
+  addNotes(s, "This is the Quarkus implementation deck, so the left code takes you to the runnable Quarkus example and contract, the right to the whole series. On the left, the site: the chapters, the Protobuf contracts, and the runnable both-stack examples, all public. On the right, the Workshops and Tutorials hub: every workshop, tutorial, and deck in the series in one place, including the REST, GraphQL, and WebSockets siblings. Scan whichever is useful; both are on the Pattern Catalyst GitHub organization.");
+}
+
+
 pres.writeFile({ fileName: OUT })
   .then((p) => console.log("WROTE", p, "slides:", pageNum))
   .catch((e) => { console.error(e); process.exit(1); });
