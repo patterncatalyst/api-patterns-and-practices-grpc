@@ -1,5 +1,5 @@
 """
-diagrams.py — fallback Scene-diagram engine for the "API Patterns & Practices:
+diagrams.py: fallback Scene-diagram engine for the "API Patterns & Practices:
 gRPC" decks.
 
 The book already ships 72 paired figures (assets/diagrams/*.svg +
@@ -19,7 +19,7 @@ from dgen import Scene, PALETTE
 
 
 def example_fallback_scene():
-    """Placeholder scene — delete or replace once a real fallback figure is needed."""
+    """Placeholder scene: delete or replace once a real fallback figure is needed."""
     s = Scene("fallback-example", width=1240, height=560,
               title="Example: client -> stub -> channel -> service",
               subtitle="Swap this scene for a real one if a deck needs a figure the book lacks.")
