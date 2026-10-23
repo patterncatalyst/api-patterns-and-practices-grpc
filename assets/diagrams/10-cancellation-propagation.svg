@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="20" width="960" height="270" rx="12" fill="#f4faf5" stroke="#ddd"/>
-<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Cancellable work: Mutiny Uni / asyncio Task — torn down when the subscriber goes away</text>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Cancellable work: Mutiny Uni / asyncio Task, torn down when the subscriber goes away</text>
 <rect x="20" y="320" width="960" height="270" rx="12" fill="#fdf5f4" stroke="#ddd"/>
-<text x="32" y="340" font-size="12" font-weight="700" fill="#1d1d1d">Blocked work: Thread.sleep — runs its full duration into the void</text>
+<text x="32" y="340" font-size="12" font-weight="700" fill="#1d1d1d">Blocked work: Thread.sleep, runs its full duration into the void</text>
 <rect x="40" y="95" width="220" height="110" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="150.0" y="140.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
 <text x="150.0" y="157.5" font-size="11.5" fill="#555555" text-anchor="middle">deadline expires</text>
@@ -27,7 +27,7 @@
 <rect x="740" y="395" width="220" height="110" rx="9" fill="#1a1a1a" stroke="#1a1a1a" stroke-width="2"/>
 <text x="850.0" y="440.5" font-size="13.5" font-weight="700" fill="#ffffff" text-anchor="middle">Keeps running regardless</text>
 <text x="850.0" y="457.5" font-size="11.5" fill="#dddddd" text-anchor="middle">sleep runs its full 2000ms</text>
-<text x="850.0" y="472.5" font-size="11.5" fill="#dddddd" text-anchor="middle">result discarded — nobody listening</text>
+<text x="850.0" y="472.5" font-size="11.5" fill="#dddddd" text-anchor="middle">result discarded: nobody listening</text>
 <path d="M260,150 L390,150" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
 <text x="331.0" y="144.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">cancel: DEADLINE_EXCEEDED</text>
 <text x="331.0" y="144.0" font-size="11" fill="#b8650a" text-anchor="middle">cancel: DEADLINE_EXCEEDED</text>
@@ -40,5 +40,5 @@
 <path d="M610,450 L740,450" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <text x="675.0" y="442.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">no hook -&gt; sleep continues</text>
 <text x="675.0" y="442.0" font-size="11" fill="#555" text-anchor="middle">no hook -&gt; sleep continues</text>
-<text x="500" y="605" font-size="11" fill="#555555" text-anchor="middle">A cancelled client call always happens — whether the server&#x27;s own work stops too is a modeling choice.</text>
+<text x="500" y="605" font-size="11" fill="#555555" text-anchor="middle">A cancelled client call always happens: whether the server&#x27;s own work stops too is a modeling choice.</text>
 </svg>

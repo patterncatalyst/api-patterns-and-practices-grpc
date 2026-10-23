@@ -23,5 +23,5 @@
 <path d="M520,165 L630,80" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="581.0" y="116.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">kube-proxy: one pod per connection</text>
 <text x="581.0" y="116.5" font-size="11" fill="#b8650a" text-anchor="middle">kube-proxy: one pod per connection</text>
-<text x="450" y="335" font-size="11" fill="#1d1d1d" text-anchor="middle">All 30 GetQuote calls over this channel answer from Pod A — B and C never see one.</text>
+<text x="450" y="335" font-size="11" fill="#1d1d1d" text-anchor="middle">All 30 GetQuote calls over this channel answer from Pod A: B and C never see one.</text>
 </svg>

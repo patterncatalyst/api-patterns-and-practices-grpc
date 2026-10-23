@@ -34,5 +34,5 @@
 <text x="681.0" y="152.5" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">rejected</text>
 <text x="681.0" y="152.5" font-size="11" fill="#555" text-anchor="middle">rejected</text>
 <text x="220" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Figure contrasts one direction of trust with two.</text>
-<text x="670" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Same CA, same server — client-auth is the only difference.</text>
+<text x="670" y="20" font-size="11" fill="#1d1d1d" text-anchor="middle" font-weight="700">Same CA, same server: client-auth is the only difference.</text>
 </svg>

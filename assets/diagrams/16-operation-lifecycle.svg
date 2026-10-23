@@ -37,5 +37,5 @@
 <path d="M640,280 L670,280" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="661.0" y="274.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">terminal</text>
 <text x="661.0" y="274.0" font-size="11" fill="#b8650a" text-anchor="middle">terminal</text>
-<text x="450" y="395" font-size="13" fill="#1d1d1d" text-anchor="middle">The call that started the job returns long before the job finishes — the Operation record is the only thing that outlives it.</text>
+<text x="450" y="395" font-size="13" fill="#1d1d1d" text-anchor="middle">The call that started the job returns long before the job finishes: the Operation record is the only thing that outlives it.</text>
 </svg>

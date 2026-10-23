@@ -17,19 +17,19 @@
 <text x="525.0" y="80.0" font-size="11.5" fill="#555555" text-anchor="middle">browser + desktop UIs</text>
 <text x="525.0" y="95.0" font-size="11.5" fill="#555555" text-anchor="middle">illustrative only</text>
 <rect x="200" y="160" width="480" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
-<text x="440.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ghz — pinned, one-shot load test</text>
-<text x="440.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">loose bounds (errors=0, p99 ceiling, rps floor) — CI-gated</text>
+<text x="440.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ghz: pinned, one-shot load test</text>
+<text x="440.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">loose bounds (errors=0, p99 ceiling, rps floor): CI-gated</text>
 <rect x="120" y="265" width="640" height="50" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="440.0" y="288.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">verify.sh against the running container</text>
-<text x="440.0" y="305.0" font-size="11.5" fill="#555555" text-anchor="middle">grpcurl semantic asserts (field values, not just OK) — CI-gated</text>
+<text x="440.0" y="305.0" font-size="11.5" fill="#555555" text-anchor="middle">grpcurl semantic asserts (field values, not just OK): CI-gated</text>
 <rect x="40" y="375" width="390" height="70" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="235.0" y="400.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Quarkus</text>
 <text x="235.0" y="417.5" font-size="11.5" fill="#555555" text-anchor="middle">@QuarkusTest + @GrpcClient</text>
-<text x="235.0" y="432.5" font-size="11.5" fill="#555555" text-anchor="middle">build-stage mvn verify — CI-gated</text>
+<text x="235.0" y="432.5" font-size="11.5" fill="#555555" text-anchor="middle">build-stage mvn verify: CI-gated</text>
 <rect x="450" y="375" width="390" height="70" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="645.0" y="400.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Python</text>
 <text x="645.0" y="417.5" font-size="11.5" fill="#555555" text-anchor="middle">pytest + in-process grpc.aio server</text>
-<text x="645.0" y="432.5" font-size="11.5" fill="#555555" text-anchor="middle">build-stage pytest — CI-gated</text>
+<text x="645.0" y="432.5" font-size="11.5" fill="#555555" text-anchor="middle">build-stage pytest: CI-gated</text>
 <path d="M440,115 L440,135" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <path d="M440,220 L440,240" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <path d="M440,325 L440,345" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>

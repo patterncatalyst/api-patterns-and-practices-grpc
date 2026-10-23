@@ -1640,13 +1640,13 @@
    "updated": 1,
    "link": null,
    "locked": false,
-   "text": "Authentication (signature + expiry) is checked before authorization (scope) \u2014 a forged token never gets far enough to be asked what it's allowed to do.",
+   "text": "Authentication (signature + expiry) is checked before authorization (scope) a forged token never gets far enough to be asked what it's allowed to do.",
    "fontSize": 13,
    "fontFamily": 1,
    "textAlign": "left",
    "verticalAlign": "top",
    "containerId": null,
-   "originalText": "Authentication (signature + expiry) is checked before authorization (scope) \u2014 a forged token never gets far enough to be asked what it's allowed to do.",
+   "originalText": "Authentication (signature + expiry) is checked before authorization (scope) a forged token never gets far enough to be asked what it's allowed to do.",
    "lineHeight": 1.25,
    "baseline": 13
   }

@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 740" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="20" width="500" height="460" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Booking aggregate — shipping.type.v1.Booking</text>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Booking aggregate: shipping.type.v1.Booking</text>
 <rect x="560" y="20" width="500" height="460" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="572" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Route aggregate — shipping.type.v1.Route</text>
+<text x="572" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Route aggregate: shipping.type.v1.Route</text>
 <rect x="20" y="500" width="1040" height="210" rx="12" fill="#fafafa" stroke="#ddd"/>
 <text x="32" y="520" font-size="12" font-weight="700" fill="#1d1d1d">Shared value types (referenced by both aggregates)</text>
 <rect x="60" y="60" width="200" height="200" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
@@ -65,5 +65,5 @@
 <path d="M700,200 L800,560" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="756.0" y="374.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">price</text>
 <text x="756.0" y="374.0" font-size="11" fill="#b8650a" text-anchor="middle">price</text>
-<text x="40" y="700" font-size="11" fill="#555555" text-anchor="start">Location and Money are shared value types with no identity of their own — every chapter that touches routing, booking, or pricing reuses these same six messages.</text>
+<text x="40" y="700" font-size="11" fill="#555555" text-anchor="start">Location and Money are shared value types with no identity of their own: every chapter that touches routing, booking, or pricing reuses these same six messages.</text>
 </svg>

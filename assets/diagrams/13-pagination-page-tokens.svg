@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 940 230" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="20" width="900" height="170" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Pagination — next_page_token chains calls</text>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Pagination: next_page_token chains calls</text>
 <rect x="40" y="65" width="180" height="100" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="130.0" y="105.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Call 1</text>
 <text x="130.0" y="122.5" font-size="11.5" fill="#555555" text-anchor="middle">page_size=3</text>
@@ -27,5 +27,5 @@
 <path d="M680,115 L710,115" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <text x="701.0" y="109.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">ListRoutes</text>
 <text x="701.0" y="109.0" font-size="11" fill="#555" text-anchor="middle">ListRoutes</text>
-<text x="470" y="215" font-size="11" fill="#1d1d1d" text-anchor="middle">An empty next_page_token is the only exhaustion signal — no count, no boolean.</text>
+<text x="470" y="215" font-size="11" fill="#1d1d1d" text-anchor="middle">An empty next_page_token is the only exhaustion signal: no count, no boolean.</text>
 </svg>

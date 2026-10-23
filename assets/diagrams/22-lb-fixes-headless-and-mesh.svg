@@ -1,9 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="30" width="430" height="320" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #1 — headless Service + client round_robin</text>
+<text x="32" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #1: headless Service + client round_robin</text>
 <rect x="470" y="30" width="430" height="320" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="482" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #2 — Istio sidecar, per-request L7 balancing</text>
+<text x="482" y="50" font-size="12" font-weight="700" fill="#1d1d1d">Fix #2: Istio sidecar, per-request L7 balancing</text>
 <rect x="40" y="150" width="140" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="110.0" y="183.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">gRPC client</text>
 <text x="110.0" y="200.0" font-size="11.5" fill="#555555" text-anchor="middle">LB_POLICY=round_robin</text>

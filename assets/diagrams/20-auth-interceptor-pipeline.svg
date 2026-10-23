@@ -54,6 +54,6 @@
 <path d="M490,340 L630,100" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="515.0" y="226.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">scope granted</text>
 <text x="515.0" y="226.0" font-size="11" fill="#b8650a" text-anchor="middle">scope granted</text>
-<text x="450" y="-26" font-size="12" fill="#1d1d1d" text-anchor="middle" font-weight="700">Authentication (signature + expiry) is checked before authorization (scope) —</text>
+<text x="450" y="-26" font-size="12" fill="#1d1d1d" text-anchor="middle" font-weight="700">Authentication (signature + expiry) is checked before authorization (scope)</text>
 <text x="450" y="-10" font-size="12" fill="#1d1d1d" text-anchor="middle" font-weight="700">a forged token never gets far enough to be asked what it&#x27;s allowed to do.</text>
 </svg>

@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 575" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="10" y="95" width="980" height="420" rx="12" fill="#f7f7f7" stroke="#ddd"/>
-<text x="22" y="115" font-size="12" font-weight="700" fill="#1d1d1d">ONE HTTP/2 stream — each side closes its own half independently</text>
+<text x="22" y="115" font-size="12" font-weight="700" fill="#1d1d1d">ONE HTTP/2 stream: each side closes its own half independently</text>
 <rect x="20" y="20" width="200" height="60" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="120.0" y="48.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client</text>
 <text x="120.0" y="65.0" font-size="11.5" fill="#555555" text-anchor="middle">stub.reportPositions(stream)</text>
@@ -10,30 +10,30 @@
 <text x="880.0" y="65.0" font-size="11.5" fill="#555555" text-anchor="middle">ReportPositions handler</text>
 <rect x="20" y="255" width="200" height="65" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="120.0" y="285.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Client write side: CLOSED</text>
-<text x="120.0" y="302.5" font-size="11.5" fill="#555555" text-anchor="middle">half-close — no sentinel message</text>
+<text x="120.0" y="302.5" font-size="11.5" fill="#555555" text-anchor="middle">half-close: no sentinel message</text>
 <rect x="330" y="255" width="340" height="65" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
 <text x="500.0" y="285.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Server finishes reading buffered frames</text>
-<text x="500.0" y="302.5" font-size="11.5" fill="#555555" text-anchor="middle">stream stays open — only the client&#x27;s write side closed</text>
+<text x="500.0" y="302.5" font-size="11.5" fill="#555555" text-anchor="middle">stream stays open: only the client&#x27;s write side closed</text>
 <rect x="350" y="440" width="300" height="65" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="500.0" y="470.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">Both halves closed</text>
-<text x="500.0" y="487.5" font-size="11.5" fill="#555555" text-anchor="middle">RPC complete — response delivered</text>
+<text x="500.0" y="487.5" font-size="11.5" fill="#555555" text-anchor="middle">RPC complete: response delivered</text>
 <path d="M220,140 L780,140" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
-<text x="506.0" y="134.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA — req 1</text>
-<text x="506.0" y="134.0" font-size="11" fill="#555" text-anchor="middle">DATA — req 1</text>
+<text x="506.0" y="134.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA: req 1</text>
+<text x="506.0" y="134.0" font-size="11" fill="#555" text-anchor="middle">DATA: req 1</text>
 <path d="M220,180 L780,180" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
-<text x="506.0" y="174.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA — req 2</text>
-<text x="506.0" y="174.0" font-size="11" fill="#555" text-anchor="middle">DATA — req 2</text>
+<text x="506.0" y="174.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA: req 2</text>
+<text x="506.0" y="174.0" font-size="11" fill="#555" text-anchor="middle">DATA: req 2</text>
 <path d="M220,220 L780,220" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
-<text x="506.0" y="214.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA — req 3 + END_STREAM</text>
-<text x="506.0" y="214.0" font-size="11" fill="#b8650a" text-anchor="middle">DATA — req 3 + END_STREAM</text>
+<text x="506.0" y="214.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">DATA: req 3 + END_STREAM</text>
+<text x="506.0" y="214.0" font-size="11" fill="#b8650a" text-anchor="middle">DATA: req 3 + END_STREAM</text>
 <path d="M120,80 L120,255" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
 <path d="M780,355 L220,355" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
-<text x="506.0" y="349.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">HEADERS + DATA — response</text>
-<text x="506.0" y="349.0" font-size="11" fill="#555" text-anchor="middle">HEADERS + DATA — response</text>
+<text x="506.0" y="349.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">HEADERS + DATA: response</text>
+<text x="506.0" y="349.0" font-size="11" fill="#555" text-anchor="middle">HEADERS + DATA: response</text>
 <path d="M780,395 L220,395" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
-<text x="506.0" y="389.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">END_STREAM — server closes its half</text>
-<text x="506.0" y="389.0" font-size="11" fill="#b8650a" text-anchor="middle">END_STREAM — server closes its half</text>
+<text x="506.0" y="389.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">END_STREAM: server closes its half</text>
+<text x="506.0" y="389.0" font-size="11" fill="#b8650a" text-anchor="middle">END_STREAM: server closes its half</text>
 <path d="M500,405 L500,440" fill="none" stroke="#555" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#a)"/>
-<text x="20" y="520" font-size="11" fill="#1d1d1d" text-anchor="start">END_STREAM is an HTTP/2 frame flag, not a protobuf message — the schema has no sentinel/terminator value.</text>
+<text x="20" y="520" font-size="11" fill="#1d1d1d" text-anchor="start">END_STREAM is an HTTP/2 frame flag, not a protobuf message: the schema has no sentinel/terminator value.</text>
 <text x="20" y="538" font-size="11" fill="#1d1d1d" text-anchor="start">Read side and write side close independently per direction; a half-closed stream still owes its response.</text>
 </svg>
