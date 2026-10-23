@@ -169,8 +169,6 @@ Three different calls, three different outcomes, from a server that never ran `R
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `examples/20-authn-authz/verify.sh` was run end to end against both stacks: reflection answered with no token, a `valid` token returned the correct `GetQuote` quote, a missing/bad-signature/expired token was rejected with `UNAUTHENTICATED` in every case, and a `wrong-scope` token calling `ListRoutes` was rejected with `PERMISSION_DENIED` — on both Quarkus (port 9200) and Python (port 9201). The cross-check's HMAC computation was independently confirmed against a freshly-minted `valid` token using Python's stdlib `hmac`/`hashlib` (matching signature byte for byte); the `openssl` CLI form shown above was not re-run in the authoring sandbox, which has no `openssl` binary installed — confirm it with a local `openssl` before relying on that exact command.*
-
 ## For deeper coverage
 
 - [grpc.io — Authentication guide](https://grpc.io/docs/guides/auth/) — gRPC's token-based authentication APIs, the category `AuthzInterceptor`'s bearer-token check belongs to.

@@ -253,28 +253,6 @@ kubectl kustomize examples/22-mesh-loadbalancing/k8s | kubeconform -strict -summ
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-This example runs on minikube by hand, never in CI — `scripts/validate.py`'s
-`cluster-dir-no-verify` check confirms no `verify.sh` exists under
-`examples/22-mesh-loadbalancing/` to be auto-discovered by the clusterless
-`examples` matrix, and the `k8s-manifests` CI job validates only that
-`k8s/`'s four resources are schema-correct, never that the demo's claims
-hold on a live cluster. All three phases, the STRICT mTLS rejection, and
-the native-sidecar Job-completion behavior described in this chapter were
-run on an actual minikube cluster, v1.39.0 (docker driver, containerd), with
-Kubernetes v1.34.0 and a self-downloaded, pinned Istio 1.31.1 — see
-`examples/22-mesh-loadbalancing/expected-output.md` for the complete
-recorded transcript this chapter's numbers are drawn from. The highest-risk
-things a reader's own run should confirm: that Kubernetes v1.34.0 stays
-inside whatever Kubernetes range the Istio release they install officially
-supports (re-check both projects' release notes before bumping either),
-that `registry.access.redhat.com/ubi10/python-314-minimal:10.2-1791464217`
-continues to resolve (re-check with `skopeo list-tags` first, same
-discipline as Chapter 7's and Chapter 19's identical pin), and that a
-minikube profile on a machine with less than the roughly 4 CPU / 6 GiB this
-chapter's `bootstrap.sh` requests still schedules Istio's control plane and
-three application replicas without eviction.*
-
 ## For deeper coverage
 
 - Cloud Native Design Patterns — "Appendix I — L7 Routing & Traffic Management" chapter, for the four-layer (edge/gateway/mesh/in-app) view this chapter's L4-versus-L7 split is one slice of.

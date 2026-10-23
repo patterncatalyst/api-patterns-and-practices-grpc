@@ -211,21 +211,6 @@ The Python stack (`localhost:9191`, `-servername python`) produces byte-for-byte
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine across
-repeated runs, including both the TLS-only phase (CA-only success, plaintext
-refused) and the mTLS phase (client-cert success, CA-only rejected) on each
-of Quarkus and Python. The highest-risk things a reader's own run should
-confirm: that `registry.access.redhat.com/ubi10/ubi-minimal` continues to
-ship a `java-21-openjdk-headless` package reachable via `microdnf` (re-check
-with `skopeo list-tags` before bumping the pin, same discipline as this
-book's other base-image pins), that the exact `quarkus.grpc.server.ssl.*`
-keys and the PKCS12-trust-store gotcha this chapter documents continue to
-hold on a future `quarkus-grpc` point release, and that a Docker Engine
-other than the Linux-native one this book was authored against still
-produces host-readable files under the `certs` named volume's bind-mounted
-export directory.*
-
 ## For deeper coverage
 
 - [grpc.io — Authentication guide](https://grpc.io/docs/guides/auth/) — gRPC's built-in TLS, ALTS, and token-based authentication mechanisms, the catalog this chapter's TLS half and Chapter 20's JWT half both come from.

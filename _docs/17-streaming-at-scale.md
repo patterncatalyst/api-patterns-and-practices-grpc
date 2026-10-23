@@ -106,21 +106,6 @@ grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine, including
-the count/order/fields check, the incremental-delivery lower bound, the
-slow-consumer backpressure relative gate, and the keepalive quiet-stream
-check — a real run measured `bkg_demo`'s consecutive deltas at roughly 260ms
-and `bkg_eager`'s at microseconds, comfortably clearing the assertions'
-margins. The highest-risk things a reader's own run should confirm: that the
-`~200ms` and `~0.6s` timing floors hold on meaningfully slower or more
-contended hardware than the authoring machine, and that the
-`MultiEmitter.onRequest` prefetch-timing detail this chapter documents (the
-generated bridge's initial `request(256)` landing before `onRequest` is
-registered) holds across future `quarkus-grpc` releases rather than being an
-implementation detail of the pinned 3.40.1 version this chapter verified
-against.*
-
 ## For deeper coverage
 
 - [grpc.io — Keepalive guide](https://grpc.io/docs/guides/keepalive/) — the PING/ACK mechanics and the client/server configuration options this chapter's table maps onto both stacks.
