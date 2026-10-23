@@ -172,13 +172,6 @@ Same URL, same RPC, same answer — the only difference from the JSON call above
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>.
-`./verify.sh` was run end to end against a real Docker Engine: both app
-stacks and both Envoy containers built and started, and native gRPC, the
-REST shim, the JSON/HTTP transcoder, and the grpc-web filter all returned the
-expected quote on both the Quarkus and the Python stack, including the
-non-fatal malformed-JSON -> HTTP 400 check.*
-
 ## For deeper coverage
 
 - Cloud Native Design Patterns — "Appendix A — Protocols in Depth" chapter, for the REST/gRPC/GraphQL wire-format comparison this chapter's browser gap is one instance of.

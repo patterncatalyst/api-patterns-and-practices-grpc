@@ -127,18 +127,6 @@ A single call to either variant looks identical from a `grpcurl` prompt — same
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine (a 22-core
-host), including the eight-concurrent-call overlap and starve-vs-scale
-assertions, across repeated runs; the highest-risk things a reader's own run
-should confirm are that the timing margins (`< 2.5s`,
-`correct_total * 2 < starving_total`) hold on meaningfully slower or more
-contended hardware, and that `Vertx#getOrCreateContext()`'s single-context
-behavior (what `starvingContext()` depends on to make the starving path's
-serialization reproducible regardless of host core count) continues to
-return the same context on repeated calls across future Quarkus/Vert.x
-point releases.*
-
 ## For deeper coverage
 
 - [Quarkus — Reactive architecture](https://quarkus.io/guides/quarkus-reactive-architecture) — the event-loop/worker-pool split `@Blocking` and `@RunOnVirtualThread` dispatch onto.

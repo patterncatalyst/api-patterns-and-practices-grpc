@@ -149,22 +149,6 @@ h3_probe: HTTP/3 transport confirmed over QUIC — this is the transport, not gR
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine across
-repeated runs, including the `GetQuote` correctness checks, the `ghz`
-measured baseline (both stacks comfortably inside the loose bounds quoted
-above), and the HTTP/3 transport probe, which completed a real QUIC
-handshake and received a 200 from Caddy every time it was run. The
-highest-risk things a reader's own run should confirm: that the `ghz`
-bounds (`p99 < 1.5s`, `rps > 20`) hold on meaningfully slower or more
-contended hardware than the authoring machine; that the HTTP/3 transport
-probe's non-fatal `SKIP` path, exercised only by simulating a UDP-blocked
-network during authoring, behaves as described on a CI runner that blocks
-UDP outright; and that the claim at this chapter's center — that grpc-java and
-grpcio have no native gRPC-over-HTTP/3 transport — still holds against
-whatever release of either project a reader is running, since this is
-exactly the kind of gap an upstream project can close in a later release.*
-
 ## For deeper coverage
 
 - Gough, J., Bryant, D. & Auburn, M., *Mastering API Architecture*, O'Reilly, 2022 — the broader transport/style decision this chapter's three-way comparison narrows to gRPC/REST/WebSockets.

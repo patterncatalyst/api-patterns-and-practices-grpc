@@ -185,41 +185,6 @@ Tear down when finished (or leave CRC running and note it, as this chapter's own
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-This appendix runs on OpenShift Local by hand, never in CI — `scripts/validate.py`'s
-`cluster-dir-no-verify` check confirms no `verify.sh` exists under
-`examples/99-appendix-a-openshift-crc/` to be auto-discovered by the clusterless
-`examples` matrix, and the `k8s-manifests` CI job validates only that `helm/`
-lints and templates to schema-valid resources, never that any of this
-chapter's live-cluster claims hold. On 2026-10-14, against a real CRC 2.64.0 /
-OpenShift 4.22.14 instance (12 vCPU / 32 GiB), this run actually: installed
-both operators pinned (`servicemeshoperator3.v3.4.3`,
-`opentelemetry-operator.v0.158.0-3`); built `getquote:v1` in-cluster via
-binary S2I; deployed the workload under `restricted-v2` with the Istio
-sidecar and the OpenTelemetry Java agent both injected; confirmed, with the
-router's own generated HAProxy configuration, that an edge-terminated
-Route cannot complete a native gRPC client's TLS handshake on this
-OpenShift version regardless of the `h2c-enable` annotation; got a real
-`GetQuote` response through a passthrough Route once the pod briefly
-terminated its own TLS (mesh off, a diagnostic-only chart flag); confirmed
-STRICT `PeerAuthentication` times out a plaintext caller once the
-Route-facing PERMISSIVE carve-out was temporarily removed; measured a
-29/30-to-1/30 canary split against a configured 10% weight; and captured a
-real OpenTelemetry span for `shipping.quote.v1.QuoteService/GetQuote` after
-correcting the exporter's protocol/port mismatch. CRC was left running in
-this deployed state rather than torn down. What this run did **not**
-establish: a tight confirmation of the 90/10 canary ratio (one sample in
-thirty is directionally consistent, not statistically precise), and a
-native gRPC client completing a call through edge or reencrypt termination
-on any OpenShift version other than the one tested — both are named
-explicitly, with the exact commands and output, in
-`examples/99-appendix-a-openshift-crc/expected-output.md`. A reader's own
-run should re-check both pinned operator CSVs against `oc get
-packagemanifest` before starting (OLM catalogs drift), and re-confirm the
-router's ALPN behavior if running against a newer OpenShift release, since
-this is exactly the kind of platform-internal detail a future OpenShift
-version could change.*
-
 ## For deeper coverage
 
 - OpenShift documentation — Route configuration and TLS termination types (edge, passthrough, reencrypt).

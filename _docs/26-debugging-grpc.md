@@ -240,27 +240,6 @@ docker compose run --rm -e GRPC_TRACE=api,call_error,connectivity_state -e GRPC_
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>.
-`examples/26-debugging/verify.sh` was run end to end against both stacks: the
-baseline `GetQuote` correctness check passed on both; `FindOptimalRoute`
-failed `UNIMPLEMENTED` on both; a 1-second deadline against the
-artificially-delayed `GetQuote` failed `DEADLINE_EXCEEDED` on both (a 5-second
-deadline succeeded on both); a call against each stack's own closed port
-9999 failed with `grpc.StatusCode.UNAVAILABLE`; a TLS-defaulting `grpcurl`
-call against each plaintext server failed at the handshake
-(`tls: first record does not look like a TLS handshake`); reflection's
-service-level `list`/`describe` succeeded on both, and the method-level
-`describe` asymmetry between `grpc-java` and `grpcio-reflection` documented
-above was reproduced directly, not inferred; channelz's `GetServers`
-returned live server data on the Python stack; and `GRPC_TRACE`/
-`GRPC_VERBOSITY` produced non-empty C-core trace output from a grpc-python
-caller against both stacks. The `GRPC_TRACE`/`GRPC_VERBOSITY` log lines
-quoted above are copied verbatim (four lines selected out of 60+ total) from
-one real captured run — a reader's own run will show the same four kinds of
-line with different timestamps, thread IDs, and object addresses, since
-those vary every run by construction, and `verify.sh` asserts only that
-output appeared at all, not these exact bytes.*
-
 ## For deeper coverage
 
 - Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021 — resilient inter-service calls and the failure handling this chapter's four failure modes fall under.
