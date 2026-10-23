@@ -1144,6 +1144,32 @@ divider("A", "Appendix: extra Python code",
   addNotes(s, "This book's generic-Kubernetes target, minikube, is what every pattern in this deck (including the load-balancing section's pinned-pod-baseline and headless-plus-round-robin-fix cluster demo) runs against and is verified on. The book's separate OpenShift Local appendix, which walks through a binary S2I build, Routes, and OpenShift Service Mesh with STRICT mTLS, is a Quarkus-stack example; there is no python/ directory under that example in this repository, so nothing in this deck claims a Python run against OpenShift Local that was built and verified. Nothing about the Python stack's contract, servicer code, or TLS/mTLS wiring is OpenShift-specific: the identical UBI 10 base images and the identical grpc.ssl_server_credentials/add_secure_port call this deck's TLS section showed would carry over to any Kubernetes distribution without modification. For the verified OpenShift Local walkthrough, see the Quarkus sibling deck.");
 }
 
+
+/* --- Scan to explore (QR codes) --- */
+{
+  const s = S();
+  addContentTitle(s, "SCAN TO EXPLORE", "Take it with you");
+
+  s.addImage({ path: `${ASSETS}/qr-grpc-site.png`, x: 2.30, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("The site", { x: 1.55, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("Chapters, the Protobuf contracts, and both-stack runnable examples", { x: 1.45, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/api-patterns-and-practices-grpc", { x: 1.45, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 10, color: COLOR.red, align: "center", valign: "middle" });
+
+  s.addImage({ path: `${ASSETS}/qr-hub.png`, x: 7.93, y: 1.78, w: 3.10, h: 3.10 });
+  s.addText("Workshops & Tutorials", { x: 7.18, y: 4.98, w: 4.60, h: 0.40,
+    fontFace: FONT.title, fontSize: 18, bold: true, color: COLOR.ink, align: "center", valign: "middle" });
+  s.addText("The whole series: every workshop, tutorial, and deck in one place", { x: 7.08, y: 5.40, w: 4.80, h: 0.72,
+    fontFace: FONT.body, fontSize: 13, italic: true, color: COLOR.caption, align: "center", valign: "top" });
+  s.addText("patterncatalyst.github.io/patterncatalyst-workshops-tutorials-list", { x: 7.08, y: 6.12, w: 4.80, h: 0.32,
+    fontFace: FONT.mono, fontSize: 9, color: COLOR.red, align: "center", valign: "middle" });
+
+  addNotes(s, "This is the Python implementation deck, so the left code takes you to the runnable Python example and contract, the right to the whole series. On the left, the site: the chapters, the Protobuf contracts, and the runnable both-stack examples, all public. On the right, the Workshops and Tutorials hub: every workshop, tutorial, and deck in the series in one place, including the REST, GraphQL, and WebSockets siblings. Scan whichever is useful; both are on the Pattern Catalyst GitHub organization.");
+}
+
+
 pres.writeFile({ fileName: OUT })
   .then((p) => console.log("WROTE", p, "slides:", pageNum))
   .catch((e) => { console.error(e); process.exit(1); });
