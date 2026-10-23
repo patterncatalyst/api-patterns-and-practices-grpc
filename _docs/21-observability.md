@@ -153,8 +153,6 @@ Swap port `8210`/`9210` for `8211`/`9211` and the Python stack answers all three
 
 ---
 
-*Verification status: <span class="status status--verified">verified</span>. `examples/21-observability/verify.sh` was run end to end against both stacks, twice, with the always-on `lgtm` service included in the bring-up: `POST /booking/quote` returned the correct quote (`USD`/`2500.00`/`rte_USNYC-NLRTM`/`MAERSK`) on both Quarkus (port 8210) and Python (port 8211); the SAME trace id appeared in a Routing-handler log line and a Quote-handler log line in each stack's own `docker compose logs` output; Tempo's `/api/traces/<id>` endpoint showed three distinct `service.name`/`rpc.service` values per trace on both runs (exceeding the two-service-minimum the check requires); each app's own metrics endpoint (`/q/metrics` on Quarkus, `/metrics` on Python) showed a nonzero gRPC server metric count; and `grpc.health.v1.Health/Check` answered `SERVING` on both stacks. One real defect was found and fixed during this verification, not assumed away: the `grafana/otel-lgtm:0.36.0` image has no `wget` binary, so its healthcheck was changed to `curl`; and the Python health servicer had to use `grpc_health.v1.health.aio.HealthServicer`, not the classic synchronous one, to work under `grpc.aio`.*
-
 ## For deeper coverage
 
 - Charity Majors, Liz Fong-Jones & George Miranda, *Observability Engineering*, O'Reilly, 2022 — the three-signals framing (traces, metrics, logs/health) this chapter builds on.

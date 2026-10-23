@@ -201,20 +201,6 @@ Wire-size note, illustrative only (not asserted by `verify.sh`, since neither st
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine across
-repeated runs, including the channel-reuse ratio, the max-message-size
-`RESOURCE_EXHAUSTED`-then-succeeds pair, the gzip functional check, the
-keepalive idle-gap survival, and the `ghz` loose bounds. The highest-risk
-things a reader's own run should confirm: that the channel-reuse factor
-(`footgun_total > pooled_total * 1.8`) and the `ghz` bounds (`p99 < 1.5s`,
-`rps > 20`) hold on meaningfully slower or more contended hardware than the
-authoring machine, and that the exact channel-argument strings this chapter
-cites for `grpcio` 1.83 (`grpc.keepalive_time_ms`,
-`grpc.http2.min_ping_interval_without_data_ms`, and the rest) and the
-`quarkus-grpc` 3.40.1 config keys this chapter cites continue to resolve
-identically on a future point release of either.*
-
 ## For deeper coverage
 
 - [grpc.io — Performance best practices](https://grpc.io/docs/guides/performance/) — the general and language-specific tuning guidance this chapter's channel-reuse, message-size, and compression levers all draw from.

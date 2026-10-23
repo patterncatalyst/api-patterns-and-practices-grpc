@@ -453,21 +453,6 @@ run, a CI pipeline — ultimately defers to.
 
 ---
 
-*Verification status: <span class="status status--unverified">unverified</span>.
-`verify.sh` ran green against both stacks on the authoring machine across
-repeated runs, including `GetQuote` correctness, the reflection
-`list`/`describe` probe, the one-shot `mvn test`/`pytest` re-run, and the
-`ghz` loose bounds; the build-stage gate was separately confirmed to fail
-the image build with a seeded wrong assertion in each stack's suite, then
-reverted. The highest-risk things a reader's own run should confirm: that
-`@GrpcClient`'s no-configuration self-wiring inside `@QuarkusTest` and the
-`grpc.aio` ephemeral-port fixture pattern continue to resolve identically
-on a future point release of `quarkus-grpc` or `grpcio`, that
-`grpcio-reflection`'s method-symbol limitation documented above hasn't
-changed upstream, and that the `ghz` bounds (`p99 < 1.5s`, `rps > 20`) hold
-on meaningfully slower or more contended hardware than the authoring
-machine.*
-
 ## For deeper coverage
 
 - Cloud Native Design Patterns — "Appendix O — API Testing with Newman" chapter, for the same CLI-driven, CI-gated API testing philosophy applied to REST collections.
