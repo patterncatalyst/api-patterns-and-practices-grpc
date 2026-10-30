@@ -42,7 +42,7 @@
 <text x="780.0" y="250.0" font-size="11.5" fill="#555555" text-anchor="middle">started per call</text>
 <rect x="665" y="290" width="230" height="150" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="780.0" y="340.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">cheap to block, millions</text>
-<text x="780.0" y="357.5" font-size="11.5" fill="#555555" text-anchor="middle">possible -- BUT: pinning on</text>
+<text x="780.0" y="357.5" font-size="11.5" fill="#555555" text-anchor="middle">possible, but pinning on</text>
 <text x="780.0" y="372.5" font-size="11.5" fill="#555555" text-anchor="middle">native-code calls, and</text>
 <text x="780.0" y="387.5" font-size="11.5" fill="#555555" text-anchor="middle">ThreadLocal-heavy libraries</text>
 <text x="780.0" y="402.5" font-size="11.5" fill="#555555" text-anchor="middle">allocate per call, not pooled</text>
@@ -61,5 +61,5 @@
 <path d="M780,260 L780,288" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <text x="786.0" y="268.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">offloaded</text>
 <text x="786.0" y="268.0" font-size="11" fill="#555" text-anchor="middle">offloaded</text>
-<text x="470" y="462" font-size="12" fill="#1d1d1d" text-anchor="middle">Java 24+ (JEP 491): synchronized blocks no longer pin a virtual thread -- native-code calls still can.</text>
+<text x="470" y="462" font-size="12" fill="#1d1d1d" text-anchor="middle">Java 24+ (JEP 491): synchronized blocks no longer pin a virtual thread; native-code calls still can.</text>
 </svg>
