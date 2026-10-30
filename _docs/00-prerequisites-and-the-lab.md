@@ -10,7 +10,7 @@ duration: "25 min"
 
 By the end of this chapter you can:
 
-- Bring up the Ch0 lab with `docker compose up --build` and opt into the Grafana LGTM observability profile with `--profile observability`.
+- Bring up this chapter's lab with `docker compose up --build` and opt into the Grafana LGTM observability profile with `--profile observability`.
 - Call a gRPC server that has no local `.proto` file on hand, using `grpcurl -plaintext <host>:<port> list` and server reflection.
 - Explain why `contracts/proto/` is the single source of truth and how each example's Containerfile copies and compiles it at build time, never committing generated stubs.
 - Name the shipping domain's core nouns (`Booking`, `Cargo`, `Location`, `Route`, `Leg`, `Money`) and why `Location` and `Money` are reused by value instead of by reference.
@@ -30,7 +30,7 @@ The last toolchain piece is the observability stack: `grafana/otel-lgtm`, an all
 
 ## The lab
 
-The Ch0 example's `compose.yaml` brings up two services by default: `quarkus` on host port 9000 and `python` on host port 9001, both mapped from container port 9000 (gRPC servers conventionally bind to whatever port the deployment assigns them, not a protocol-reserved one the way HTTP has 80 and 443). Both services are generated from the exact same `.proto` files in `contracts/proto/`, and both implement `RoutingService.GetQuote`. Neither computes anything from the request yet (that arrives in Chapter 5), but both answer on the wire, and both answer identically, which is the property every later chapter's `verify.sh` depends on: two independent implementations, one contract, one assertable result.
+This chapter's example `compose.yaml` brings up two services by default: `quarkus` on host port 9000 and `python` on host port 9001, both mapped from container port 9000 (gRPC servers conventionally bind to whatever port the deployment assigns them, not a protocol-reserved one the way HTTP has 80 and 443). Both services are generated from the exact same `.proto` files in `contracts/proto/`, and both implement `RoutingService.GetQuote`. Neither computes anything from the request yet (that arrives in Chapter 5), but both answer on the wire, and both answer identically, which is the property every later chapter's `verify.sh` depends on: two independent implementations, one contract, one assertable result.
 
 A third service, `lgtm`, sits behind a Compose `profiles: ["observability"]` entry, which means a plain `docker compose up` never starts it:
 
@@ -118,7 +118,7 @@ ENTRYPOINT ["opentelemetry-instrument", "python", "-m", "app.main"]
 
 Both base image pins (`openjdk-25:1.24-15` and `python-314-minimal:10.2-1791464217`) are exact tags, not floating majors, re-checked against `skopeo list-tags` and bumped only as a reviewed change, never as a side effect of an unrelated rebuild. The Python build stage runs as `USER 0` specifically to write into `/app` before dropping to UID `1001` at runtime, because UBI 10's Python image runs non-root by default and a `uv`-managed virtual environment embeds its interpreter's absolute path into every console script it generates; moving it after the fact breaks every entry point silently.
 
-## Running the Ch0 example
+## Running the example
 
 ```bash
 cd examples/00-prerequisites

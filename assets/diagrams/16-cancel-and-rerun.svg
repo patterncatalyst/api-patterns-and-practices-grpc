@@ -3,7 +3,7 @@
 <rect x="20" y="20" width="860" height="140" rx="12" fill="#fff8ef" stroke="#ddd"/>
 <text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Cancel the OPERATION (server-owned)</text>
 <rect x="20" y="190" width="860" height="140" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="210" font-size="12" font-weight="700" fill="#1d1d1d">Cancel the WATCH stream (request-scoped, the Ch10 lesson)</text>
+<text x="32" y="210" font-size="12" font-weight="700" fill="#1d1d1d">Cancel the WATCH stream (request-scoped)</text>
 <rect x="20" y="360" width="860" height="180" rx="12" fill="#fff8ef" stroke="#ddd"/>
 <text x="32" y="380" font-size="12" font-weight="700" fill="#1d1d1d">Rerunnable reconcile</text>
 <rect x="40" y="55" width="150" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>

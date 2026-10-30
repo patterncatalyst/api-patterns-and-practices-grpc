@@ -2,7 +2,7 @@
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="330" y="20" width="300" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="480.0" y="48.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">contracts/proto/shipping/**/*.proto</text>
-<text x="480.0" y="65.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService.GetQuote — same contract as Ch5</text>
+<text x="480.0" y="65.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService.GetQuote — same contract reused throughout</text>
 <rect x="20" y="170" width="220" height="90" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="130.0" y="213.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpcurl / any client</text>
 <text x="130.0" y="230.0" font-size="11.5" fill="#555555" text-anchor="middle">sends one of 4 request shapes</text>
