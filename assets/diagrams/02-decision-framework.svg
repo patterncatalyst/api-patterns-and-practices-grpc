@@ -29,21 +29,17 @@
 <text x="780.0" y="387.5" font-size="11.5" fill="#555555" text-anchor="middle">apply all five axes</text>
 <text x="780.0" y="402.5" font-size="11.5" fill="#555555" text-anchor="middle">to one interaction</text>
 <rect x="940" y="80" width="210" height="100" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
-<text x="1045.0" y="120.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.GetQuote</text>
-<text x="1045.0" y="137.5" font-size="11.5" fill="#555555" text-anchor="middle">unary · tight deadline</text>
-<text x="1045.0" y="152.5" font-size="11.5" fill="#555555" text-anchor="middle">Ch5 anchor</text>
+<text x="1045.0" y="128.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.GetQuote</text>
+<text x="1045.0" y="145.0" font-size="11.5" fill="#555555" text-anchor="middle">unary · tight deadline</text>
 <rect x="940" y="220" width="210" height="100" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
-<text x="1045.0" y="260.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TrackingService.WatchShipment</text>
-<text x="1045.0" y="277.5" font-size="11.5" fill="#555555" text-anchor="middle">server-streaming</text>
-<text x="1045.0" y="292.5" font-size="11.5" fill="#555555" text-anchor="middle">Ch8</text>
+<text x="1045.0" y="268.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TrackingService.WatchShipment</text>
+<text x="1045.0" y="285.0" font-size="11.5" fill="#555555" text-anchor="middle">server-streaming</text>
 <rect x="940" y="360" width="210" height="100" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
-<text x="1045.0" y="400.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TrackingService.ReportPositions</text>
-<text x="1045.0" y="417.5" font-size="11.5" fill="#555555" text-anchor="middle">client-streaming</text>
-<text x="1045.0" y="432.5" font-size="11.5" fill="#555555" text-anchor="middle">Ch9</text>
+<text x="1045.0" y="408.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">TrackingService.ReportPositions</text>
+<text x="1045.0" y="425.0" font-size="11.5" fill="#555555" text-anchor="middle">client-streaming</text>
 <rect x="940" y="500" width="210" height="100" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
-<text x="1045.0" y="540.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.RecomputeRoutes</text>
-<text x="1045.0" y="557.5" font-size="11.5" fill="#555555" text-anchor="middle">async → Operation</text>
-<text x="1045.0" y="572.5" font-size="11.5" fill="#555555" text-anchor="middle">Ch16</text>
+<text x="1045.0" y="548.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingService.RecomputeRoutes</text>
+<text x="1045.0" y="565.0" font-size="11.5" fill="#555555" text-anchor="middle">async → Operation</text>
 <path d="M550,115.0 L680,380.0" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <path d="M550,245.0 L680,380.0" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <path d="M550,375.0 L680,380.0" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>

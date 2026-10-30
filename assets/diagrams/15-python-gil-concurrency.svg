@@ -18,23 +18,23 @@
 <text x="235.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">(CPython has always done this for I/O)</text>
 <rect x="40" y="300" width="390" height="65" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
 <text x="235.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">8 concurrent offloaded calls</text>
-<text x="235.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">OVERLAP -- each thread blocks on its</text>
+<text x="235.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">OVERLAP: each thread blocks on its</text>
 <text x="235.0" y="355.0" font-size="11.5" fill="#555555" text-anchor="middle">own I/O, GIL is free the whole time</text>
 <rect x="490" y="220" width="410" height="60" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="695.0" y="248.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">GIL held for the whole call</text>
 <text x="695.0" y="265.0" font-size="11.5" fill="#555555" text-anchor="middle">(no bytecode-level release point)</text>
 <rect x="490" y="300" width="410" height="65" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="695.0" y="323.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">8 concurrent CPU-bound calls SERIALIZE</text>
-<text x="695.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">on the GIL regardless of thread count --</text>
+<text x="695.0" y="340.0" font-size="11.5" fill="#555555" text-anchor="middle">on the GIL regardless of thread count;</text>
 <text x="695.0" y="355.0" font-size="11.5" fill="#555555" text-anchor="middle">more threads does not mean more throughput</text>
 <rect x="40" y="405" width="860" height="60" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="470.0" y="433.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">STARVING contrast (this chapter&#x27;s demo flag): calling blocking_lookup() in-line, with no await point, blocks</text>
-<text x="470.0" y="450.0" font-size="11.5" fill="#555555" text-anchor="middle">THIS event loop exactly the way CPU-bound work blocks the GIL -- every other coroutine queues behind it.</text>
+<text x="470.0" y="450.0" font-size="11.5" fill="#555555" text-anchor="middle">THIS event loop exactly the way CPU-bound work blocks the GIL; every other coroutine queues behind it.</text>
 <path d="M170,75 L170,93" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <path d="M300,120 L638,48" fill="none" stroke="#b8650a" stroke-width="2" marker-end="url(#am)"/>
 <text x="475.0" y="78.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">dispatches to</text>
 <text x="475.0" y="78.0" font-size="11" fill="#b8650a" text-anchor="middle">dispatches to</text>
 <path d="M235,145 L235,188" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <path d="M760,75 L695,188" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
-<text x="470" y="475" font-size="12" fill="#1d1d1d" text-anchor="middle">Free-threaded 3.14 (PEP 703) removes the GIL entirely -- but this project&#x27;s CI image is the standard (GIL) build; not measured here.</text>
+<text x="470" y="475" font-size="12" fill="#1d1d1d" text-anchor="middle">Free-threaded 3.14 (PEP 703) removes the GIL entirely, but this project&#x27;s CI image is the standard (GIL) build; not measured here.</text>
 </svg>
