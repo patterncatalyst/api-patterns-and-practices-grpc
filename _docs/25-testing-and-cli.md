@@ -24,7 +24,7 @@ the fields that come back. That script is itself a kind of test suite, and
 this chapter turns around and asks what it is: unit test,
 integration test, load test, or something else, and where each of
 grpcurl, grpcui, Insomnia, Yaak, `@QuarkusTest`, pytest, and `ghz` fits.
-`RoutingService.GetQuote` is the vehicle again, unchanged from Chapter 7: no
+`RoutingService.GetQuote` is the vehicle again, unchanged: no
 new RPC, no contract change, because testing strategy is not a schema
 problem any more than performance tuning was.
 
@@ -82,7 +82,7 @@ message descriptors it needs, then use those descriptors to encode a
 request and decode a response on the fly. Every tool this chapter names
 rides that exact mechanism:
 
-- **`grpcurl`** is this book's workhorse from Chapter 0 onward: a
+- **`grpcurl`** is this book's workhorse from the start: a
   command-line tool that uses reflection (or a local `.proto`/protoset, if
   reflection is off) to `list` services, `describe` a service or message,
   and make a call with JSON in, JSON out. It is deterministic, scriptable,
@@ -235,15 +235,15 @@ proving that this actually happens, not just asserting that it should.
 
 ## ghz: the load layer, fed the proto directly
 
-`ghz` is the same load-testing tool Chapter 18 introduced for raising and
+`ghz` is the same load-testing tool introduced earlier for raising and
 measuring performance levers; this chapter reuses its exact pinned image
 and invocation pattern because the load layer of a test pyramid is the
-same tool whether the question is "is this fast enough" (Chapter 18) or
+same tool whether the question is "is this fast enough" or
 "does this still work under load" (this chapter's narrower use). `ghz` has
 no reflection client of its own, unlike every CLI/GUI tool in the section
 above: it needs either a compiled `.proto` or a protoset on disk for every
 run, so this chapter's `compose.yaml` mounts `contracts/proto/` read-only
-into a dedicated, profiled-off `ghz` service exactly the way Chapter 18's
+into a dedicated, profiled-off `ghz` service exactly the way an earlier chapter's
 did:
 
 ```bash
@@ -254,7 +254,7 @@ docker compose run --rm ghz --insecure \
 ```
 
 `verify.sh` parses the `-O json` output with `python3 -I` and asserts three
-things, all loose and relative, the same philosophy Chapter 18 established:
+things, all loose and relative, the same philosophy used earlier:
 the error count sums to zero, the 99th-percentile latency is under a
 generous ceiling, and requests-per-second clears a low floor. Loose bounds
 reflect a specific design reason: a tight absolute number baked into `verify.sh`
@@ -274,7 +274,7 @@ recurring `GetQuote` anchor.** Both `RoutingServiceImpl.java` and
 `app/routing_service.py` compute `quote.amount =
 round_half_up(sum(cargo[].weight_kg) * 2.50, 2)`, build a single `MAERSK`
 leg, and derive `route.id` from the two UN/LOCODEs, byte-for-byte the same
-formula Chapter 7 shipped. The reason to keep it this small is that this
+formula shipped earlier. The reason to keep it this small is that this
 chapter's point is entirely about what wraps around the implementation
 (the test suite, the build-stage gate, the reflection surface), and a
 simpler implementation means every reader's attention goes to what
@@ -405,7 +405,7 @@ because it rules out the specific failure mode where reflection is
   `verify.sh` works around by describing the service rather than the
   method.
 
-Chapter 26 turns from proving a service works to diagnosing one that
+Next, the book turns from proving a service works to diagnosing one that
 doesn't: reproducing `UNIMPLEMENTED`, `DEADLINE_EXCEEDED`,
 `UNAVAILABLE`, and a TLS handshake failure, and reading what
 reflection, `channelz`, and `GRPC_TRACE` each reveal about why.
