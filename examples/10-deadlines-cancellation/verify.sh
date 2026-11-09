@@ -60,7 +60,7 @@ run_stack_tests "quarkus" "localhost:9100"
 run_stack_tests "python" "localhost:9101"
 
 echo
-echo "PASS — Ch10 deadline-propagation anchor: on BOTH the Quarkus and the" \
+echo "PASS: Ch10 deadline-propagation anchor: on BOTH the Quarkus and the" \
      "Python stack, the SAME RoutingService.GetQuote request sent with a 1s" \
      "client deadline fails DEADLINE_EXCEEDED (QuoteService's ~2s downstream" \
      "delay can't fit in the remaining budget) and sent with a 10s deadline" \

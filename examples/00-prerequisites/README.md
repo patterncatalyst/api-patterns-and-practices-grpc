@@ -1,18 +1,18 @@
-# Ch0 — Prerequisites SKELETON: RoutingService.GetQuote (canned)
+# Chapter 0, prerequisites SKELETON: RoutingService.GetQuote (canned)
 
 The minimal both-stack skeleton that proves the toolchain works, before
 Chapter 5 puts a real implementation behind it. The contract is the only
 thing that matters here:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService`
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService`
   and its five RPCs (only `GetQuote` is implemented here, and it returns a
   **hardcoded** response; the rest return `UNIMPLEMENTED`).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Money`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Money`,
   `Location`, `Cargo`, `Route`, `Leg` messages.
 
 Quarkus (`quarkus/`, host port 9000) and Python (`python/`, host port 9001)
 each build their own server from the **same** `.proto` files and both
-implement `GetQuote` by returning a fixed `GetQuoteResponse` — no weight
+implement `GetQuote` by returning a fixed `GetQuoteResponse`; no weight
 math, no persistence, nothing computed from the request. That's deliberate:
 this chapter exists to prove codegen, reflection, and Compose all work, not
 to teach the quote formula. Chapter 5
@@ -41,7 +41,7 @@ grpcurl -plaintext -d '{}' localhost:9000 shipping.routing.v1.RoutingService/Get
 docker compose down -v
 ```
 
-Swap `9000` for `9001` to hit the Python stack instead — same request, same
+Swap `9000` for `9001` to hit the Python stack instead: same request, same
 canned response shape.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -54,20 +54,20 @@ docker compose --profile observability up --build
 
 ## The canned response
 
-`GetQuoteResponse` is hardcoded identically on both stacks — the point is
+`GetQuoteResponse` is hardcoded identically on both stacks; the point is
 that the wire shape and the toolchain work, not the numbers:
 
 ```
 quote.currency = "USD"
 quote.amount   = "0.00"
 route.id       = "rte_placeholder"
-route.legs     = []   # empty — Chapter 5 fills these in
+route.legs     = []   # empty, Chapter 5 fills these in
 route.price    = quote
 ```
 
 Compare this to Chapter 5's `GetQuoteResponse`, which sums `cargo[].weight_kg`,
 applies a per-kilogram rate, rounds `HALF_UP` to a decimal string, and
-populates a real `route.legs[0]` from `origin`/`destination` — the same
+populates a real `route.legs[0]` from `origin`/`destination`. It is the same
 message shape, now carrying a real answer instead of a stand-in.
 
 ## The other four RPCs
@@ -77,19 +77,19 @@ here, and even that one is canned:
 
 | RPC | Status in this chapter |
 |---|---|
-| `GetQuote` | canned/hardcoded response (this chapter); real formula in Ch5 |
-| `FindOptimalRoute` | `UNIMPLEMENTED` — later chapter |
-| `ListRoutes` | `UNIMPLEMENTED` — later chapter |
-| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` — Ch26 streaming |
-| `RecomputeRoutes` (async) | `UNIMPLEMENTED` — Ch26 async |
+| `GetQuote` | canned/hardcoded response (this chapter); real formula in Chapter 5 |
+| `FindOptimalRoute` | `UNIMPLEMENTED` (later chapter) |
+| `ListRoutes` | `UNIMPLEMENTED` (later chapter) |
+| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` (Chapter 26 streaming) |
+| `RecomputeRoutes` (async) | `UNIMPLEMENTED` (Chapter 26 async) |
 
 On Quarkus, the generated Mutiny `RoutingService` interface declares all
 five RPCs as abstract methods, so `RoutingServiceImpl` implements all five
-explicitly — the four unimplemented ones just return
+explicitly; the four unimplemented ones just return
 `Status.UNIMPLEMENTED.asRuntimeException()`. On Python, the generated
 `RoutingServiceServicer` base class already sets `UNIMPLEMENTED` and raises
 for any method a subclass doesn't override, so the Python side only defines
-`GetQuote` — the rest fall through to that generated default.
+`GetQuote`; the rest fall through to that generated default.
 
 ## Proto code generation: `contracts/` is the only source of truth
 
@@ -100,11 +100,11 @@ service needs straight from `contracts/proto/` at build time:
 
 - **Quarkus**: the Containerfile copies `types.proto` and `routing.proto`
   into `src/main/proto/shipping/{type,routing}/v1/` inside the build stage.
-  The module's `pom.xml` declares `<packaging>quarkus</packaging>` — not
-  plain `jar` — which binds the `quarkus-grpc` extension's proto-to-Mutiny
+  The module's `pom.xml` declares `<packaging>quarkus</packaging>`, not
+  plain `jar`, which binds the `quarkus-grpc` extension's proto-to-Mutiny
   code generation (the `quarkus:generate-code` goal) to before `compile`
   runs. (Using plain `jar` packaging compiles fine but silently skips code
-  generation — the module needs the custom lifecycle.)
+  generation; the module needs the custom lifecycle.)
 - **Python**: the Containerfile copies the same two files into a `proto/`
   staging directory, then runs
   `python -m grpc_tools.protoc -I proto --python_out=generated --grpc_python_out=generated ...`
@@ -112,7 +112,7 @@ service needs straight from `contracts/proto/` at build time:
   `PYTHONPATH=/app/generated:/app` makes importable as
   `from shipping.routing.v1 import routing_pb2`. `grpcio-tools` (needed only
   to run `protoc`) lives in a `dev` dependency group and never ships in the
-  runtime image — the venv is rebuilt with `uv sync --no-dev` after codegen.
+  runtime image; the venv is rebuilt with `uv sync --no-dev` after codegen.
 
 For a local, non-container `mvn`/`uv` run, copy the same two files into the
 same two destinations by hand first:
@@ -133,7 +133,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/proto/`,
-`python/generated/`) are gitignored (see `./.gitignore`) — they are
+`python/generated/`) are gitignored (see `./.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -156,9 +156,9 @@ grpcurl -plaintext localhost:9000 describe shipping.routing.v1.RoutingService
 |---|---|
 | `quote.currency` | `"USD"` |
 
-That single, stable field is enough to prove the whole stack — codegen,
-reflection, server start, Compose networking — is wired up correctly. It is
-intentionally not a test of the quote logic; see Chapter 5 for field-level
+That single, stable field is enough to prove the whole stack (codegen,
+reflection, server start, Compose networking) is wired up correctly. It does
+not test the quote logic; see Chapter 5 for field-level
 semantics assertions.
 
 ## Diagram

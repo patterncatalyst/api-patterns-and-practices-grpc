@@ -68,7 +68,7 @@ ensure_grpcurl() {
   echo "lib.sh: downloading grpcurl ${GRPCURL_VERSION} (${os}/${arch}) ..." >&2
   mkdir -p "$LGTM_BIN_DIR"
   if ! curl -fsSL "$url" -o "$LGTM_BIN_DIR/grpcurl.tar.gz"; then
-    echo "lib.sh: FAIL — could not download grpcurl from $url" >&2
+    echo "lib.sh: FAIL, could not download grpcurl from $url" >&2
     return 1
   fi
   tar -xzf "$LGTM_BIN_DIR/grpcurl.tar.gz" -C "$LGTM_BIN_DIR" grpcurl
@@ -151,7 +151,7 @@ wait_for_grpc() {
     waited=$(( waited + interval ))
   done
 
-  echo "lib.sh: FAIL — gRPC $target did not come up within ${timeout}s" >&2
+  echo "lib.sh: FAIL, gRPC $target did not come up within ${timeout}s" >&2
   return 1
 }
 
@@ -193,7 +193,7 @@ grpc_expect_code() {
   local out rc=0
   out="$(grpcurl $GRPCURL_OPTS -d "$data" "$target" "$method" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "lib.sh: FAIL — ${context}: expected error code $expected, but the call succeeded" >&2
+    echo "lib.sh: FAIL, ${context}: expected error code $expected, but the call succeeded" >&2
     return 1
   fi
   # grpcurl renders codes in PascalCase (InvalidArgument, DeadlineExceeded);
@@ -204,10 +204,10 @@ grpc_expect_code() {
   exp_n="$(printf '%s' "$expected" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   got_n="$(printf '%s' "$got" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   if [[ -n "$got_n" && "$got_n" == "$exp_n" ]]; then
-    echo "lib.sh: ok — ${context}: got expected code $expected (grpcurl: ${got})" >&2
+    echo "lib.sh: ok, ${context}: got expected code $expected (grpcurl: ${got})" >&2
     return 0
   fi
-  echo "lib.sh: FAIL — ${context}: expected code $expected, got: $out" >&2
+  echo "lib.sh: FAIL, ${context}: expected code $expected, got: $out" >&2
   return 1
 }
 
@@ -259,10 +259,10 @@ assert_eq() {
   local actual="$2"
   local context="${3:-equality}"
   if [[ "$expected" != "$actual" ]]; then
-    echo "lib.sh: FAIL — ${context}: expected '$expected', got '$actual'" >&2
+    echo "lib.sh: FAIL, ${context}: expected '$expected', got '$actual'" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: '$actual'" >&2
+  echo "lib.sh: ok, ${context}: '$actual'" >&2
 }
 
 # assert_contains <needle> <haystack> <context>
@@ -271,10 +271,10 @@ assert_contains() {
   local haystack="$2"
   local context="${3:-contains}"
   if [[ "$haystack" != *"$needle"* ]]; then
-    echo "lib.sh: FAIL — ${context}: '$needle' not found" >&2
+    echo "lib.sh: FAIL, ${context}: '$needle' not found" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: found '$needle'" >&2
+  echo "lib.sh: ok, ${context}: found '$needle'" >&2
 }
 
 # ---------------------------------------------------------------------------

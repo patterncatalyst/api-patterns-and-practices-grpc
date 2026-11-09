@@ -1,19 +1,19 @@
-# Ch10 — Deadline-propagation ANCHOR: RoutingService.GetQuote -> QuoteService.GetQuote
+# Chapter 10: deadline-propagation anchor, RoutingService.GetQuote -> QuoteService.GetQuote
 
 The reference both-stack implementation of deadline propagation across a real
 downstream gRPC hop:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — `RoutingService.GetQuote`,
+- `contracts/proto/shipping/routing/v1/routing.proto`: `RoutingService.GetQuote`,
   the inbound call a client sets a deadline on.
-- `contracts/proto/shipping/quote/v1/quote.proto` — `QuoteService.GetQuote`, the
+- `contracts/proto/shipping/quote/v1/quote.proto`: `QuoteService.GetQuote`, the
   DOWNSTREAM call `RoutingService.GetQuote` makes, artificially slowed by ~2s.
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Money`,
-  `Location`, `Cargo`, `Route`, `Leg` messages (same as Ch5/Ch11).
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Money`,
+  `Location`, `Cargo`, `Route`, `Leg` messages (same as Chapters 5 and 11).
 
 Quarkus (`quarkus/`, host port 9100) and Python (`python/`, host port 9101)
 each run **one process implementing both services**. `RoutingServiceImpl` /
 `RoutingServiceServicer` calls `QuoteServiceImpl` / `QuoteServiceServicer`
-over a **loopback channel back to the container's own port 9000** — a real
+over a **loopback channel back to the container's own port 9000**; a real
 gRPC hop, with real serialization and a real network round trip (through the
 loopback interface), not a same-object method call that happens to look like
 one. That's what makes this example's deadline propagation checkable: the
@@ -22,15 +22,15 @@ hop before `QuoteService.GetQuote` ever sees it.
 
 ## The experiment
 
-`QuoteService.GetQuote` always takes about 2 seconds to answer — a fixed,
+`QuoteService.GetQuote` always takes about 2 seconds to answer; a fixed,
 artificial delay standing in for a slow downstream dependency. The **client's
 deadline**, not anything server-side, decides whether that 2 seconds is
 affordable:
 
 | Client deadline (`grpcurl -max-time`) | What happens |
 |---|---|
-| **1s** (tight — shorter than QuoteService's ~2s delay) | `RoutingService.GetQuote` carves a downstream slice of ~0.9s, hands it to `QuoteService.GetQuote`, and that call is cancelled out from under it before the 2s delay finishes. The caller sees `DEADLINE_EXCEEDED` in about a second — not two. |
-| **10s** (generous — longer than QuoteService's ~2s delay) | The downstream slice is ~9.9s, comfortably more than the delay needs. `QuoteService.GetQuote` answers normally and `RoutingService.GetQuote` returns `OK` with the usual quote. |
+| **1s** (tight: shorter than QuoteService's ~2s delay) | `RoutingService.GetQuote` carves a downstream slice of ~0.9s, hands it to `QuoteService.GetQuote`, and that call is cancelled out from under it before the 2s delay finishes. The caller sees `DEADLINE_EXCEEDED` in about a second, not two. |
+| **10s** (generous: longer than QuoteService's ~2s delay) | The downstream slice is ~9.9s, comfortably more than the delay needs. `QuoteService.GetQuote` answers normally and `RoutingService.GetQuote` returns `OK` with the usual quote. |
 
 `QuoteService`'s delay never changes between these two runs. Only the budget
 each caller hands it does. `verify.sh` runs **both** cases against **both**
@@ -78,7 +78,7 @@ grpcurl -plaintext -max-time 10 -d '{
 docker compose down -v
 ```
 
-Swap `9100` for `9101` to hit the Python stack instead — same requests, same
+Swap `9100` for `9101` to hit the Python stack instead: same requests, same
 timing behavior, same numbers.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -92,41 +92,41 @@ docker compose --profile observability up --build
 ## How the budget is carved
 
 Neither stack uses a fixed, per-client timeout configuration for the
-downstream call — a static duration can't tell the difference between a
+downstream call; a static duration can't tell the difference between a
 caller with 9 seconds left and one with 90 milliseconds left, which is
 exactly the distinction this example exists to make. Both stacks instead read
 how much time is actually left on the INBOUND call and derive the downstream
 deadline from it:
 
 - **Quarkus**: `RoutingServiceImpl.getQuote` reads `Context.current().getDeadline()`
-  — the `Deadline` grpc-java attached to the call's `io.grpc.Context` from the
-  inbound `grpc-timeout` metadata — subtracts a small margin
+  (the `Deadline` grpc-java attached to the call's `io.grpc.Context` from the
+  inbound `grpc-timeout` metadata), subtracts a small margin
   (`DOWNSTREAM_MARGIN_MS = 100`) for its own overhead, and passes what's left
   to `MutinyQuoteServiceGrpc.MutinyQuoteServiceStub#withDeadlineAfter` before
   calling the injected `@GrpcClient("quote")` stub. `quarkus.grpc.clients.quote.deadline`
   (a config property that applies a fixed duration to every call, which the
   Quarkus docs themselves warn isn't a substitute for a real per-request
-  timeout) is not used here — see `application.properties`.
+  timeout) is not used here; see `application.properties`.
 - **Python**: `RoutingServiceServicer.GetQuote` reads `context.time_remaining()`
-  — seconds left on the inbound call, or `None` if the caller set no deadline
-  at all — subtracts the same kind of margin (`_DOWNSTREAM_MARGIN_S = 0.1`),
+  (seconds left on the inbound call, or `None` if the caller set no deadline
+  at all), subtracts the same kind of margin (`_DOWNSTREAM_MARGIN_S = 0.1`),
   and passes what's left as the `timeout=` on the downstream
   `QuoteServiceStub.GetQuote` call.
 
 If the inbound budget is already exhausted before the downstream call would
-even start, both implementations fail with `DEADLINE_EXCEEDED` immediately —
+even start, both implementations fail with `DEADLINE_EXCEEDED` immediately:
 no network round trip, no 2-second wait, nothing to show for a call that was
 already doomed.
 
 ## Cancellation, not only a late timeout
 
 A tight deadline doesn't just make `QuoteService.GetQuote` return an error
-late — the point of propagating a deadline onto the downstream call (rather
+late; the point of propagating a deadline onto the downstream call (rather
 than, say, racing it against a local timer) is that `QuoteService` finds out
 its work stopped mattering and stops doing it:
 
-- **Quarkus**: `QuoteServiceImpl` uses `Uni.createFrom().item(...).onItem().delayIt().by(Duration.ofSeconds(2))`
-  — a Mutiny timer, not `Thread.sleep`. When the downstream deadline expires,
+- **Quarkus**: `QuoteServiceImpl` uses `Uni.createFrom().item(...).onItem().delayIt().by(Duration.ofSeconds(2))`:
+  a Mutiny timer, not `Thread.sleep`. When the downstream deadline expires,
   grpc-java cancels the client call, which cancels the subscription on the
   server side's `Uni`, which tears down the timer before it fires. The
   `.onCancellation().invoke(...)` in `QuoteServiceImpl` logs exactly this.
@@ -143,18 +143,18 @@ its work stopped mattering and stops doing it:
 ## The other four RPCs
 
 `RoutingService` declares five RPCs; only `GetQuote` has a real implementation
-here, exactly as in Ch5/Ch11 — see those chapters' READMEs for the pattern
+here, exactly as in Chapters 5 and 11; see those chapters' READMEs for the pattern
 (`UNIMPLEMENTED` on Quarkus returned explicitly, on Python left to the
 generated servicer base class's default).
 
 ## Proto code generation: `contracts/` is the only source of truth
 
-Same pattern as Ch5/Ch11, extended to a third proto file. Neither module
+Same pattern as Chapters 5 and 11, extended to a third proto file. Neither module
 commits generated or copied `.proto`/stub files; each `Containerfile` builds
 with the **repo root** as its Docker build context so it can `COPY` the three
 proto files this module needs (`types.proto`, `routing.proto`, `quote.proto`)
-straight from `contracts/proto/` at build time — see `quarkus/Containerfile`
-and `python/Containerfile` for the exact `COPY` lines. For a local,
+straight from `contracts/proto/` at build time (see `quarkus/Containerfile`
+and `python/Containerfile` for the exact `COPY` lines). For a local,
 non-container `mvn`/`uv` run, copy the same three files by hand first:
 
 ```bash
@@ -175,7 +175,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/proto/`,
-`python/generated/`) are gitignored (see `../.gitignore`) — they are
+`python/generated/`) are gitignored (see `../.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -191,7 +191,7 @@ grpcurl -plaintext localhost:9100 list
 ```
 
 `verify.sh` asserts these exact fields from the generous-deadline request
-above (`1000kg * 2.50 = "2500.00"`, the same formula Ch5/Ch11 use):
+above (`1000kg * 2.50 = "2500.00"`, the same formula Chapters 5 and 11 use):
 
 | Field | Expected |
 |---|---|

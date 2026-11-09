@@ -75,10 +75,10 @@ assert_not_contains() {
   local haystack="$2"
   local context="${3:-not-contains}"
   if [[ "$haystack" == *"$needle"* ]]; then
-    echo "lib.sh: FAIL — ${context}: unexpected '$needle' found" >&2
+    echo "lib.sh: FAIL, ${context}: unexpected '$needle' found" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: '$needle' correctly absent" >&2
+  echo "lib.sh: ok, ${context}: '$needle' correctly absent" >&2
 }
 
 run_stack_tests() {
@@ -99,10 +99,10 @@ run_stack_tests() {
   local token1
   token1="$(json_field_or_empty '.next_page_token' <<<"$resp1")"
   if [[ -z "$token1" ]]; then
-    echo "lib.sh: FAIL — $stack page 1 next_page_token must be non-empty" >&2
+    echo "lib.sh: FAIL, $stack page 1 next_page_token must be non-empty" >&2
     exit 1
   fi
-  echo "lib.sh: ok — $stack page 1 next_page_token is non-empty ('$token1')" >&2
+  echo "lib.sh: ok, $stack page 1 next_page_token is non-empty ('$token1')" >&2
 
   # --- Page 2: carry the token forward -> the rest, NO overlap, empty token ---
   local resp2
@@ -146,7 +146,7 @@ run_stack_tests "quarkus" "localhost:9130"
 run_stack_tests "python" "localhost:9131"
 
 echo
-echo "PASS — Ch13 schema-design anchor: Quarkus and Python both page the" \
+echo "PASS: Ch13 schema-design anchor: Quarkus and Python both page the" \
      "identical 5-route catalog with page_size/page_token (page 1 returns" \
      "exactly 3 routes + a continuation token, page 2 returns the remaining" \
      "2 with NO overlap and an empty token) AND both apply field_mask" \

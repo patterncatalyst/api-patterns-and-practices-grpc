@@ -1,29 +1,29 @@
-# Ch17 — Streaming at scale: `TrackingService.WatchShipment` as a demand-driven feed
+# Chapter 17: streaming at scale, `TrackingService.WatchShipment` as a demand-driven feed
 
 The reference both-stack implementation of
 `shipping.tracking.v1.TrackingService.WatchShipment` serving a **demand-driven**
-live feed instead of Chapter 8's fixed four-event list — the contract is
+live feed instead of Chapter 8's fixed four-event list; the contract is
 unchanged (zero contract changes this iteration; `WatchShipment` is the same
 RPC Chapter 8 implemented), only *how* the server produces its events
-changes. The contract — not either codebase — is the source of truth:
+changes. The contract, not either codebase, is the source of truth:
 
-- `contracts/proto/shipping/tracking/v1/tracking.proto` — the
+- `contracts/proto/shipping/tracking/v1/tracking.proto`: the
   `TrackingService` and its three RPCs (only `WatchShipment` is implemented
   here; `ReportPositions` and `Sync` return `UNIMPLEMENTED`, same as every
   prior chapter).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Location` and
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Location` and
   `BookingState` the events carry.
 
 Quarkus (`quarkus/`, host port 9170) and Python (`python/`, host port 9171)
 independently implement the identical RPC, generated from the **same**
 `.proto` files. `verify.sh` calls `WatchShipment` on **both** stacks, runs the
 bundled slow consumer against both, and asserts timing claims as well as
-field semantics — not just a gRPC `OK` status.
+field semantics, not just a gRPC `OK` status.
 
 ## The three demo-only modes
 
 `WatchShipmentRequest.booking_id` is a demo-only mode selector for this
-example — it carries no domain meaning beyond picking a feed shape, the same
+example; it carries no domain meaning beyond picking a feed shape, the same
 trick Chapter 15 used with `origin.name` to switch execution models without
 touching the frozen contract:
 
@@ -47,19 +47,19 @@ delivery, so there's enough length to show a measurable production cadence:
 | 4 | `BOOKING_STATE_IN_TRANSIT` | SGSIN (Singapore) | `seq=4` |
 | 5 | `BOOKING_STATE_DELIVERED` | SGSIN (Singapore) | `seq=5` |
 
-Unlike Chapter 8, `event.at` is **not** a fixed historical timestamp — it is
+Unlike Chapter 8, `event.at` is **not** a fixed historical timestamp; it is
 the server's real wall-clock instant at the moment that event was built, and
 `event.note` is a bare `seq=<i>` marker rather than narrative text, so
 `verify.sh` (and the bundled slow consumer) can read production order and
 production time straight off the wire. `bkg_quiet` collapses straight from
-`PENDING` to `DELIVERED` with no intermediate states — a simplification
+`PENDING` to `DELIVERED` with no intermediate states, a simplification
 specific to this demo-only mode, whose subject is the quiet gap, not a
 realistic voyage.
 
 ### Why ~260ms, not ~150ms
 
 A demand-driven producer paces itself independent of how fast any particular
-consumer reads — that's the whole point of "demand-driven" rather than
+consumer reads; that's the whole point of "demand-driven" rather than
 "consumer-adaptive." This example's production cadence (260ms between
 events) is picked to clear `verify.sh`'s own margins with room to spare: the
 incremental-delivery check wants the whole 6-event `bkg_demo` stream to take
@@ -80,7 +80,7 @@ server to answer reflection's `list`, and against **each** of `localhost:9170`
 
 1. Reads `bkg_demo`'s full 6-event stream and asserts exact count, order, and
    per-event fields (state, location, `booking_id`, `note`).
-2. Times that same call and asserts the whole stream took at least ~0.6s —
+2. Times that same call and asserts the whole stream took at least ~0.6s,
    proof the events arrived spread over time, not buffered and dumped.
 3. **The headline check.** Runs the bundled slow consumer
    (`python/app/slow_consumer.py`, one read every ~300ms) against both
@@ -91,8 +91,8 @@ server to answer reflection's `list`, and against **each** of `localhost:9170`
    all within microseconds of each other; and the relative gate
    `eager_spread * 3 < backpressure_spread` holds (the same shape as
    Chapter 15's starve-vs-scale check).
-4. Reads `bkg_quiet` and asserts both events arrive — including the one
-   after the ~2s gap — and the call's total elapsed time is at least ~1.9s,
+4. Reads `bkg_quiet` and asserts both events arrive, including the one
+   after the ~2s gap, and the call's total elapsed time is at least ~1.9s,
    proving the gap was real and the stream wasn't dropped.
 5. Confirms `ReportPositions` and `Sync` both answer `UNIMPLEMENTED`.
 
@@ -100,10 +100,10 @@ Prints `PASS` only if every assertion holds for **both** stacks. A real run
 measured:
 
 ```
-lib.sh: info — quarkus: slow_consumer vs bkg_demo: min_delta=0.2607s spread=1.3061s
-lib.sh: ok — quarkus slow_consumer vs bkg_demo consecutive server-stamped at deltas (producer paced, not raced ahead): 0.2607s >= 0.2s
-lib.sh: info — quarkus: slow_consumer vs bkg_eager: min_delta=4.05e-06s spread=7.89e-05s
-lib.sh: ok — quarkus backpressure relative gate (eager_spread * 3 < backpressure_spread): 7.89e-05s * 3 < 1.3061s
+lib.sh: info, quarkus: slow_consumer vs bkg_demo: min_delta=0.2607s spread=1.3061s
+lib.sh: ok, quarkus slow_consumer vs bkg_demo consecutive server-stamped at deltas (producer paced, not raced ahead): 0.2607s >= 0.2s
+lib.sh: info, quarkus: slow_consumer vs bkg_eager: min_delta=4.05e-06s spread=7.89e-05s
+lib.sh: ok, quarkus backpressure relative gate (eager_spread * 3 < backpressure_spread): 7.89e-05s * 3 < 1.3061s
 ```
 
 To poke at it by hand instead:
@@ -134,7 +134,7 @@ docker compose down -v
 ```
 
 Swap `9170` for `9171` (or `quarkus:9000` for `python:9000`) to hit the
-Python stack instead — same requests, same modes, same numbers.
+Python stack instead: same requests, same modes, same numbers.
 
 The Grafana LGTM observability stack is opt-in and off by default. Unlike
 every other chapter's compose file, `OTEL_EXPORTER_OTLP_ENDPOINT` is **not**
@@ -142,7 +142,7 @@ hardcoded to the `lgtm` service's address here: this chapter's pacing is
 timing-sensitive, and a hostname that fails DNS resolution (which `lgtm`
 does whenever the `observability` profile is off) makes the OpenTelemetry
 SDK's periodic batch span exporter block an event-loop thread for several
-seconds per retry attempt — long enough to visibly disrupt the ~260ms
+seconds per retry attempt, long enough to visibly disrupt the ~260ms
 production cadence this example is built to demonstrate. Left unset, each
 app's own default (`http://localhost:4317`) fails fast with a plain
 connection-refused instead. To exercise the `observability` profile, pass
@@ -164,7 +164,7 @@ section:
   `quarkus.grpc.server.netty.permit-keep-alive-time=10s`,
   `quarkus.grpc.server.netty.permit-keep-alive-without-calls=true`. These sit
   one level deeper than the top-level `quarkus.grpc.server.*` properties
-  used elsewhere in this book — confirmed against the actual
+  used elsewhere in this book, confirmed against the actual
   `io.quarkus:quarkus-grpc:3.40.1` jar
   (`GrpcServerConfiguration$GrpcServerNettyConfig`), which applies them to
   grpc-java's `NettyServerBuilder` under the default separate-server mode
@@ -177,7 +177,7 @@ section:
 
 HTTP/2 flow-control window sizes and keepalive's survival against a real
 middlebox's idle-connection reaping are illustrative only (see the chapter's
-figures and "On the wire" box) — `verify.sh` never gates on either, since
+figures and "On the wire" box); `verify.sh` never gates on either, since
 neither is something a loopback compose network can exercise
 deterministically.
 
@@ -191,7 +191,7 @@ Getting this right against the *actual* generated `quarkus-grpc` bridge
 surfaced a real subtlety: the bridge's subscriber calls
 `Subscription.request(256)` (its fixed prefetch batch) during `onSubscribe`,
 which happens *before* the `Multi.createFrom().emitter(...)` consumer lambda
-— where `MultiEmitter.onRequest` gets registered — ever runs. That initial
+(where `MultiEmitter.onRequest` gets registered) ever runs. That initial
 `request(256)` still lands in `emitter.requested()`, but no `onRequest`
 callback fires for it, since none was registered yet at the moment it
 happened. The fix, visible in `demandDrivenMulti`, is a `maybeStart` check
@@ -209,7 +209,7 @@ construction, with no separate demand-registration step to race against.
 Neither module commits generated or copied `.proto`/stub files. Each
 `Containerfile` builds with the **repo root** as its Docker build context
 (see `compose.yaml`) so it can `COPY` the two proto files this service needs
-straight from `contracts/proto/` at build time — the same mechanics every
+straight from `contracts/proto/` at build time, the same mechanics every
 prior chapter's example has used:
 
 ```bash
@@ -227,7 +227,7 @@ cd python && uv sync --group dev && \
     proto/shipping/type/v1/types.proto proto/shipping/tracking/v1/tracking.proto
 ```
 
-Both copy destinations are gitignored (see `.gitignore`) — build-time-only,
+Both copy destinations are gitignored (see `.gitignore`): build-time-only,
 never committed.
 
 ## On the wire
@@ -243,7 +243,7 @@ grpcurl -plaintext localhost:9170 list
 See `_docs/17-streaming-at-scale.md`'s "On the wire" box for a sample
 `bkg_demo` read with its ~260ms-apart `at` timestamps, and a note on where a
 real HTTP/2 frame-level trace (`GODEBUG=http2debug=2`, or `grpcurl -v`) would
-show the flow-control mechanics Figure 17.1 describes — illustrative only,
+show the flow-control mechanics Figure 17.1 describes. It is illustrative only,
 not something this example's `verify.sh` asserts on.
 
 ## Diagrams
@@ -256,12 +256,3 @@ a stalled consumer does to them), `17-slow-consumer-backpressure`
 async-generator pull side by side), and `17-keepalive-quiet-stream`
 (keepalive PING/ACK holding a quiet stream open vs. an idle connection
 reaped without it).
-
-## Verification status
-
-**Verified** by an actual run of `./verify.sh` against both stacks, built
-and executed in this iteration — see `_docs/17-streaming-at-scale.md`'s
-verification-status footer for the specific risk factors (timing margins on
-different hardware, and the `MultiEmitter.onRequest` prefetch-timing detail
-tied to the pinned `quarkus-grpc` 3.40.1 release) that a reader's own run
-should confirm.

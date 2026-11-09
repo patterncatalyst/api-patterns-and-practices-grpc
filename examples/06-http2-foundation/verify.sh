@@ -62,7 +62,7 @@ ensure_buf() {
   echo "verify.sh: downloading buf ${BUF_VERSION} (${os}/${arch}) ..." >&2
   mkdir -p "$BIN_DIR"
   if ! curl -fsSL "$url" -o "$BIN_DIR/buf"; then
-    echo "verify.sh: FAIL — could not download buf from $url" >&2
+    echo "verify.sh: FAIL, could not download buf from $url" >&2
     return 1
   fi
   chmod +x "$BIN_DIR/buf"
@@ -71,7 +71,7 @@ ensure_buf() {
 
 ensure_buf
 ( cd "$REPO_ROOT/contracts" && buf build )
-echo "buf build: ok — contracts/ compiles as one module"
+echo "buf build: ok, contracts/ compiles as one module"
 
 # ---------------------------------------------------------------------------
 # Step 2: throwaway venv + Python stub generation
@@ -100,7 +100,7 @@ python -m grpc_tools.protoc \
   "$REPO_ROOT/contracts/proto/shipping/routing/v1/routing.proto"
 
 stub_count="$(find "$GEN_DIR" -name '*_pb2.py' | wc -l | tr -d ' ')"
-echo "protoc: ok — generated $stub_count stub module(s) under $GEN_DIR (shipping.type.v1 + shipping.routing.v1)"
+echo "protoc: ok, generated $stub_count stub module(s) under $GEN_DIR (shipping.type.v1 + shipping.routing.v1)"
 
 # ---------------------------------------------------------------------------
 # Step 3: measure protobuf vs. proto3 JSON, then hand-decode

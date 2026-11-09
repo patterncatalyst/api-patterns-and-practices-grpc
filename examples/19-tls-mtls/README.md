@@ -1,13 +1,13 @@
-# Ch19 — TLS & mTLS: channel/transport credentials on `RoutingService.GetQuote`
+# Chapter 19 example: TLS & mTLS on `RoutingService.GetQuote`
 
 The reference both-stack implementation of `shipping.routing.v1.RoutingService.GetQuote` served over
-TLS, then mutual TLS — no contract change, since TLS/mTLS lives entirely in how a channel is built and
+TLS, then mutual TLS. There is no contract change, since TLS/mTLS lives entirely in how a channel is built and
 how a server is configured. The contract is unchanged from every prior chapter:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService` and its five RPCs
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService` and its five RPCs
   (`GetQuote` is implemented here; the rest return `UNIMPLEMENTED`, same discipline as every prior
   example).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Money`, `Location`, `Cargo`, `Route`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Money`, `Location`, `Cargo`, `Route`,
   `Leg` messages.
 
 Quarkus (`quarkus/`, host port **9190**) and Python (`python/`, host port **9191**) independently
@@ -28,21 +28,21 @@ CA-only call now fails. Prints `PASS` only if all eight assertions (four per sta
 this book's dev box:
 
 ```
-lib.sh: ok — quarkus phase A TLS quote.amount: '3001.25'
-lib.sh: ok — quarkus phase A plaintext-refused: rejected at the transport/handshake layer
-lib.sh: ok — python phase A TLS quote.amount: '3001.25'
-lib.sh: ok — python phase A plaintext-refused: rejected at the transport/handshake layer
-lib.sh: ok — quarkus phase B mTLS quote.amount: '3001.25'
-lib.sh: ok — quarkus phase B no-client-cert-rejected: rejected at the transport/handshake layer
-lib.sh: ok — python phase B mTLS quote.amount: '3001.25'
-lib.sh: ok — python phase B no-client-cert-rejected: rejected at the transport/handshake layer
+lib.sh: ok, quarkus phase A TLS quote.amount: '3001.25'
+lib.sh: ok, quarkus phase A plaintext-refused: rejected at the transport/handshake layer
+lib.sh: ok, python phase A TLS quote.amount: '3001.25'
+lib.sh: ok, python phase A plaintext-refused: rejected at the transport/handshake layer
+lib.sh: ok, quarkus phase B mTLS quote.amount: '3001.25'
+lib.sh: ok, quarkus phase B no-client-cert-rejected: rejected at the transport/handshake layer
+lib.sh: ok, python phase B mTLS quote.amount: '3001.25'
+lib.sh: ok, python phase B no-client-cert-rejected: rejected at the transport/handshake layer
 ```
 
 To poke at it by hand instead:
 
 ```bash
 GRPC_CLIENT_AUTH=NONE docker compose up -d --build   # TLS only
-# or just: docker compose up -d --build              # mTLS (the default — GRPC_CLIENT_AUTH=REQUIRED)
+# or just: docker compose up -d --build              # mTLS (the default: GRPC_CLIENT_AUTH=REQUIRED)
 
 CA=.host-out/ca.crt
 CLIENT_CRT=.host-out/client.crt
@@ -67,10 +67,10 @@ grpcurl -cacert "$CA" -cert "$CLIENT_CRT" -key "$CLIENT_KEY" -servername quarkus
 docker compose down -v
 ```
 
-Swap `9190`/`quarkus` for `9191`/`python` to hit the Python stack instead — identical certificates,
+Swap `9190`/`quarkus` for `9191`/`python` to hit the Python stack instead: identical certificates,
 identical outcomes.
 
-## The quote formula (unchanged from Ch7/Ch18)
+## The quote formula (unchanged from Chapters 7 and 18)
 
 ```
 quote.currency = "USD"
@@ -85,7 +85,7 @@ route.price    = quote
 `certgen/` builds a pinned `registry.access.redhat.com/ubi10/ubi-minimal:10.2-1791891203` image with
 `openssl` and `java-21-openjdk-headless` (for `keytool` only) installed at build time. The actual
 certificate material is generated at **container-run time** by `certgen/gen-certs.sh`, fresh on every
-`docker compose up` — nothing cryptographic is committed to the repository or baked into an image
+`docker compose up`: nothing cryptographic is committed to the repository or baked into an image
 layer. `compose.yaml` wires `certgen` as a `depends_on: condition: service_completed_successfully`
 dependency of both `quarkus` and `python`, so a plain `docker compose up` runs it to completion
 automatically before either server starts.
@@ -98,16 +98,16 @@ and a notBefore backdated about a day to absorb clock skew:
 | `ca.crt` / `ca.key` | the local CA every other cert in this example chains to |
 | `server.crt` / `server.key` | ONE server identity, shared by both Quarkus and Python |
 | `client.crt` / `client.key` | the mTLS client identity `grpcurl` presents |
-| `ca-truststore.jks` | `ca.crt` repackaged as a Java keystore — see below |
+| `ca-truststore.jks` | `ca.crt` repackaged as a Java keystore (see below) |
 
 `server.crt`'s Subject Alternative Name list is `DNS:quarkus, DNS:python, DNS:localhost,
-IP:127.0.0.1` — covering both in-container service names (so either server is a valid target when a
+IP:127.0.0.1`. It covers both in-container service names (so either server is a valid target when a
 client inside the compose network dials `quarkus:9000` or `python:9000`) plus `localhost`/`127.0.0.1`
 (so a host-side `grpcurl -servername quarkus` call against the published port `localhost:9190` also
 validates).
 
 Everything lands in a named Docker volume, `certs`, mounted read-only into both servers. `certgen`
-additionally copies `ca.crt`, `client.crt`, and `client.key` — never `server.key` or `ca.key` — into
+additionally copies `ca.crt`, `client.crt`, and `client.key` (never `server.key` or `ca.key`) into
 `.host-out/`, a bind-mounted host directory `verify.sh`'s plain host-process `grpcurl` reads directly
 with `-cacert`/`-cert`/`-key`, since it is not itself a container on the compose network.
 
@@ -122,11 +122,11 @@ property always loads through Vert.x's `KeyStoreHelper`, which requires an actua
   ca.p12`, loads without error but fails silently the moment it matters: Java's PKIX validator reports
   `InvalidAlgorithmParameterException: the trustAnchors parameter must be non-empty` the first time a
   client presents a certificate to verify. A one-way TLS handshake never exercises that code path, so
-  this only surfaces once `client-auth=REQUIRED` is turned on — confirmed empirically while building
+  this only surfaces once `client-auth=REQUIRED` is turned on. This was confirmed empirically while building
   this example, not assumed from documentation.
 - `keytool -importcert -noprompt -alias ca -file ca.crt -keystore ca-truststore.jks -storepass
   changeit` builds a trust-store Java recognizes correctly. `java-21-openjdk-headless` is in the
-  `certgen` image for `keytool` alone — nothing else in this example touches Java on the certgen side.
+  `certgen` image for `keytool` alone; nothing else in this example touches Java on the certgen side.
 
 grpc.aio's `ssl_server_credentials(..., root_certificates=...)` on the Python side has no such
 restriction; it reads `ca.crt` directly.
@@ -144,20 +144,20 @@ restriction; it reads `ca.crt` directly.
 `GRPC_CLIENT_AUTH` is the one environment variable both stacks read to switch between the two phases
 `verify.sh` demonstrates, without a rebuild:
 
-- `NONE` — one-way TLS. The server presents its certificate; it never asks the client for one.
-- `REQUIRED` (this example's default/steady state) — mutual TLS. A client without a certificate the
+- `NONE`: one-way TLS. The server presents its certificate; it never asks the client for one.
+- `REQUIRED` (this example's default and steady state): mutual TLS. A client without a certificate the
   server's trust store recognizes is rejected at the handshake, before `GetQuote`'s handler ever runs.
 
 Quarkus's `client-auth` property also accepts `REQUEST` (ask for a certificate, accept the call either
-way) — the three-value Vert.x `ClientAuth` enum; grpc-core's `require_client_auth` is a boolean, so the
+way), the third value of the Vert.x `ClientAuth` enum. grpc-core's `require_client_auth` is a boolean, so the
 Python side only ever has the two ends of that range.
 
 ## Proto code generation: `contracts/` is the only source of truth
 
-Neither module commits generated or copied `.proto`/stub files — same discipline as every prior
+Neither module commits generated or copied `.proto`/stub files, the same discipline as every prior
 anchor. Each `Containerfile` builds with the **repo root** as its Docker build context (see
 `compose.yaml`) so it can `COPY` the two proto files this service needs straight from
-`contracts/proto/` at build time. See Ch7's README for the full local, non-container `mvn`/`uv` copy
+`contracts/proto/` at build time. See Chapter 7's README for the full local, non-container `mvn`/`uv` copy
 instructions; the destinations are identical here, just under `examples/19-tls-mtls/`.
 
 ## On the wire
@@ -170,23 +170,17 @@ on exactly where the handshake fails.
 ## Diagrams
 
 Three paired figures in `assets/diagrams/` (generated with `scripts/generate_diagram.py`) back this
-chapter: `19-tls-handshake-cert-chain` (one-way TLS — the client verifies the server, never the
+chapter: `19-tls-handshake-cert-chain` (one-way TLS: the client verifies the server, never the
 reverse), `19-mtls-mutual-verification` (mTLS adds the second direction, side by side with plain TLS),
 and `19-where-credentials-attach` (the compose topology: `certgen`'s one-shot run, the shared `certs`
 volume, the host-bind export, and the server certificate's SAN list).
 
 ## Progression toward a real cluster
 
-This example's cert bootstrap is Compose-local by design — a throwaway CA, a ten-year validity
+This example's cert bootstrap is Compose-local by design: a throwaway CA, a ten-year validity
 window, a shell script. A Kubernetes deployment of the same two services would swap `certgen` for
 [cert-manager](https://cert-manager.io/) issuing into mounted `Secret` volumes at the same file paths
 this chapter's configuration already points at, and would swap the ten-year window for cert-manager's
-own renewal schedule — neither change touches `RoutingServiceImpl`/`RoutingServiceServicer`, since the
+own renewal schedule. Neither change touches `RoutingServiceImpl`/`RoutingServiceServicer`, since the
 application code only ever reads certificate files from disk. This book does not stand up that
 migration; see the chapter's "Progression toward a real cluster" section for the full mapping.
-
----
-
-*Verification status: <span class="status status--unverified">unverified</span>. `verify.sh` ran green
-against both stacks on the authoring machine across repeated runs. See the chapter's own verification
-footer for what a reader's own run should double-check.*

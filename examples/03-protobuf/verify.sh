@@ -57,7 +57,7 @@ ensure_buf() {
   echo "verify.sh: downloading buf ${BUF_VERSION} (${os}/${arch}) ..." >&2
   mkdir -p "$BIN_DIR"
   if ! curl -fsSL "$url" -o "$BIN_DIR/buf"; then
-    echo "verify.sh: FAIL — could not download buf from $url" >&2
+    echo "verify.sh: FAIL, could not download buf from $url" >&2
     return 1
   fi
   chmod +x "$BIN_DIR/buf"
@@ -66,7 +66,7 @@ ensure_buf() {
 
 ensure_buf
 ( cd "$REPO_ROOT/contracts" && buf build )
-echo "buf build: ok — contracts/ compiles as one module"
+echo "buf build: ok, contracts/ compiles as one module"
 
 # ---------------------------------------------------------------------------
 # Step 2: throwaway venv + Python stub generation
@@ -96,7 +96,7 @@ python -m grpc_tools.protoc \
   "$SCRIPT_DIR/oneof_demo.proto"
 
 stub_count="$(find "$GEN_DIR" -name '*_pb2.py' | wc -l | tr -d ' ')"
-echo "protoc: ok — generated $stub_count stub module(s) under $GEN_DIR"
+echo "protoc: ok, generated $stub_count stub module(s) under $GEN_DIR"
 
 # ---------------------------------------------------------------------------
 # Step 3: round-trip
@@ -108,6 +108,6 @@ echo "=== Step 3: round-trip Booking/Money (the contract) + oneof demo ==="
 PYTHONPATH="$GEN_DIR" python3 "$SCRIPT_DIR/roundtrip.py"
 
 echo
-echo "PASS — buf build succeeded, Python stubs generated from shipping.type.v1" \
+echo "PASS: buf build succeeded, Python stubs generated from shipping.type.v1" \
      "(the real contract) plus the oneof demo, and every round-tripped" \
      "message survived serialize -> parse with every field intact."

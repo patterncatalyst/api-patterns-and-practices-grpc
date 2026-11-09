@@ -38,10 +38,10 @@ M_GETQUOTE="$SVC_ROUTING/GetQuote"
 assert_ge() {
   local expected_min="$1" actual="$2" context="${3:-at-least}"
   if (( actual < expected_min )); then
-    echo "lib.sh: FAIL — ${context}: expected >= $expected_min, got $actual" >&2
+    echo "lib.sh: FAIL, ${context}: expected >= $expected_min, got $actual" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: $actual >= $expected_min" >&2
+  echo "lib.sh: ok, ${context}: $actual >= $expected_min" >&2
 }
 
 # assert_contains_ci <needle> <haystack> <context> — case-insensitive
@@ -53,10 +53,10 @@ assert_contains_ci() {
   needle_l="$(printf '%s' "$needle" | tr '[:upper:]' '[:lower:]')"
   hay_l="$(printf '%s' "$haystack" | tr '[:upper:]' '[:lower:]')"
   if [[ "$hay_l" != *"$needle_l"* ]]; then
-    echo "lib.sh: FAIL — ${context}: '$needle' not found (case-insensitive) in '$haystack'" >&2
+    echo "lib.sh: FAIL, ${context}: '$needle' not found (case-insensitive) in '$haystack'" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: found '$needle' (case-insensitive)" >&2
+  echo "lib.sh: ok, ${context}: found '$needle' (case-insensitive)" >&2
 }
 
 # field_or <dot.path> <default> — reads stdin JSON via json_field, printing
@@ -90,7 +90,7 @@ poll_operation_until_done() {
     fi
     sleep "$interval_s"
   done
-  echo "lib.sh: FAIL — poll_operation_until_done: $op_id did not reach done=true within $((max_tries))x${interval_s}s" >&2
+  echo "lib.sh: FAIL, poll_operation_until_done: $op_id did not reach done=true within $((max_tries))x${interval_s}s" >&2
   return 1
 }
 
@@ -149,10 +149,10 @@ run_stack_tests() {
   local cancel_pct
   cancel_pct="$(field_or '.progress_pct' '0' <<<"$get_after_cancel")"
   if (( cancel_pct >= 100 )); then
-    echo "lib.sh: FAIL — $stack cancel: progress_pct $cancel_pct, expected < 100 (cancelled before natural completion)" >&2
+    echo "lib.sh: FAIL, $stack cancel: progress_pct $cancel_pct, expected < 100 (cancelled before natural completion)" >&2
     exit 1
   fi
-  echo "lib.sh: ok — $stack cancel: progress_pct $cancel_pct < 100 (server-owned job stopped early)" >&2
+  echo "lib.sh: ok, $stack cancel: progress_pct $cancel_pct < 100 (server-owned job stopped early)" >&2
 
   # --- 5. Rerunnable reconcile: two independent runs, each to the same ----
   #        consistent terminal state.
@@ -170,10 +170,10 @@ run_stack_tests() {
   assert_eq "100" "$(field_or '.progress_pct' '0' <<<"$run2_final")" "$stack rerun #2: terminal progress_pct"
 
   if [[ "$run1_id" == "$run2_id" ]]; then
-    echo "lib.sh: FAIL — $stack rerun: two RecomputeRoutes calls returned the SAME operation id ($run1_id) — each call must start its own Operation" >&2
+    echo "lib.sh: FAIL, $stack rerun: two RecomputeRoutes calls returned the SAME operation id ($run1_id) — each call must start its own Operation" >&2
     exit 1
   fi
-  echo "lib.sh: ok — $stack rerun: two independent operation ids ($run1_id, $run2_id), both converged to the same terminal state" >&2
+  echo "lib.sh: ok, $stack rerun: two independent operation ids ($run1_id, $run2_id), both converged to the same terminal state" >&2
 
   # --- 6. An undeclared-for-this-chapter RoutingService RPC still says so -
   grpc_expect_code "$target" "$M_GETQUOTE" '{}' "UNIMPLEMENTED" "$stack GetQuote (declared, not part of this chapter)"
@@ -190,7 +190,7 @@ run_stack_tests "quarkus" "localhost:9160"
 run_stack_tests "python" "localhost:9161"
 
 echo
-echo "PASS — Ch16 async/long-running-jobs: on BOTH the Quarkus and the" \
+echo "PASS: Ch16 async/long-running-jobs: on BOTH the Quarkus and the" \
      "Python stack, RecomputeRoutes returns a server-owned Operation" \
      "immediately, GetOperation polls it to a terminal done=true/100% state," \
      "WatchOperation streams at least two snapshots ending in that same" \

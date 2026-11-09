@@ -63,16 +63,16 @@ async def run(target: str, page_size: int) -> int:
           f"plain_routes={len(plain.routes)} gzip_routes={len(gzipped.routes)}", file=sys.stderr)
 
     if len(plain.routes) != page_size:
-        print(f"gzip_client: FAIL — expected {page_size} routes in the plain call, "
+        print(f"gzip_client: FAIL, expected {page_size} routes in the plain call, "
               f"got {len(plain.routes)}", file=sys.stderr)
         return 1
 
     if plain != gzipped:
-        print("gzip_client: FAIL — gzip-enabled call returned a DIFFERENT payload "
+        print("gzip_client: FAIL, gzip-enabled call returned a DIFFERENT payload "
               "than the default call", file=sys.stderr)
         return 1
 
-    print(f"gzip_client: ok — {page_size}-route page identical with and without "
+    print(f"gzip_client: ok, {page_size}-route page identical with and without "
           "per-call gzip compression requested", file=sys.stderr)
     print("MATCH")
     return 0

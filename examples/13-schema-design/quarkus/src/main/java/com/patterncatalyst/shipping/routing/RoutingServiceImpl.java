@@ -101,7 +101,7 @@ public class RoutingServiceImpl implements RoutingService {
 
     /**
      * Returns {@code route} unchanged when the caller sent no mask (an unset
-     * {@code FieldMask} means "I want everything" — the only reading that
+     * {@code FieldMask} means "I want everything", the only reading that
      * keeps {@code ListRoutes} backward compatible with a client built before
      * this field existed). Otherwise builds a FRESH, empty {@code Route}
      * builder and merges only the named top-level paths into it, so any field
@@ -109,7 +109,7 @@ public class RoutingServiceImpl implements RoutingService {
      * from the wire (proto3 omits unset/default scalar and message fields).
      * {@link FieldMaskUtil#normalize} sorts and de-duplicates the paths first,
      * which also happens to be where an unrecognized path is rejected via
-     * {@link FieldMaskUtil#isValid} — never silently ignored.
+     * {@link FieldMaskUtil#isValid}, never silently ignored.
      */
     private static Types.Route applyFieldMask(Types.Route route, FieldMask mask) {
         if (mask.getPathsCount() == 0) {

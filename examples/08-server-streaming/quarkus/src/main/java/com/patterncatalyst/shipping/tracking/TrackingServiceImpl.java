@@ -30,7 +30,7 @@ public class TrackingServiceImpl implements TrackingService {
         // Multi.createFrom().items(...) emits the four TrackingEvents, in
         // the exact order supplied, as DATA frames on the one HTTP/2 stream
         // this call opened; the Multi completing is what sends the server's
-        // half-close — no explicit "end of stream" call needed.
+        // half-close, so no explicit "end of stream" call is needed.
         return Multi.createFrom().items(TrackingEvents.sequence(bookingId).stream())
                 .map(event -> Tracking.WatchShipmentResponse.newBuilder().setEvent(event).build());
     }

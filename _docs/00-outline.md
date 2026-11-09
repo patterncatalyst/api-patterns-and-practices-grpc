@@ -6,12 +6,7 @@ part: "Prerequisites & the Lab"
 description: "What this site covers and how it's organized: 28 chapters across 13 parts, both stacks against one Protobuf contract."
 ---
 
-This site teaches gRPC API design against a single Protocol Buffers contract for a
-shipping and cargo domain. gRPC here is the internal, latency-sensitive routing and
-tracking service that the sibling REST booking service calls. Every hands-on chapter
-ships the same example in **both Quarkus and Python**, generated from the same proto,
-and CI asserts each response against the contract so the two stacks never drift. The
-full arc is below.
+The course teaches gRPC API design against one Protocol Buffers contract for a shipping and cargo domain. gRPC here is the internal, latency-sensitive routing and tracking service that the sibling REST booking service calls. Every hands-on chapter ships the same example in **both Quarkus and Python**, generated from the same proto, and CI asserts each response against the contract so the two stacks never drift.
 
 ## Part 0: Prerequisites & the Lab
 - [Prerequisites & the lab](../00-prerequisites-and-the-lab/)

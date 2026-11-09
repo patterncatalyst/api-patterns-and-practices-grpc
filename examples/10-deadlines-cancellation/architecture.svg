@@ -3,9 +3,9 @@
 <rect x="20" y="20" width="960" height="200" rx="12" fill="#fafafa" stroke="#ddd"/>
 <text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">Contract (single source of truth)</text>
 <rect x="20" y="240" width="440" height="300" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Quarkus container — host :9100 -&gt; :9000</text>
+<text x="32" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Quarkus container: host :9100 -&gt; :9000</text>
 <rect x="540" y="240" width="440" height="300" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="552" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Python container — host :9101 -&gt; :9000</text>
+<text x="552" y="260" font-size="12" font-weight="700" fill="#1d1d1d">Python container: host :9101 -&gt; :9000</text>
 <rect x="60" y="90" width="400" height="90" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5"/>
 <text x="260.0" y="133.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">contracts/proto/shipping/{type,routing,quote}/v1/*.proto</text>
 <text x="260.0" y="150.0" font-size="11.5" fill="#555555" text-anchor="middle">RoutingService.GetQuote calls QuoteService.GetQuote</text>
@@ -18,13 +18,13 @@
 <text x="240.0" y="345.0" font-size="11.5" fill="#555555" text-anchor="middle">withDeadlineAfter(remaining budget)</text>
 <rect x="60" y="400" width="360" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="240.0" y="438.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteServiceImpl (Mutiny)</text>
-<text x="240.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — Uni.onItem().delayIt()</text>
+<text x="240.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay: Uni.onItem().delayIt()</text>
 <rect x="580" y="290" width="360" height="80" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
 <text x="760.0" y="328.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">RoutingServiceServicer (grpc.aio)</text>
 <text x="760.0" y="345.0" font-size="11.5" fill="#555555" text-anchor="middle">timeout=context.time_remaining()</text>
 <rect x="580" y="400" width="360" height="80" rx="9" fill="#fff3e0" stroke="#e8870c" stroke-width="2"/>
 <text x="760.0" y="438.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">QuoteServiceServicer (grpc.aio)</text>
-<text x="760.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay — asyncio.sleep()</text>
+<text x="760.0" y="455.0" font-size="11.5" fill="#555555" text-anchor="middle">~2s delay: asyncio.sleep()</text>
 <path d="M460,135 L540,135" fill="none" stroke="#555" stroke-width="2" marker-end="url(#a)"/>
 <text x="506.0" y="129.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">generates stubs for both stacks</text>
 <text x="506.0" y="129.0" font-size="11" fill="#555" text-anchor="middle">generates stubs for both stacks</text>

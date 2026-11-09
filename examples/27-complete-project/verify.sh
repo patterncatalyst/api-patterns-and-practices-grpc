@@ -57,13 +57,13 @@ wait_for_certs() {
   local waited=0 timeout=30
   while (( waited < timeout )); do
     if [[ -s "$CA_CRT" && -s "$CLIENT_CRT" && -s "$CLIENT_KEY" ]]; then
-      echo "verify.sh: ok — certgen output present in $HOST_OUT_DIR" >&2
+      echo "verify.sh: ok, certgen output present in $HOST_OUT_DIR" >&2
       return 0
     fi
     sleep 1
     waited=$(( waited + 1 ))
   done
-  echo "verify.sh: FAIL — certgen output never appeared in $HOST_OUT_DIR after ${timeout}s" >&2
+  echo "verify.sh: FAIL, certgen output never appeared in $HOST_OUT_DIR after ${timeout}s" >&2
   return 1
 }
 
@@ -76,13 +76,13 @@ wait_for_rest() {
   while (( waited < timeout )); do
     if curl -fsS -X POST "$url/booking/quote" -H 'content-type: application/json' \
          -d '{"origin":"USNYC","destination":"NLRTM","cargoKg":1}' >/dev/null 2>&1; then
-      echo "verify.sh: ok — $url is up after ${waited}s" >&2
+      echo "verify.sh: ok, $url is up after ${waited}s" >&2
       return 0
     fi
     sleep 3
     waited=$(( waited + 3 ))
   done
-  echo "verify.sh: FAIL — $url did not come up within ${timeout}s" >&2
+  echo "verify.sh: FAIL, $url did not come up within ${timeout}s" >&2
   return 1
 }
 
@@ -92,10 +92,10 @@ wait_for_rest() {
 assert_tls_rejected() {
   local out="$1" context="${2:-tls-rejected}"
   if ! grep -qiE 'failed to dial|tls|handshake|certificate|unavailable|eof|deadline exceeded' <<<"$out"; then
-    echo "verify.sh: FAIL — ${context}: error text doesn't name a transport/TLS failure: $out" >&2
+    echo "verify.sh: FAIL, ${context}: error text doesn't name a transport/TLS failure: $out" >&2
     return 1
   fi
-  echo "verify.sh: ok — ${context}: rejected at the transport/handshake layer" >&2
+  echo "verify.sh: ok, ${context}: rejected at the transport/handshake layer" >&2
 }
 
 # mint_token <case> — mints an HS256 JWT via the already-built python service
@@ -133,7 +133,7 @@ mtls_expect_code() {
   local out rc=0
   out="$(mtls_grpcurl "$servername" "$token" -d "$data" "$target" "$method" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "verify.sh: FAIL — ${context}: expected error code $expected, but the call succeeded" >&2
+    echo "verify.sh: FAIL, ${context}: expected error code $expected, but the call succeeded" >&2
     return 1
   fi
   local got exp_n got_n
@@ -141,10 +141,10 @@ mtls_expect_code() {
   exp_n="$(printf '%s' "$expected" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   got_n="$(printf '%s' "$got" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   if [[ -n "$got_n" && "$got_n" == "$exp_n" ]]; then
-    echo "verify.sh: ok — ${context}: got expected code $expected (grpcurl: ${got})" >&2
+    echo "verify.sh: ok, ${context}: got expected code $expected (grpcurl: ${got})" >&2
     return 0
   fi
-  echo "verify.sh: FAIL — ${context}: expected code $expected, got: $out" >&2
+  echo "verify.sh: FAIL, ${context}: expected code $expected, got: $out" >&2
   return 1
 }
 
@@ -167,10 +167,10 @@ assert_full_flow() {
   local trace_id
   trace_id="$(json_field '.traceId' <<<"$resp")"
   if [[ ! "$trace_id" =~ ^[0-9a-f]{32}$ ]]; then
-    echo "verify.sh: FAIL — $stack booking.traceId: '$trace_id' is not a 32-hex-digit W3C trace id" >&2
+    echo "verify.sh: FAIL, $stack booking.traceId: '$trace_id' is not a 32-hex-digit W3C trace id" >&2
     return 1
   fi
-  echo "verify.sh: ok — $stack booking.traceId: $trace_id" >&2
+  echo "verify.sh: ok, $stack booking.traceId: $trace_id" >&2
   # Exported for the caller (trace-id-continuity assertion and the soft
   # Tempo check both need it); bash has no return-by-value, so a global.
   LAST_TRACE_ID="$trace_id"
@@ -249,7 +249,7 @@ assert_mtls_enforced() {
   out="$(grpcurl -cacert "$CA_CRT" -servername "$servername" -H "authorization: Bearer $token" \
     -d "$UNARY_REQUEST" "$target" "shipping.routing.v1.RoutingService/GetQuote" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "verify.sh: FAIL — $stack mtls-no-client-cert: call without a client cert succeeded" >&2
+    echo "verify.sh: FAIL, $stack mtls-no-client-cert: call without a client cert succeeded" >&2
     return 1
   fi
   assert_tls_rejected "$out" "$stack mtls-no-client-cert"
@@ -260,7 +260,7 @@ assert_mtls_enforced() {
   out="$(grpcurl -plaintext -H "authorization: Bearer $token" \
     -d "$UNARY_REQUEST" "$target" "shipping.routing.v1.RoutingService/GetQuote" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "verify.sh: FAIL — $stack mtls-plaintext: a -plaintext call succeeded against an mTLS-only server" >&2
+    echo "verify.sh: FAIL, $stack mtls-plaintext: a -plaintext call succeeded against an mTLS-only server" >&2
     return 1
   fi
   assert_tls_rejected "$out" "$stack mtls-plaintext"
@@ -276,14 +276,14 @@ assert_jwt_enforced() {
   out="$(grpcurl -cacert "$CA_CRT" -cert "$CLIENT_CRT" -key "$CLIENT_KEY" -servername "$servername" \
     -d "$UNARY_REQUEST" "$target" "shipping.routing.v1.RoutingService/GetQuote" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "verify.sh: FAIL — $stack jwt-missing: expected UNAUTHENTICATED, but the call succeeded" >&2
+    echo "verify.sh: FAIL, $stack jwt-missing: expected UNAUTHENTICATED, but the call succeeded" >&2
     return 1
   fi
   if ! grep -qiE 'unauthenticated' <<<"$out"; then
-    echo "verify.sh: FAIL — $stack jwt-missing: expected UNAUTHENTICATED, got: $out" >&2
+    echo "verify.sh: FAIL, $stack jwt-missing: expected UNAUTHENTICATED, got: $out" >&2
     return 1
   fi
-  echo "verify.sh: ok — $stack jwt-missing: got expected code UNAUTHENTICATED" >&2
+  echo "verify.sh: ok, $stack jwt-missing: got expected code UNAUTHENTICATED" >&2
 
   echo
   echo "=== $stack: JWT enforced — expired token -> UNAUTHENTICATED ==="
@@ -316,16 +316,16 @@ assert_trace_id_continuity() {
 
   if ! grep -q "RoutingService.*${log_key}=${LAST_TRACE_ID}" <<<"$logs" \
       && ! grep -qi "routingservice.*${log_key}=${LAST_TRACE_ID}" <<<"$logs"; then
-    echo "verify.sh: FAIL — $stack trace-id-continuity: RoutingService handler log does not show ${log_key}=${LAST_TRACE_ID}" >&2
+    echo "verify.sh: FAIL, $stack trace-id-continuity: RoutingService handler log does not show ${log_key}=${LAST_TRACE_ID}" >&2
     return 1
   fi
-  echo "verify.sh: ok — $stack trace-id-continuity: RoutingService handler logged ${log_key}=${LAST_TRACE_ID}" >&2
+  echo "verify.sh: ok, $stack trace-id-continuity: RoutingService handler logged ${log_key}=${LAST_TRACE_ID}" >&2
 
   if ! grep -qi "quoteservice.*${log_key}=${LAST_TRACE_ID}" <<<"$logs"; then
-    echo "verify.sh: FAIL — $stack trace-id-continuity: QuoteService handler log does not show ${log_key}=${LAST_TRACE_ID}" >&2
+    echo "verify.sh: FAIL, $stack trace-id-continuity: QuoteService handler log does not show ${log_key}=${LAST_TRACE_ID}" >&2
     return 1
   fi
-  echo "verify.sh: ok — $stack trace-id-continuity: QuoteService handler logged ${log_key}=${LAST_TRACE_ID} (SAME id as the REST response)" >&2
+  echo "verify.sh: ok, $stack trace-id-continuity: QuoteService handler logged ${log_key}=${LAST_TRACE_ID} (SAME id as the REST response)" >&2
 }
 
 # assert_tempo_soft <stack> — SOFT: queries Tempo for a multi-span trace with
@@ -359,7 +359,7 @@ print(n)
     sleep 5
   done
   if [[ "$span_count" -ge 2 ]]; then
-    echo "verify.sh: ok (soft) — $stack Tempo holds a $span_count-span trace for $LAST_TRACE_ID" >&2
+    echo "verify.sh: ok (soft), $stack Tempo holds a $span_count-span trace for $LAST_TRACE_ID" >&2
   else
     echo "verify.sh: soft-skip — $stack Tempo did not show >=2 spans for $LAST_TRACE_ID within $(( max_attempts * 5 ))s (non-fatal; Tempo ingest lag is out of this chapter's control)" >&2
   fi
@@ -403,7 +403,7 @@ run_ghz_smoke() {
     [[ "$attempt" -lt 3 ]] && sleep 10
   done
   if [[ "$ok" -ne 1 ]]; then
-    echo "verify.sh: FAIL — ghz smoke never completed for $stack after 3 attempts" >&2
+    echo "verify.sh: FAIL, ghz smoke never completed for $stack after 3 attempts" >&2
     return 1
   fi
 
@@ -414,7 +414,7 @@ run_ghz_smoke() {
   errors="$(python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); print(sum(d.get("errorDistribution",{}).values()))' "$out_file")"
   total="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["count"])' "$out_file")"
   rm -f "$out_file" /tmp/ch27-ghz-"${stack}".err
-  echo "verify.sh: info — $stack ghz: total=$total errors=$errors" >&2
+  echo "verify.sh: info, $stack ghz: total=$total errors=$errors" >&2
   assert_eq "0" "$errors" "$stack ghz error count"
   assert_eq "80" "$total" "$stack ghz completed request count"
 }
@@ -471,7 +471,7 @@ for STACK_SPEC in "quarkus|$QUARKUS_GRPC|quarkus|$QUARKUS_REST|quarkus|traceId|q
 done
 
 echo
-echo "PASS — Ch27 final project: RoutingService, QuoteService, and TrackingService" \
+echo "PASS: Ch27 final project: RoutingService, QuoteService, and TrackingService" \
      "run end to end on both stacks — the full REST->gRPC->gRPC booking flow, all" \
      "four RPC shapes (unary, server-stream, client-stream, bidi), mTLS enforced" \
      "at the handshake layer, JWT enforced with both UNAUTHENTICATED and" \

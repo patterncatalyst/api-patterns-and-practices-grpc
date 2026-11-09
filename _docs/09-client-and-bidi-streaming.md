@@ -3,120 +3,183 @@ title: "Client-streaming and bidirectional"
 order: 9
 part: "HTTP/2 & the Four RPC Types"
 description: "TrackingService.ReportPositions and .Sync: folding a stream of requests into one answer, and running two independent directions on one connection."
-duration: "19 min read"
+duration: "17 min read"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Implement `ReportPositions` (client-streaming) by folding an inbound `Multi`/`request_iterator` into one response on both stacks.
-- Explain the half-close mechanism that lets a client signal "done sending" without closing the whole RPC.
-- Implement `Sync` (bidirectional streaming) and explain why two independent directions on one stream beat two separate streaming calls bolted together.
-- Spot the buffer-everything-in-memory anti-pattern in `collect().asList()` and replace it with an incremental fold.
-- Choose client-streaming or bidirectional over unary or server-streaming using the five RPC-shape axes.
+- Implement `ReportPositions` (client-streaming) by folding an inbound `Multi` or `request_iterator` into one response on both stacks.
+- Explain how a client signals "done sending" with a half-close, without closing the whole RPC.
+- Implement `Sync` (bidirectional streaming) and say why one bidirectional stream beats two streaming calls bolted together.
+- Replace `collect().asList()` with an incremental fold so the handler doesn't buffer the whole stream.
+- Choose client-streaming or bidirectional over unary or server-streaming.
 
 ## Why this matters
 
-Server-streaming pointed `TrackingService.WatchShipment` at the shape where the server has more to say than the client does: one request, a sequence of responses, streamed as events happen. The shipping contract names two more shapes on the same service, and both invert that relationship instead of repeating it. `ReportPositions` is the opposite of `WatchShipment`: many requests from the client, one response from the server. `Sync` refuses to pick a direction at all: both sides send whenever they have something to say, on the same connection, independently. Four RPC shapes exist because four distinct relationships between request count and response count exist, and this chapter closes out the set `TrackingService` was built to demonstrate: client-streaming and bidirectional.
+`WatchShipment` fits the case where the server has more to say than the client: one request, many responses. `TrackingService` declares two more shapes that invert or remove that asymmetry. `ReportPositions` takes many requests and returns one response. `Sync` lets both sides send whenever they have something to say, independently, on the same connection. Four shapes exist because four relationships between request count and response count exist.
 
 ## Client-streaming: folding a sequence into one answer
 
-`ReportPositions` exists because a telemetry agent tracking a shipment's container doesn't have one position report to send: it has a batch, accumulated since the last upload, and it wants one acknowledgment for the whole batch rather than a round trip per report. The proto names the shape directly:
+A telemetry agent tracking a container doesn't have one position report to send. It has a batch accumulated since the last upload, and it wants one acknowledgment for the batch instead of a round trip per report. The proto names the shape:
 
 ```protobuf
 rpc ReportPositions(stream ReportPositionsRequest) returns (ReportPositionsResponse);
 ```
 
-`stream` appears once, on the request side only. The client opens the call and sends as many `ReportPositionsRequest` messages as it has (each one wrapping a `TrackingEvent`) for as long as it has more to send. The server reads every one of them off that single stream, and only when the client signals there's nothing left to read does the server send back its one `ReportPositionsResponse`, carrying `accepted_count`: how many reports it saw. Three requests in, one response out, and the response describes the whole batch rather than any single item in it.
+`stream` appears on the request side only. The client sends as many `ReportPositionsRequest` messages as it has, each wrapping a `TrackingEvent`. The server reads them all, and when the client signals it is done, sends one `ReportPositionsResponse` carrying `accepted_count`. Three requests in, one response out, and the response describes the batch.
 
-The shape fits whenever many small units of work share one acknowledgment and the caller has no use for a per-item reply. Bulk ingest is the clearest case: a batch of records committed together, answered with one summary rather than one status per record. Telemetry upload is `ReportPositions`'s own case: sensor readings, position reports, or log lines accumulated client-side and flushed as a stream, where the server's only obligation is to say how many it got (or, with a richer response message, which ones it rejected). A chunked file upload fits the same shape (a stream of `DATA`-carrying messages followed by one response once the last chunk arrives), though this chapter's own example stays with position reports because that's what the contract already names. What unifies all three: the client knows up front it has a sequence to send, the server has nothing useful to say until that sequence ends, and paying for N round trips to acknowledge N items would be pure overhead with no payoff, since nothing about item 2 depends on a reply to item 1.
+Use client-streaming when many small units share one acknowledgment:
 
-## Half-close: how "done sending" gets signaled
+| Case | Why it fits |
+| --- | --- |
+| Bulk ingest | A batch commits together and gets one summary, not a status per record |
+| Telemetry upload | Readings accumulate client-side and flush as a stream; the server says how many it got |
+| Chunked file upload | A stream of chunks, one response after the last |
 
-A client-streaming call needs a way for the client to say "that's everything" without closing the whole RPC, because the server still owes a response after the last request arrives. HTTP/2 already has the mechanism: each endpoint's half of a stream can close independently. The client sends its `DATA` frames carrying each `ReportPositionsRequest`, and when it has no more to send, it sets the `END_STREAM` flag on its final frame instead of sending an explicit "done" message of any kind: there's no sentinel value in the protobuf schema, no empty terminator message to send and recognize. That flag is the client's half of the stream closing, commonly called a **half-close**: the client's write side is done, but the stream itself stays open because the server's write side hasn't closed yet. The server keeps that stream's resources (buffers, read state) alive, finishes reading whatever frames already arrived, and only then is free to write its own `HEADERS` and `DATA` frames carrying the response, followed by its own `END_STREAM` on the frame that closes the RPC from both directions at once.
+In each, the server has nothing useful to say until the sequence ends, and nothing about item 2 depends on a reply to item 1. N round trips would be pure overhead.
 
-{% include excalidraw.html file="09-half-close-sequence" alt="Sequence diagram of HTTP/2 half-close for a client-streaming call. A client box sends three DATA frames toward a TrackingService box: req 1, req 2, and an amber-emphasized req 3 that also carries the END_STREAM flag. A dashed box under the client reads client write side CLOSED, half-close, no sentinel message, reached by a dashed arrow straight down from the client; there is no separate done-sending message, only the flag on that last frame. A grey box to its right reads server finishes reading buffered frames, stream stays open, only the client's write side closed. Only after that does the server send its own HEADERS and DATA frames carrying the response back to the client, followed by an amber-emphasized END_STREAM frame closing the server's own half. A final amber accent box at the bottom reads both halves closed, RPC complete, response delivered." caption="Figure 9.1: half-close ends the client's writes; the server reads to completion, then closes its own half with the response." %}
+## Half-close: how "done sending" is signaled
 
-This is why a client-streaming handler on either stack reads as "consume everything, then produce one value," never as "produce a value per request." The Quarkus implementation in this chapter's example makes the half-close concrete: `request.collect().asList()` subscribes to the inbound `Multi<ReportPositionsRequest>` and buffers every item it emits (which, for a `Multi` backed by this inbound stream, only happens once per request, driven by frames actually arriving) until the stream itself signals completion, which on the wire is exactly the client's `END_STREAM` flag. Only then does the `Uni` returned by `collect().asList()` resolve with the full list, and only then does `.onItem().transform()` run to build the one `ReportPositionsResponse`. Python's `grpc.aio` servicer method makes the same mechanics explicit as ordinary control flow: `async for _ in request_iterator` doesn't exit the loop early and doesn't exit it on a timer; it exits precisely when the async iterator is exhausted, which `grpc.aio` ties to the client's half-close on the wire. Either way, the count that ends up in `accepted_count` is a count of frames that actually arrived before the half-close, not an estimate or a fixed batch size: this chapter's `verify.sh` sends exactly three requests and asserts exactly `accepted_count = 3` for precisely that reason.
+The client needs to say "that's everything" without closing the RPC, because the server still owes a response. HTTP/2 lets each endpoint close its half of a stream independently. The client sets the `END_STREAM` flag on its final `DATA` frame. There is no sentinel value in the schema and no empty terminator message. The client's write side is now closed, but the stream stays open until the server writes its response and its own `END_STREAM`.
 
-Ordering matters here too, even though a client-streaming call's visible behavior is "many in, one out." The inbound stream preserves the order the client sent its requests in: HTTP/2 doesn't reorder frames within one stream, only across different streams, so a handler that cares about sequence (a position report where only the last one matters, say) can rely on `request_iterator`/`Multi` delivering items in send order. `ReportPositions`'s own response collapses that order into a count and throws the sequence away, but the guarantee is there underneath for any client-streaming RPC that needs it.
+{% include excalidraw.html file="09-half-close-sequence" alt="Sequence diagram of an HTTP/2 half-close in a client-streaming call. A client sends three DATA frames to TrackingService: req 1, req 2, and req 3 carrying the END_STREAM flag. The client's write side is closed with no separate done-sending message. The server finishes reading buffered frames, then sends its own HEADERS and DATA frames with the response, followed by its own END_STREAM. Both halves are closed and the RPC is complete." caption="Figure 9.1: Half-close ends the client's writes; the server reads to completion, then closes its own half with the response." %}
+
+A client-streaming handler therefore reads as "consume everything, then produce one value." On Quarkus, a collector over the inbound `Multi<ReportPositionsRequest>` completes when the stream completes, which on the wire is the client's `END_STREAM`. On Python, `async for` over `request_iterator` ends when the iterator is exhausted, which `grpc.aio` ties to the same flag. `accepted_count` is the number of frames that arrived before the half-close, not an estimate or a fixed batch size.
+
+HTTP/2 keeps frames on one stream in order, so a handler that cares about sequence, such as one where only the last position matters, can rely on items arriving in send order.
 
 ## Bidirectional: two directions, one stream
 
-`Sync` is the shape that doesn't pick a direction at all:
+`Sync` doesn't pick a direction:
 
 ```protobuf
 rpc Sync(stream SyncRequest) returns (stream SyncResponse);
 ```
 
-`stream` appears on both sides. Once the call opens, the client can send `SyncRequest` messages and the server can send `SyncResponse` messages, in whatever order and at whatever pace each side chooses, on the one HTTP/2 stream the call opened. Neither direction waits for the other to finish, because neither direction is "finished" until both sides close their own half; this is the same half-close mechanism `ReportPositions` used for its one-sided stream, just available independently in each direction instead of only the client's.
+`stream` appears on both sides. After the call opens, the client sends `SyncRequest` messages and the server sends `SyncResponse` messages, in any order and at any pace, on one HTTP/2 stream. Neither direction waits for the other. Each closes its own half with the same half-close mechanism.
 
-The handler in this chapter's example answers each `SyncRequest` with one `SyncResponse` echoing its event, as soon as that request arrives: a reasonable default, but a choice the handler makes, not something the protocol requires. A bidirectional stream doesn't enforce any correspondence between requests and responses: a server could send three responses before reading a second request, or read every request to exhaustion before writing anything, or correlate requests and responses by an ID carried in the message rather than by position at all. What the protocol does guarantee is that each direction, read on its own, preserves the order its sender emitted it in (the client's requests arrive at the server in send order, and the server's responses arrive at the client in send order), while placing no ordering relationship between the two directions themselves. `Sync`'s particular choice to answer request-for-request, in order, is a correlation the proto comment and this chapter's implementation establish by convention, not a guarantee built into `stream SyncRequest` / `stream SyncResponse` itself.
+The protocol guarantees order within each direction: the server sees requests in send order and the client sees responses in send order. It places no ordering relationship between the two directions. `Sync` answers each request with one response echoing its event as soon as the request arrives, but that is the handler's convention. A server could send three responses before reading a second request, read every request before writing anything, or correlate by an ID carried in the message.
 
-Bidirectional is worth its cost (a connection held open for the life of a back-and-forth, state kept on both ends for as long as it runs) when the interaction really is a conversation rather than a transaction with a predictable shape. Event reconciliation is `Sync`'s own case: two sides comparing state over time, each one capable of surfacing a discrepancy whenever it notices one, not on a schedule either side dictates. A negotiation protocol is the sharper example, and the shipping contract carries one: `RoutingService.NegotiateRoute` declares the identical `stream ... returns (stream ...)` shape for a carrier and a shipper proposing and countering route terms back and forth until both sides agree or one gives up, the same two-way, unpredictable-cadence profile `Sync` has, in a different domain. `NegotiateRoute` stays `UNIMPLEMENTED` in this chapter's example (TrackingService, not RoutingService, is what's running), but the shape transfers directly: wherever a real-time interactive session, a multi-round negotiation, or a long-lived duplex connection is the actual requirement, bidirectional is the RPC type built for it, and two independent client-streaming/server-streaming calls bolted together is usually a worse fit, not a cheaper one: it costs two connections and discards a correlation a single bidirectional stream could have carried without either side inventing one.
+Bidirectional is worth its cost, a connection held open and state kept on both ends, when the interaction is a conversation instead of a transaction:
 
-{% include excalidraw.html file="09-client-bidi-streaming" alt="Two side-by-side panels. Left panel, client-streaming (ReportPositions): a client sends three labeled request arrows (req 1, req 2, req 3) to a TrackingService box, then a dashed half-close line down to a note reading done sending, after which one amber-emphasized response arrow labeled ReportPositionsResponse flows back from the server to a light accent box reading ONE response folds all 3, accepted_count = 3. Right panel, bidirectional (Sync): a client and a TrackingService box exchange interleaved arrows: req 1 forward, then an amber-emphasized resp 1 backward, then req 2 forward, then resp 2 backward, with a dashed vertical line showing both directions riding the same connection, next to a light accent box reading independent read/write directions, order preserved within each." caption="Figure 9.2: Client-streaming folds many requests into one response; bidirectional runs two independently-paced directions on one stream." %}
+- Event reconciliation, where either side can raise a discrepancy whenever it notices one.
+- Negotiation, as in `RoutingService.NegotiateRoute`, where carrier and shipper propose and counter route terms until both agree or one gives up. It has the same `stream ... returns (stream ...)` shape in a different domain.
+- Any real-time interactive session.
 
-## The generated shapes on both stacks
+Two independent calls, one client-streaming and one server-streaming, are usually a worse fit, not a cheaper one: they cost two lifecycles and drop the correlation that a single stream carries.
 
-`quarkus-grpc`'s code generation gives `ReportPositions` and `Sync` the Mutiny signatures the proto's two `stream` placements predict directly: a `stream` on the request side alone becomes a `Multi` parameter feeding a `Uni` return; `stream` on both sides becomes a `Multi` parameter feeding a `Multi` return. `grpc_tools.protoc` gives Python's `TrackingServiceServicer` base class an `async def` method for each RPC, but the parameter and the body are what change between the shapes: a client-streaming method's `request_iterator` parameter is consumed with `async for` until exhausted, then the method `return`s a single message, while a bidirectional method is itself an async generator: its body still iterates `request_iterator`, but produces output with `yield` instead of `return`, so the method keeps running (and keeps reading) after emitting its first response rather than ending there.
+{% include excalidraw.html file="09-client-bidi-streaming" alt="Two panels. Left, client-streaming (ReportPositions): a client sends req 1, req 2 and req 3 to TrackingService, then a half-close, and one ReportPositionsResponse folds all three with accepted_count = 3. Right, bidirectional (Sync): a client and TrackingService exchange interleaved arrows, req 1 then resp 1 then req 2 then resp 2, over one connection, with independent read and write directions and order preserved within each." caption="Figure 9.2: Client-streaming folds many requests into one response; bidirectional runs two independently paced directions on one stream." %}
 
-{% include codetabs.html langs="Quarkus|Python" %}
+## The generated shapes
 
-```java
-// Client-streaming: Multi<Request> in, Uni<Response> out.
-@Override
-public Uni<Tracking.ReportPositionsResponse> reportPositions(Multi<Tracking.ReportPositionsRequest> request) {
-    return request.collect().asList()
-            .onItem().transform(reports -> Tracking.ReportPositionsResponse.newBuilder()
-                    .setAcceptedCount(reports.size())
-                    .build());
-}
-```
-```python
-# Client-streaming: request_iterator in, one return value out.
-async def ReportPositions(self, request_iterator, context):
-    accepted_count = 0
-    async for _ in request_iterator:
-        accepted_count += 1
-    return tracking_pb2.ReportPositionsResponse(accepted_count=accepted_count)
-```
+The placement of `stream` in the proto fixes the signature.
 
-The two handlers above reach the same `accepted_count` at different memory cost. `request.collect().asList()` buffers every `ReportPositionsRequest` the client sends (all of it, in memory, as one `List`) before `.onItem().transform()` ever runs; for this chapter's three-item batch that's free, but a client-stream with no size limit (an agent replaying a day's worth of position reports after a network outage, say) turns that buffer into memory proportional to whatever the client decided to send. The Python handler right above it already avoids this: `accepted_count += 1` inside the `async for` loop folds the stream incrementally, holding one integer regardless of how many requests arrive, never the requests themselves. The fix on the Quarkus side is the same shape, not a rewrite: replace `collect().asList()` with a fold, such as `collect().with(Collectors.counting())` or an explicit `.onItem().scan(...)` accumulator, so the running result is the only thing held in memory. The fuller backpressure story comes later, including what happens when a handler can't drain a stream as fast as the client sends; this is the narrower, upstream half of that problem: don't buffer what you can fold.
+| Shape | Quarkus (Mutiny) | Python (`grpc.aio`) |
+| --- | --- | --- |
+| Client-streaming | `Multi` parameter, `Uni` return | `request_iterator` consumed with `async for`, then `return` one message |
+| Bidirectional | `Multi` parameter, `Multi` return | async generator: iterates `request_iterator` and `yield`s responses |
+
+A bidirectional Python method keeps running, and keeps reading, after its first `yield`.
 
 {% include codetabs.html langs="Quarkus|Python" %}
 
 ```java
-// Bidirectional: Multi<Request> in, Multi<Response> out: a 1:1 mapping
-// operator, so each response goes out as its matching request arrives.
-@Override
-public Multi<Tracking.SyncResponse> sync(Multi<Tracking.SyncRequest> request) {
-    return request.onItem().transform(req ->
-            Tracking.SyncResponse.newBuilder().setEvent(req.getEvent()).build());
-}
+    @Override
+    public Uni<Tracking.ReportPositionsResponse> reportPositions(Multi<Tracking.ReportPositionsRequest> request) {
+        return request.collect().asList()
+                .onItem().transform(reports -> {
+                    LOG.infof("ReportPositions: folded %d position report(s) into one ack", reports.size());
+                    return Tracking.ReportPositionsResponse.newBuilder()
+                            .setAcceptedCount(reports.size())
+                            .build();
+                });
+    }
 ```
+
 ```python
-# Bidirectional: request_iterator in, yield out — an async generator, not a
-# single return.
-async def Sync(self, request_iterator, context):
-    async for request in request_iterator:
-        yield tracking_pb2.SyncResponse(event=request.event)
+    async def ReportPositions(
+        self,
+        request_iterator,
+        context: grpc.aio.ServicerContext,
+    ) -> tracking_pb2.ReportPositionsResponse:
+        # Client streaming: the server reads the inbound stream to
+        # exhaustion (`async for` only ends when the client half-closes
+        # (signals "done sending")), folding every ReportPositionsRequest
+        # into a single count, then returns ONE response. Nothing is sent
+        # back to the client until the stream is fully consumed.
+        accepted_count = 0
+        async for _ in request_iterator:
+            accepted_count += 1
+
+        logger.info("ReportPositions: folded %d position report(s) into one ack", accepted_count)
+        return tracking_pb2.ReportPositionsResponse(accepted_count=accepted_count)
 ```
 
-All four handlers above assume the server keeps reading until the client's stream ends: `collect().asList()`, the `async for` count loop, and both `Sync` bodies never exit the inbound loop early. A real `ReportPositions` or `Sync` handler doesn't always get that luxury. A bulk-ingest handler validating each `ReportPositionsRequest` as it arrives (rejecting the whole batch the moment one `TrackingEvent` fails validation, say) may need to stop reading and return an error before the client's `END_STREAM` arrives; sends the client issues after that point fail outright rather than queue, because the server's read side is gone, not merely slow. `Sync` has the sharper version: either side can abort mid-conversation (the server calling `context.abort(...)` or completing its `Multi` early, the client cancelling the call), and the other side's next send surfaces that abort as a failure on its own stream, not as a value to process. Neither stack's generated code forces a handler to drain its entire inbound stream before responding; reading to the end is this chapter's choice, not the protocol's requirement.
+### Fold, don't buffer
 
-Both pairs run against the same `TrackingService` registration: one `@GrpcService` class on Quarkus, one `add_TrackingServiceServicer_to_server(...)` call on Python, with `WatchShipment` left to answer `UNIMPLEMENTED` on both: Quarkus because the generated `TrackingService` interface requires every method implemented explicitly, Python because the generated servicer base class answers `UNIMPLEMENTED` for anything a subclass doesn't override. This chapter's hands-on example registers only `TrackingService`, and only these two methods, to keep the both-stack build to one moving part per stack rather than two services' worth of streaming code landing at once. The REST→gRPC seam doesn't change shape here; it's still the same decision about which calls cross a protocol boundary, just not this chapter's subject.
+Both handlers reach the same `accepted_count` at different memory cost. `collect().asList()` holds every `ReportPositionsRequest` in one `List` before the transform runs. That is free for three items. For a stream with no size limit, such as an agent replaying a day of reports after an outage, memory grows with whatever the client sends. The Python loop holds one integer.
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Run both of this chapter's shapes through the five axes. RPC shape is the whole decision for <code>ReportPositions</code>: a telemetry agent has a batch of reports and wants one acknowledgment, which is client-streaming by definition. The alternative, N unary <code>ReportPositions</code>-style calls each carrying one report, pays N round trips and N sets of HTTP/2 header frames for work that has no per-item answer to give back, a straight loss with no corresponding gain. RPC shape decides <code>Sync</code> too, but against a different alternative: two independent half-duplex streams (one client-streaming call for the client's events, one server-streaming call for the server's) would need two connections, two lifecycles to track, and no protocol-level way to correlate a response on one stream with a request on the other, where one bidirectional stream gives both directions, in order, on one connection, with correlation left to the application's own convention rather than invented twice. Sync vs. stream is already answered by RPC shape in both cases: there is nothing to decide once the shape is chosen, since a streaming RPC is inherently consumed as a stream. Deadline and budget diverge sharply between the two: a bounded client-streaming call like <code>ReportPositions</code> can carry a deadline covering the whole batch, since the server knows the call ends when the client's half-close arrives; <code>Sync</code>'s bidirectional, open-ended conversation resists a single deadline entirely, and reaches instead for a keepalive or an application-level idle timeout, the two tools deadline handling names properly later. Failure class also splits: <code>ReportPositions</code> failing mid-stream (`UNAVAILABLE` before the half-close) is usually safe to retry whole, since nothing committed until the one response arrived; a <code>Sync</code> session interrupted mid-conversation needs the application to decide what state survives a reconnect, because gRPC's retry machinery has no concept of "resume a bidirectional stream from message 40." Concurrency model favors the reactive/<code>async</code> style for both, more than the unary case did: a thread blocked reading a client-stream to exhaustion, or blocked on either direction of a bidirectional one, is a thread pinned for the entire call's lifetime rather than one round trip, which is precisely the cost Mutiny's <code>Multi</code> and <code>grpc.aio</code>'s async iterators exist to avoid paying.</p></div>
+The Quarkus fix keeps the same shape: replace `collect().asList()` with a fold, such as `collect().with(Collectors.counting())` or an `onItem().scan(...)` accumulator, so the running result is all that stays in memory. Don't buffer what you can fold.
 
-## Where this goes next
+{% include codetabs.html langs="Quarkus|Python" %}
 
-The half-close this chapter named for `ReportPositions` and the independent-directions model it named for `Sync` are both HTTP/2 stream behaviors the transport already gave us the vocabulary for; nothing here needed a new transport concept, only a new way of using it. A real deadline later lands on a streaming call for the first time, including the harder question this chapter's Decision callout flagged: what a deadline even means for a connection with no natural end. Failure mid-stream returns with the full rich-error-model treatment, past the single retryable/non-retryable split this chapter used. Both RPCs come back under load: what backpressure looks like when a client-stream's buffer fills faster than a handler drains it, and what a slow consumer does to a bidirectional stream's flow-control window on each side independently. And the site's complete-project chapter is where `RoutingService.NegotiateRoute` (mentioned here as the same bidirectional shape in a different domain) finally gets implemented instead of returning `UNIMPLEMENTED`.
+```java
+    @Override
+    public Multi<Tracking.SyncResponse> sync(Multi<Tracking.SyncRequest> request) {
+        return request.onItem().transform(req ->
+                Tracking.SyncResponse.newBuilder()
+                        .setEvent(req.getEvent())
+                        .build());
+    }
+```
 
-## On the wire
+```python
+    async def Sync(
+        self,
+        request_iterator,
+        context: grpc.aio.ServicerContext,
+    ):
+        # Bidirectional: read and write are independent directions on the
+        # same stream. This handler happens to respond to each request as
+        # it arrives (`yield` inside the loop), so one SyncResponse goes out
+        # per SyncRequest that comes in, in arrival order, but the two
+        # directions aren't lockstepped by the protocol itself, only by
+        # this handler's choice to answer immediately.
+        async for request in request_iterator:
+            yield tracking_pb2.SyncResponse(event=request.event)
+```
 
-`verify.sh` brings both services up, waits for each to answer reflection's `list`, then drives both RPCs with `grpcurl`'s client-stream support: newline-delimited JSON request messages piped to `-d @`, which sends them in order and half-closes once stdin runs out.
+### Stopping early
+
+These handlers read until the client's stream ends. A handler isn't required to. A bulk-ingest handler that validates each request may reject the batch at the first bad `TrackingEvent` and return an error before the client's `END_STREAM`. Sends the client issues after that fail instead of queueing, because the server's read side is gone. In `Sync`, either side can abort mid-conversation, with `context.abort(...)`, an early-completing `Multi`, or a client cancel, and the other side's next send surfaces it as a failure on its own stream.
+
+## Choosing a shape
+
+| Decision | `ReportPositions` | `Sync` |
+| --- | --- | --- |
+| Shape | Client-streaming: a batch, one acknowledgment. N unary calls pay N round trips and N header sets for no per-item answer. | Bidirectional: a conversation. Two half-duplex calls need two connections and no protocol-level correlation. |
+| Deadline | A deadline can cover the whole batch, because the call ends at the client's half-close. | An open-ended conversation resists one deadline; use keepalive or an application idle timeout. |
+| Retry | A failure before the half-close, such as `UNAVAILABLE`, is usually safe to retry whole, because nothing committed until the one response. | The application decides what survives a reconnect. gRPC retry can't resume a bidirectional stream from message 40. |
+| Threads | Use the reactive or `async` style: a blocked thread is pinned for the whole call, not one round trip. | Same, for either direction. |
+
+> **🤖 Explore with your agent**
+>
+> "In examples/09-client-and-bidi-streaming, change `reportPositions` in `TrackingServiceImpl.java` to fold the inbound `Multi<ReportPositionsRequest>` into `accepted_count` without `collect().asList()`, so it never holds the list. Leave the Python `ReportPositions` and both `Sync` handlers unchanged."
+>
+> Check: the three-message `ReportPositions` call against `localhost:9090` still returns `accepted_count` 3, and `grep -n 'asList' examples/09-client-and-bidi-streaming/quarkus/src/main/java/com/patterncatalyst/shipping/tracking/TrackingServiceImpl.java` finds nothing.
+
+## Build, run, observe
+
+Quarkus listens on host port 9090 and Python on 9091. `WatchShipment` answers `UNIMPLEMENTED` on both, because it belongs to the server-streaming example.
+
+```bash
+cd examples/09-client-and-bidi-streaming
+./verify.sh
+```
+
+`verify.sh` starts both services, sends a three-message client stream to `ReportPositions` and a two-message stream to `Sync` on each, and prints `PASS` when both stacks answer the same way. To drive it by hand, run `docker compose up --build`. `grpcurl` reads newline-delimited JSON from `-d @`, sends each message in order, and half-closes when stdin ends:
 
 ```bash
 printf '%s\n' \
@@ -130,15 +193,18 @@ printf '%s\n' \
   '{"event":{"bookingId":"bkg_demo","note":"s1"}}' \
   '{"event":{"bookingId":"bkg_demo","note":"s2"}}' \
   | grpcurl -plaintext -d @ localhost:9090 shipping.tracking.v1.TrackingService/Sync
-# { "event": { "bookingId": "bkg_demo", "note": "s1" } }
-# { "event": { "bookingId": "bkg_demo", "note": "s2" } }
+# { "event": { "booking_id": "bkg_demo", "note": "s1" } }
+# { "event": { "booking_id": "bkg_demo", "note": "s2" } }
 ```
 
-Swap `9090` for `9091` and the Python stack answers identically: `accepted_count: 3` for the first call, two `SyncResponse` messages in the same order for the second. `verify.sh` asserts both numbers directly against both stacks: `accepted_count` via a single JSON field read, the `Sync` response count via the shared harness's `json_stream_count` helper, which counts concatenated JSON objects on `grpcurl`'s stdout rather than assuming a fixed shape. So "folds three into one" and "echoes two into two, in order" are checked claims for every chapter rebuild, not a one-time observation written into this prose.
+Port 9091 answers identically: `accepted_count` 3, then two `SyncResponse` messages in the same order.
+
+- **Send two reports instead of three.** `accepted_count` is 2: it counts frames that arrived before the half-close.
+- **Send three `Sync` messages.** Three responses come back, one per request, in order.
 
 ## For deeper coverage
 
-- Clément Jean, *gRPC Go for Professionals* (Packt, 2023): the four RPC shapes a `.proto` file can declare, including the `stream` keyword placements behind `ReportPositions` and `Sync`.
-- [grpc.io: Core concepts, client-streaming and bidirectional-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/): the half-close and independent-directions mechanics this chapter names.
-- *Cloud Native Design Patterns*, "Balancing Coupling" chapter: the coupling cost of a long-lived bidirectional stream against two independent request/response calls, the trade-off behind this chapter's `Sync`-versus-two-streams argument.
-- [Quarkus gRPC: writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation): the `Multi<Request>`-in/`Uni`-or-`Multi`-out signatures this chapter's Quarkus handlers implement.
+- Clément Jean, *gRPC Go for Professionals* (Packt, 2023): the four RPC shapes a `.proto` file can declare, including the `stream` placements behind `ReportPositions` and `Sync`.
+- [grpc.io: Core concepts, client-streaming and bidirectional-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/): the half-close and independent-direction mechanics.
+- *Cloud Native Design Patterns*, "Balancing Coupling" chapter: the coupling cost of a long-lived bidirectional stream against two independent request/response calls.
+- [Quarkus gRPC: writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation): the `Multi`-in, `Uni`-or-`Multi`-out signatures.

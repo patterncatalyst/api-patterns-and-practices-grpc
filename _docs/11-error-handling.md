@@ -3,127 +3,190 @@ title: "Error and exception handling"
 order: 11
 part: "Reliability: Deadlines, Errors & Interceptors"
 description: "Canonical status codes as the contract, the rich error model built from google.rpc.Status and its typed details, and the line between a retryable and a non-retryable failure."
-duration: "20 min"
+duration: "17 min"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Classify a `GetQuote` failure into the correct canonical status code (`INVALID_ARGUMENT`, `NOT_FOUND`, `FAILED_PRECONDITION`, `UNAVAILABLE`, `DEADLINE_EXCEEDED`, `RESOURCE_EXHAUSTED`, `INTERNAL`) instead of defaulting to `INTERNAL`.
-- Build a rich `google.rpc.Status` carrying typed details (`ErrorInfo`, `BadRequest`, `RetryInfo`) with `StatusProto.toStatusRuntimeException` on Quarkus and `grpc_status.rpc_status.to_status` on Python.
-- Decide whether a failure is safe to retry from its code and the call's idempotency, not from a guess.
-- Map a gRPC status code and its structured details onto an HTTP response at the REST→gRPC seam.
+- Classify a `GetQuote` failure into the right canonical status code instead of defaulting to `INTERNAL`.
+- Build a rich `google.rpc.Status` with typed details (`ErrorInfo`, `BadRequest`, `RetryInfo`) using `StatusProto.toStatusRuntimeException` on Quarkus and `grpc_status.rpc_status.to_status` on Python.
+- Decide whether a failure is safe to retry from its code and the call's idempotency.
+- Map a gRPC status and its details onto an HTTP response at the REST to gRPC boundary.
 
 ## Why this matters
 
-`RoutingService.GetQuote` fails in three different ways, and none of them call for the same response. A caller that leaves `destination` empty sent a malformed request; no amount of retrying fixes that. A caller that asks for a quote from a UN/LOCODE this routing engine has no path out of is asking a question with a real, stable answer: no. A caller that happens to land during a transient blip in the routing engine's own dependencies is asking a question that would succeed in two seconds if asked again. gRPC's canonical status codes exist precisely so a client can tell these three apart without parsing a sentence. This chapter builds the rich error model on top of that code, `google.rpc.Status` and its typed details, and draws the line between a failure worth retrying and one that isn't, using the same `GetQuote` anchor the running contract built and deadlines put a clock on.
+`RoutingService.GetQuote` fails three ways, and each calls for a different response. A caller that leaves `destination` empty sent a malformed request, and no retry fixes that. A caller that asks for a quote from a UN/LOCODE the engine can't route from asks a question with a stable answer: no. A caller that lands during a transient blip in the engine's dependencies asks a question that succeeds if asked again in two seconds. Canonical status codes let a client tell these apart without parsing a sentence. Typed details carry the specifics on top of the code.
 
 ## The canonical status codes are the contract
 
-Every gRPC call ends in exactly one of a small, fixed set of canonical codes, defined once in `google.rpc.Code` and reused by every language's generated stub. That fixed vocabulary is the point: a client branches on the code, not on a string, so the server's choice of code *is* the API contract for failure, as binding as a field's type.
+Every call ends in one of a small fixed set of codes, defined once in `google.rpc.Code` and reused by every language's stubs. A client branches on the code, not on a string, so the code the server picks is the API contract for failure, as binding as a field's type.
 
-{% include excalidraw.html file="11-status-code-taxonomy" alt="The canonical gRPC status codes grouped by what they mean rather than alphabetically. Malformed request: INVALID_ARGUMENT, retry never. State of the world: NOT_FOUND and FAILED_PRECONDITION, retry never. Transient: UNAVAILABLE and DEADLINE_EXCEEDED, retry yes with backoff or only if idempotent. Overload: RESOURCE_EXHAUSTED, a self-imposed 429, retry yes honoring backoff. Auth: UNAUTHENTICATED and PERMISSION_DENIED, retry only after fixing credentials or the grant. Last resort: INTERNAL, no better name for it yet, shown in a dark box to set it apart from the rest. A bottom note warns: don't collapse everything to INTERNAL, it erases the one signal a client acts on: retry, give up, or page someone." caption="Figure 11.1: The canonical status codes grouped by meaning, not alphabetically; INTERNAL is the last resort, not the default." %}
+{% include excalidraw.html file="11-status-code-taxonomy" alt="The canonical gRPC status codes grouped by meaning. Malformed request: INVALID_ARGUMENT, retry never. State of the world: NOT_FOUND and FAILED_PRECONDITION, retry never. Transient: UNAVAILABLE and DEADLINE_EXCEEDED, retry with backoff, or only if idempotent. Overload: RESOURCE_EXHAUSTED, a self-imposed 429, retry honoring backoff. Auth: UNAUTHENTICATED and PERMISSION_DENIED, retry only after fixing credentials or the grant. Last resort: INTERNAL, shown in a dark box." caption="Figure 11.1: The canonical status codes grouped by meaning, not alphabetically; INTERNAL is the last resort, not the default." %}
 
-The codes this chapter leans on hardest, mapped onto what `GetQuote` actually does:
+| Code | Meaning for `GetQuote` | Retry |
+| --- | --- | --- |
+| `OK` | The quote computed; the caller gets a `Route` and a `Money`. | n/a |
+| `INVALID_ARGUMENT` | The request is malformed: empty `origin.un_locode`, missing `destination`. It fails identically however often it is sent. | Never |
+| `NOT_FOUND` | The request is well-formed and names something that doesn't exist, such as an origin the engine can't route from. A fact about current state, not a malformed question. | Never |
+| `FAILED_PRECONDITION` | The target exists but the system isn't in a state where the operation can succeed, such as confirming a booking whose quote expired. Something must change first. | Never as-is |
+| `UNAVAILABLE` | The server or a dependency can't be reached. The canonical "try again" code, and the one a load balancer or mesh watches to route around an endpoint. | With backoff |
+| `DEADLINE_EXCEEDED` | The call didn't finish inside its deadline. | Only if idempotent and budget remains |
+| `RESOURCE_EXHAUSTED` | The server is shedding load, a self-imposed `429`. | With backoff |
+| `UNAUTHENTICATED`, `PERMISSION_DENIED` | The caller's identity is missing or lacks the grant. | After fixing credentials or the grant |
+| `INTERNAL` | Something broke that the service has no better name for. | Treat as a bug |
 
-- **`OK`**: the quote computed and the caller gets a `Route` and a `Money`. The default outcome, not interesting on its own, but the baseline every other code is defined against.
-- **`INVALID_ARGUMENT`**: the request itself is malformed: an empty `origin.un_locode`, a missing `destination`. The request would fail identically no matter how many times or how patiently it's retried, because nothing about the world changed; the request is still wrong.
-- **`NOT_FOUND`**: the request is well-formed and names something that doesn't exist: an origin UN/LOCODE this engine can't route from. This is a fact about current state, not a malformed question, and the distinction matters because a client that treats it like `INVALID_ARGUMENT` stops looking for a fix, while a client that treats it like a transient failure wastes a retry budget on an answer that will never change.
-- **`FAILED_PRECONDITION`**: the request is well-formed and the target exists, but the system isn't in a state where this operation can succeed right now: confirming a booking whose quote already expired, for instance. Something has to change before a retry could possibly help, which is a different shape of "no" than `NOT_FOUND`'s.
-- **`UNAVAILABLE`**: the server, or something it depends on, can't be reached right now. This is gRPC's canonical "try again" code and the one a load balancer or service mesh watches for to decide whether to route around an endpoint.
-- **`DEADLINE_EXCEEDED`**: the call didn't finish inside the deadline set on it. Whether this is retryable depends entirely on what partially happened before the clock ran out, which is why it gets its own rule in the next section rather than a blanket answer here.
-- **`RESOURCE_EXHAUSTED`**: the server is shedding load to protect itself, a self-imposed `429` rather than a failure to answer.
-- **`UNAUTHENTICATED`** and **`PERMISSION_DENIED`**: the caller's identity is missing or doesn't carry the right grant. Authentication covers the mechanics later; the codes exist here because they're canonical, not auth-specific extensions.
-- **`INTERNAL`**: something broke in a way the service doesn't have a better name for.
+`NOT_FOUND` and `INVALID_ARGUMENT` must stay distinct. A client that treats `NOT_FOUND` like `INVALID_ARGUMENT` stops looking for a fix, and one that treats it as transient wastes retries on an answer that won't change.
 
-That last one is where most of the damage happens, and the appeal is obvious: it's one line, it always compiles, and it never requires deciding which of the other nine codes actually fits. Collapsing a `NullPointerException` from a malformed field and an unreachable downstream call into the same `INTERNAL` strips every automated caller of the one signal it uses to decide what to do next: retry, give up, or page someone. A service-config retry policy watching for `UNAVAILABLE` never fires; a client that would have surfaced "origin not found" to a user instead shows a generic failure. `INTERNAL` should mean exactly one thing: the server hit a case it doesn't have a name for yet, which is worth logging and worth treating as a bug to fix, not a code to reach for out of convenience.
+`INTERNAL` is where most of the damage happens, because it is one line that always compiles and never requires choosing a code. Collapsing a `NullPointerException` from a malformed field and an unreachable downstream call into `INTERNAL` strips every automated caller of the one signal it acts on: retry, give up, or page someone. A retry policy watching for `UNAVAILABLE` never fires, and a client that would have shown "origin not found" shows a generic failure. Reserve `INTERNAL` for a case the server has no name for, and log it as a bug to fix.
 
 ## The rich error model: google.rpc.Status and its details
 
-A code alone answers "what kind of failure is this," but a client acting on `NOT_FOUND` wants more: a machine-readable reason it can log and alert on, which field was wrong if the problem was the request shape, or how long to wait before trying again. `google.rpc.Status` is the structure that carries all three without inventing a bespoke JSON blob per service: a `code`, a human-readable `message` safe to put in front of a user, and a `details` list of typed, `Any`-packed messages a client unpacks by type.
+A code answers "what kind of failure"; a client acting on `NOT_FOUND` also wants a machine-readable reason, the offending field, or how long to wait. `google.rpc.Status` carries all three without a bespoke JSON blob per service: a `code`, a human-readable `message` that is safe to show a user, and a `details` list of typed, `Any`-packed messages that the client unpacks by type.
 
-Three detail types cover nearly every case this book's domain needs:
+| Detail | Carries | Use |
+| --- | --- | --- |
+| `ErrorInfo` | A stable upper-snake-case `reason` such as `ORIGIN_UNROUTABLE`, and a `domain` naming the system of record | Alerting keys on `reason`, which doesn't change when someone edits the message |
+| `BadRequest` | `field_violations`, each with a `field` and a `description` | Turns "the request is invalid" into "`origin.un_locode` is required" |
+| `RetryInfo` | A `retry_delay` | Turns "retryable" into an instruction with a number |
 
-- **`ErrorInfo`**: a machine-readable `reason` (a short, stable, upper-snake-case string like `ORIGIN_UNROUTABLE`) plus a `domain` naming the system of record for that reason. This is the detail a monitoring system keys alerts on, because `reason` doesn't change when a translator edits the human-readable message.
-- **`BadRequest`**: a list of `field_violations`, each naming the offending `field` and a `description` of what's wrong with it. This is what turns "the request is invalid" into "`origin.un_locode` is required," which is the difference between a client guessing and a client fixing the actual problem on the first retry.
-- **`RetryInfo`**: a `retry_delay` telling the caller exactly how long to back off before trying again. This is the detail that turns "this is retryable" from a guess based on the code into an instruction with a number attached.
+{% include excalidraw.html file="11-rich-error-model" alt="A gRPC error as a code, a message and a details list. RoutingService.GetQuote builds a google.rpc.Status with code NOT_FOUND and a safe message. The details array holds Any-packed ErrorInfo, BadRequest or RetryInfo and rides in the gRPC trailers to the client. The client reads the code first, then unpacks details. UNAVAILABLE, idempotent DEADLINE_EXCEEDED and RESOURCE_EXHAUSTED take a retryable path that backs off; INVALID_ARGUMENT, NOT_FOUND and FAILED_PRECONDITION take a non-retryable path that surfaces the failure now." caption="Figure 11.2: A gRPC error is a code, a message and typed details; the client branches on the code before it reads a detail." %}
 
-{% include excalidraw.html file="11-rich-error-model" alt="A gRPC error as a code plus a message plus a details list. RoutingService.GetQuote fails and builds a google.rpc.Status with code NOT_FOUND and a safe message. The Status carries three possible detail types in its details array, packed as Any: ErrorInfo with a reason and domain, BadRequest with field violations, and RetryInfo with a retry delay, all riding in the gRPC trailers to the client. The client reads the code and unpacks the details, then branches: UNAVAILABLE, idempotent DEADLINE_EXCEEDED, and RESOURCE_EXHAUSTED go to a retryable path that backs off and retries, while INVALID_ARGUMENT, NOT_FOUND, and FAILED_PRECONDITION go to a non-retryable path that surfaces the failure to the caller now." caption="Figure 11.2: A gRPC error is a code, a message, and typed details; the client branches on the code before it ever reads a detail." %}
+The detail types aren't declared in `routing.proto`. They come from `google/rpc/error_details.proto`, which every gRPC ecosystem ships a runtime library for, so a Java client and a Python client unpack the same bytes with native classes.
 
-The detail types are not declared in `routing.proto`. `ErrorInfo`, `BadRequest`, and `RetryInfo` come from `google/rpc/error_details.proto`, a schema every gRPC ecosystem ships a runtime library for, so a Java client and a Python client unpack the identical bytes using language-native generated classes without this chapter's contract needing to import anything new. On the JVM, `com.google.api.grpc:proto-google-common-protos` supplies `com.google.rpc.Status`, `Code`, `ErrorInfo`, `BadRequest`, and `RetryInfo`, and `io.grpc.protobuf.StatusProto.toStatusRuntimeException(status)` (a class that ships inside `grpc-protobuf`, already on the classpath once `quarkus-grpc` is a dependency) packs that `Status` into a `StatusRuntimeException` whose trailers a client reads off normally. On Python, `grpcio-status` supplies the matching `google.rpc.status_pb2` and `error_details_pb2`, and `grpc_status.rpc_status.to_status(status)` does the same packing for `context.abort_with_status(...)` on a `grpc.aio.ServicerContext`. Two different libraries, two different call shapes, one wire format.
+| Stack | Library | Packing call |
+| --- | --- | --- |
+| Quarkus | `com.google.api.grpc:proto-google-common-protos` for `Status`, `Code` and the details; `grpc-protobuf` is already on the classpath | `StatusProto.toStatusRuntimeException(status)` returns a `StatusRuntimeException` whose trailers carry the status |
+| Python | `grpcio-status` for `status_pb2` and `error_details_pb2` | `rpc_status.to_status(status)` passed to `context.abort_with_status(...)` |
 
-## Implementing rich errors: RoutingService.GetQuote
+## Implementing rich errors
 
-The example for this chapter makes `GetQuote` fail three deterministic ways and succeed a fourth, so the same request always produces the same code and the same detail type on both stacks. An empty or missing `un_locode` on either `origin` or `destination` returns `INVALID_ARGUMENT` with a `BadRequest` naming the field; a sentinel origin of `ZZZZZ` (unroutable by convention in this example, not a real UN/LOCODE) returns `NOT_FOUND` with an `ErrorInfo` reason of `ORIGIN_UNROUTABLE`; a sentinel origin of `RETRY` returns `UNAVAILABLE` with a `RetryInfo` of two seconds; anything else reaches the same quote formula the running contract built.
+`GetQuote` fails three deterministic ways and succeeds a fourth, so the same request gives the same code and detail on both stacks:
+
+| Input | Code | Detail |
+| --- | --- | --- |
+| Empty or missing `un_locode` on `origin` or `destination` | `INVALID_ARGUMENT` | `BadRequest` naming the field |
+| `origin` of `ZZZZZ` (unroutable by convention) | `NOT_FOUND` | `ErrorInfo`, reason `ORIGIN_UNROUTABLE` |
+| `origin` of `RETRY` | `UNAVAILABLE` | `RetryInfo` of two seconds |
+| Anything else | `OK` | The quote |
 
 {% include codetabs.html langs="Quarkus|Python" %}
 
 ```java
-private static StatusRuntimeException richError(Code code, String message, Any detail) {
-    com.google.rpc.Status richStatus = com.google.rpc.Status.newBuilder()
-            .setCode(code.getNumber())
-            .setMessage(message)
-            .addDetails(detail)
-            .build();
-    return StatusProto.toStatusRuntimeException(richStatus);
-}
-
-// origin.unLocode == "ZZZZZ" -> NOT_FOUND + ErrorInfo
-return Uni.createFrom().failure(richError(
-        Code.NOT_FOUND,
-        "origin ZZZZZ is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)",
-        Any.pack(ErrorInfo.newBuilder()
-                .setReason("ORIGIN_UNROUTABLE")
-                .setDomain("shipping.routing.v1")
-                .build())));
+    private static StatusRuntimeException richError(Code code, String message, Any detail) {
+        com.google.rpc.Status richStatus = com.google.rpc.Status.newBuilder()
+                .setCode(code.getNumber())
+                .setMessage(message)
+                .addDetails(detail)
+                .build();
+        return StatusProto.toStatusRuntimeException(richStatus);
+    }
 ```
 
 ```python
-async def _abort_rich(context, code, message, detail) -> None:
-    rich_status = status_pb2.Status(code=code, message=message, details=[detail])
-    await context.abort_with_status(rpc_status.to_status(rich_status))
-
-# origin.un_locode == "ZZZZZ" -> NOT_FOUND + ErrorInfo
-await self._abort_rich(
-    context,
-    code_pb2.NOT_FOUND,
-    "origin ZZZZZ is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)",
-    _pack(error_details_pb2.ErrorInfo(reason="ORIGIN_UNROUTABLE", domain="shipping.routing.v1")),
-)
+    @staticmethod
+    async def _abort_rich(
+        context: grpc.aio.ServicerContext,
+        code: int,
+        message: str,
+        detail: any_pb2.Any,
+    ) -> None:
+        """Builds a google.rpc.Status (canonical code + one rich detail) and hands it to
+        context.abort_with_status so it lands in the gRPC trailers, the same place
+        grpcurl, or any client library, looks for it. Raises grpc.aio.AbortError;
+        callers do not need to return afterwards."""
+        rich_status = status_pb2.Status(code=code, message=message, details=[detail])
+        await context.abort_with_status(rpc_status.to_status(rich_status))
 ```
 
-Both sides do the same three things in the same order: pick the canonical code, write a message that stays legible even if a client never bothers to unpack the structured detail, and pack exactly one typed detail that a client *can* unpack when it wants to branch on more than the code. `examples/11-error-handling/verify.sh` calls all four input shapes against both stacks and asserts the code with `grpc_expect_code` and the detail text with `grpc_error_output`, which is the chapter's central claim made checkable: two independent implementations, same contract, same four outcomes.
+Each branch then names its code, its message and one packed detail:
 
-## Retryable vs non-retryable
+{% include codetabs.html langs="Quarkus|Python" %}
 
-The code a server picks tells a client what to do next, and getting that mapping backward is worse than being vague, because a client that trusts the code will act on a wrong answer with confidence. `UNAVAILABLE` and `RESOURCE_EXHAUSTED` are usually retryable with backoff: the first because the condition that caused it is often transient, the second because the server is explicitly asking for less traffic for a while, which a client honors by waiting, not by hammering harder. `DEADLINE_EXCEEDED` only belongs in that bucket when the call is idempotent and budget remains; retrying a call that already wrote something risks doing that write twice, since the deadline tells the client the call didn't get an answer in time, not that it didn't execute.
+```java
+        if (UNROUTABLE_ORIGIN.equals(origin.getUnLocode())) {
+            return Uni.createFrom().failure(richError(
+                    Code.NOT_FOUND,
+                    "origin " + UNROUTABLE_ORIGIN + " is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)",
+                    Any.pack(ErrorInfo.newBuilder()
+                            .setReason("ORIGIN_UNROUTABLE")
+                            .setDomain(ERROR_DOMAIN)
+                            .build())));
+        }
 
-`INVALID_ARGUMENT`, `NOT_FOUND`, and `FAILED_PRECONDITION` are never worth retrying as-is, because none of them describe a glitch reaching the right answer; they describe the answer. Retrying `INVALID_ARGUMENT` sends the identical malformed request into the identical rejection; retrying `NOT_FOUND` asks the identical unanswerable question. The fix for each is a different request or a changed precondition, not a second attempt at the same one.
+        if (RETRY_ORIGIN.equals(origin.getUnLocode())) {
+            return Uni.createFrom().failure(richError(
+                    Code.UNAVAILABLE,
+                    "routing service temporarily unavailable, retry per RetryInfo",
+                    Any.pack(RetryInfo.newBuilder()
+                            .setRetryDelay(Duration.newBuilder().setSeconds(2).build())
+                            .build())));
+        }
+```
 
-Idempotency is what turns "the code says retryable" into "it's actually safe to retry here." `GetQuote` is a pure read with no side effect to duplicate, so retrying it on `UNAVAILABLE` or a budget-permitting `DEADLINE_EXCEEDED` costs nothing beyond the extra round trip. A call that reserves inventory or confirms a booking needs an idempotency key or a status check before a retry is safe, because a `DEADLINE_EXCEEDED` on that call might mean the write already landed and only the response got lost: retrying blindly risks a second reservation, not a second attempt at the first one.
+```python
+        if origin.un_locode == _UNROUTABLE_ORIGIN:
+            await self._abort_rich(
+                context,
+                code_pb2.NOT_FOUND,
+                f"origin {_UNROUTABLE_ORIGIN} is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)",
+                _pack(error_details_pb2.ErrorInfo(reason="ORIGIN_UNROUTABLE", domain=_ERROR_DOMAIN)),
+            )
 
-None of this has to live in application code on every call site. gRPC's service config supports a declarative **retry policy** (which codes to retry, how many attempts, the backoff multiplier and cap) and a **hedging policy** that sends a second request before the first one returns if it's running slow, taking whichever response arrives first. Both are configured once, on the channel, rather than re-implemented per call. Performance tuning tunes these policies against real latency numbers later; the decision that belongs here is narrower: classify the failure correctly, mark it retryable or not, and let the service config carry out that decision at the transport layer instead of a hand-rolled retry loop around every call.
+        if origin.un_locode == _RETRY_ORIGIN:
+            await self._abort_rich(
+                context,
+                code_pb2.UNAVAILABLE,
+                "routing service temporarily unavailable, retry per RetryInfo",
+                _pack(error_details_pb2.RetryInfo(retry_delay=duration_pb2.Duration(seconds=2))),
+            )
+```
 
-This is the same **failure class and retryability** axis the five-axis framework introduced, applied for the first time to its full depth: the axis asked which codes are worth retrying, and this chapter answers with the specific codes, the idempotency condition that makes the answer safe, and the declarative mechanism that acts on it.
+Each handler picks the canonical code, writes a message that stays legible when a client never unpacks the detail, and packs one typed detail for a client that wants to branch on more than the code.
 
-## The REST→gRPC seam, once
+## Retryable and non-retryable
 
-The booking service that calls `GetQuote` over gRPC still answers its own callers over REST, and that boundary is where a canonical gRPC code becomes an HTTP status. `NOT_FOUND` maps to `404`, `INVALID_ARGUMENT` maps to `400`, `UNAVAILABLE` maps to `503` carrying a `Retry-After` header built from the gRPC call's own `RetryInfo`: one mapping table, applied once at the seam, rather than every REST handler reasoning about gRPC codes directly. The `ErrorInfo` reason and the `BadRequest` field violations carry across that seam unchanged, landing in the REST response's `problem+json` body as the same machine-readable `code` and the same per-field detail a gRPC client would have unpacked directly.
+A client that trusts the code acts on it with confidence, so a wrong mapping is worse than a vague one.
 
-## A worked decision: RoutingService.GetQuote's errors
+- **`UNAVAILABLE` and `RESOURCE_EXHAUSTED`** are usually retryable with backoff. The first is often transient. The second is the server asking for less traffic, which a client honors by waiting.
+- **`DEADLINE_EXCEEDED`** is retryable only when the call is idempotent and budget remains. The deadline says no answer arrived in time, not that the call didn't execute.
+- **`INVALID_ARGUMENT`, `NOT_FOUND` and `FAILED_PRECONDITION`** are never retried as-is. They describe the answer, not a glitch reaching it. The fix is a different request or a changed precondition.
 
-Run `GetQuote`'s error handling through the five axes, closing on the two questions this chapter adds: which code, and is it retryable.
+Idempotency makes "the code says retryable" mean "safe to retry." `GetQuote` is a pure read, so retrying on `UNAVAILABLE` or a budget-permitting `DEADLINE_EXCEEDED` costs only a round trip. A call that reserves inventory or confirms a booking needs an idempotency key or a status check first, because a `DEADLINE_EXCEEDED` there may mean the write landed and only the response was lost.
 
-RPC shape and sync vs. stream are unchanged: unary, blocking, nothing to retry mid-stream. Deadline and budget are unchanged: a tight slice of the booking service's own budget, which is exactly why `DEADLINE_EXCEEDED` needs the idempotency caveat rather than a blanket "retryable": a retry that doesn't fit inside the remaining budget isn't worth attempting regardless of the code. Failure class and retryability is this chapter's addition in full: `INVALID_ARGUMENT` for a malformed request, `NOT_FOUND` for an unroutable origin, `UNAVAILABLE` for a transient condition; the first two never retried, the third retried with backoff because the call is a pure read. Concurrency model stays what the framework set: I/O-bound, served well by virtual threads or `grpc.aio` either way, since none of this chapter's branching does extra computation on the failure path.
+Retry doesn't belong at every call site. gRPC's service config declares a **retry policy** (which codes, how many attempts, the backoff multiplier and cap) and a **hedging policy** that sends a second request before the first returns and takes whichever answers first. Both are set once on the channel. Classify the failure, mark it retryable or not, and let the transport carry out the decision instead of a hand-rolled loop around every call.
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p><code>RoutingService.GetQuote</code> picks its code from what actually went wrong, not from convenience: <code>INVALID_ARGUMENT</code> with a <code>BadRequest</code> for a malformed field, <code>NOT_FOUND</code> with an <code>ErrorInfo</code> for an origin that doesn't route, <code>UNAVAILABLE</code> with a <code>RetryInfo</code> for a transient condition, never a blanket <code>INTERNAL</code> that would erase the distinction. Only the last is marked retryable, because the call is a pure read and the condition it reports is expected to clear; the other two describe the request or the world, not a glitch, so retrying them unchanged would waste a client's retry budget on an answer that can't improve. That retryable/non-retryable split is exactly what a service-config retry policy reads to decide whether to retry automatically: the chapter's code choice and its retryability flag are the same decision, read twice.</p></div>
+## At the REST boundary
 
-## Where this goes next
+The booking service calls `GetQuote` over gRPC and answers its own callers over REST. A mapping table applied once at that boundary turns a canonical code into an HTTP status:
 
-The canonical codes and the rich error model apply to every RPC this site builds from here forward, not just `GetQuote`: Interceptors are where cross-cutting error handling (turning an unhandled exception into a `Status` once, instead of at every call site) gets wired in, and retry and hedging policies tune the backoff numbers this chapter only named. The REST→gRPC seam this chapter touched once gets its full treatment with a transcoding gateway that has to make the same code-to-status mapping automatic rather than hand-written. For now, the result that matters is checkable: both stacks return the identical code and the identical detail type for the identical input, because both were built from the same contract and the same runtime error-details library, not from two developers independently guessing at what "not found" should mean.
+| gRPC | HTTP |
+| --- | --- |
+| `INVALID_ARGUMENT` | `400` |
+| `NOT_FOUND` | `404` |
+| `UNAVAILABLE` | `503`, with a `Retry-After` header built from `RetryInfo` |
 
-## On the wire
+The `ErrorInfo` reason and the `BadRequest` field violations cross unchanged, landing in the `problem+json` body as the same machine-readable code and per-field detail a gRPC client would unpack.
+
+<div class="callout callout--safe"><p class="callout__title">Decision</p><p>RPC shape, sync vs. stream and concurrency model are unchanged: <code>GetQuote</code> is unary, synchronous and I/O-bound. Deadline and budget: a retry that doesn't fit inside the caller's remaining budget isn't worth attempting whatever the code. Failure class and retryability: <code>INVALID_ARGUMENT</code> with a <code>BadRequest</code> for a malformed field, <code>NOT_FOUND</code> with an <code>ErrorInfo</code> for an origin that doesn't route, <code>UNAVAILABLE</code> with a <code>RetryInfo</code> for a transient condition, never a blanket <code>INTERNAL</code>. Only <code>UNAVAILABLE</code> is retryable, because the call is a pure read and the condition is expected to clear; that split is what a service-config retry policy reads.</p></div>
+
+> **🤖 Explore with your agent**
+>
+> "In examples/11-error-handling, add a fourth failure to `GetQuote` on both stacks (`RoutingServiceImpl.java` and `app/routing_service.py`): an `origin` of `FULL` returns `RESOURCE_EXHAUSTED` with a `RetryInfo` of five seconds, packed with the same rich-error helper. Pick the canonical code that fits an overloaded server, never `INTERNAL`."
+>
+> Check: `grpcurl -plaintext -d '{"origin":{"unLocode":"FULL"},"destination":{"unLocode":"NLRTM"}}' localhost:9110 shipping.routing.v1.RoutingService/GetQuote` prints `Code: ResourceExhausted`, and port 9111 prints the same.
+
+## Build, run, observe
+
+Quarkus listens on host port 9110 and Python on 9111.
+
+```bash
+cd examples/11-error-handling
+./verify.sh
+```
+
+`verify.sh` sends all four input shapes to both stacks and prints `PASS` when each returns the same code and the same detail type. To run one by hand, start the stacks with `docker compose up --build`, then:
 
 ```bash
 grpcurl -plaintext -d '{"destination":{"unLocode":"NLRTM"}}' \
@@ -136,33 +199,15 @@ ERROR:
   Message: invalid GetQuoteRequest: origin.un_locode required (see BadRequest details)
 ```
 
-```bash
-grpcurl -plaintext -d '{"origin":{"unLocode":"ZZZZZ"},"destination":{"unLocode":"NLRTM"}}' \
-  localhost:9110 shipping.routing.v1.RoutingService/GetQuote
-```
+The `Code` is what a client branches retry logic on. The message also names the structured `details` entry, so the failure reads from plain text alone and a client can unpack the `BadRequest`, `ErrorInfo` or `RetryInfo` riding in the trailers.
 
-```
-ERROR:
-  Code: NotFound
-  Message: origin ZZZZZ is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)
-```
-
-```bash
-grpcurl -plaintext -d '{"origin":{"unLocode":"RETRY"},"destination":{"unLocode":"NLRTM"}}' \
-  localhost:9110 shipping.routing.v1.RoutingService/GetQuote
-```
-
-```
-ERROR:
-  Code: Unavailable
-  Message: routing service temporarily unavailable, retry per RetryInfo
-```
-
-The `Code` is what a client branches its retry logic on; the `Message` in this chapter's implementation also names the structured `details[]` entry, so the failure is legible from the plain-text message alone and precise when a client unpacks the `BadRequest`, `ErrorInfo`, or `RetryInfo` riding in the same trailers. `examples/11-error-handling/verify.sh` asserts both.
+- **Send `origin` `ZZZZZ`.** `Code: NotFound`, message `origin ZZZZZ is unroutable (ErrorInfo reason=ORIGIN_UNROUTABLE)`.
+- **Send `origin` `RETRY`.** `Code: Unavailable`, message `routing service temporarily unavailable, retry per RetryInfo`.
+- **Send a valid origin and destination.** The call returns `OK` with the quote.
 
 ## For deeper coverage
 
-- [grpc.io: Error handling](https://grpc.io/docs/guides/error/): the canonical status codes and how a server and client are expected to use them.
-- [`google/rpc/error_details.proto`](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto): the canonical source for `ErrorInfo`, `BadRequest`, and `RetryInfo`, the three detail types this chapter packs into a `Status`.
-- Cloud Native Design Patterns, Appendix E, "API Error Handling": the same stable-code/safe-message/retryable-flag contract applied across REST, gRPC, Kafka, and GraphQL.
-- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021: the broader case for treating failure classification as part of a service's contract, not an afterthought.
+- [grpc.io: Error handling](https://grpc.io/docs/guides/error/): the canonical status codes and how a server and client use them.
+- [`google/rpc/error_details.proto`](https://github.com/googleapis/googleapis/blob/master/google/rpc/error_details.proto): the source for `ErrorInfo`, `BadRequest` and `RetryInfo`.
+- Cloud Native Design Patterns, Appendix E, "API Error Handling": the same stable-code, safe-message, retryable-flag contract across REST, gRPC, Kafka and GraphQL.
+- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021: failure classification as part of a service's contract.

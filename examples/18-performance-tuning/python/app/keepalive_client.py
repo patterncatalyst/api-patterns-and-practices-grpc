@@ -67,11 +67,11 @@ async def run(target: str, idle_seconds: float) -> int:
         await channel.close()
 
     if first.quote.amount != second.quote.amount or first.route.id != second.route.id:
-        print(f"keepalive_client: FAIL — calls disagree across the idle gap: "
+        print(f"keepalive_client: FAIL, calls disagree across the idle gap: "
               f"{first} vs {second}", file=sys.stderr)
         return 1
 
-    print(f"keepalive_client: ok — target={target} survived a {idle_seconds}s idle gap "
+    print(f"keepalive_client: ok, target={target} survived a {idle_seconds}s idle gap "
           "on one channel", file=sys.stderr)
     print("SURVIVED")
     return 0

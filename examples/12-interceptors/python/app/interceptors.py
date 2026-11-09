@@ -59,7 +59,7 @@ class AuthLoggingInterceptor(grpc.aio.ServerInterceptor):
         metadata = dict(handler_call_details.invocation_metadata or ())
 
         # Resolving the handler only looks up what GetQuote/FindOptimalRoute/
-        # etc. WOULD run — it does not call it. The handler's own body still
+        # etc. WOULD run; it does not call it. The handler's own body still
         # hasn't executed by the time either branch below returns.
         handler = await continuation(handler_call_details)
         if handler is None:

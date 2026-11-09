@@ -55,7 +55,7 @@ _REQUEST = routing_pb2.GetQuoteRequest(
 async def main() -> None:
     options = [("grpc.lb_policy_name", LB_POLICY)] if LB_POLICY else []
 
-    # One channel, built once, reused for every call below — see the module
+    # One channel, built once, reused for every call below: see the module
     # docstring for why this is the entire point of the exercise.
     async with grpc.aio.insecure_channel(TARGET, options=options) as channel:
         stub = routing_pb2_grpc.RoutingServiceStub(channel)

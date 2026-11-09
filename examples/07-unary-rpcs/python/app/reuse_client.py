@@ -50,7 +50,7 @@ async def run(target: str, calls: int, expected_amount: str | None) -> int:
     amounts: list[str] = []
     try:
         for i in range(calls):
-            # Same stub object, same underlying channel, every iteration —
+            # Same stub object, same underlying channel, every iteration:
             # no `grpc.aio.insecure_channel(...)` call inside this loop.
             response = await stub.GetQuote(_REQUEST)
             amounts.append(response.quote.amount)
@@ -59,17 +59,17 @@ async def run(target: str, calls: int, expected_amount: str | None) -> int:
         await channel.close()
 
     if len(set(amounts)) != 1:
-        print(f"reuse_client: FAIL — responses disagree across calls on the same stub: {amounts}", file=sys.stderr)
+        print(f"reuse_client: FAIL, responses disagree across calls on the same stub: {amounts}", file=sys.stderr)
         return 1
 
     if expected_amount is not None and amounts[0] != expected_amount:
         print(
-            f"reuse_client: FAIL — expected quote.amount={expected_amount}, got {amounts[0]}",
+            f"reuse_client: FAIL, expected quote.amount={expected_amount}, got {amounts[0]}",
             file=sys.stderr,
         )
         return 1
 
-    print(f"reuse_client: ok — {calls} calls on one reused channel/stub, all quote.amount={amounts[0]}")
+    print(f"reuse_client: ok, {calls} calls on one reused channel/stub, all quote.amount={amounts[0]}")
     return 0
 
 

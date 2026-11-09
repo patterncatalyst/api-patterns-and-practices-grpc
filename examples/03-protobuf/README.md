@@ -1,20 +1,20 @@
-# Ch3 — Protobuf in depth: a hand-decode and round-trip, no server required
+# Chapter 3, Protobuf in depth: a hand-decode and round-trip, no server required
 
 A small, docker-free companion to Chapter 3. There is no service here, no
-port, no compose stack — just the proto compiler and the Python protobuf
+port and no compose stack: just the proto compiler and the Python protobuf
 runtime, proving the chapter's claims against bytes you can inspect yourself:
 
-- `oneof_demo.proto` — a tiny standalone proto (not part of the contract
+- `oneof_demo.proto`: a tiny standalone proto (not part of the contract
   under `contracts/`) with one message: `Notification`, whose three fields
   live inside a `oneof`.
-- `roundtrip.py` — builds `shipping.type.v1.Money` and
+- `roundtrip.py`: builds `shipping.type.v1.Money` and
   `shipping.type.v1.Booking` (the real shipping contract from
   `contracts/proto/shipping/type/v1/types.proto`), plus `Notification`,
   serializes each to bytes, and asserts every field survives
   `SerializeToString()` → `ParseFromString()`. It also hand-decodes `Money`'s
   bytes field-by-field with the same tag-number math the chapter's
   "Hand-decoding a message's bytes" section walks through on paper.
-- `verify.sh` — runs the whole thing from a clean checkout: no pre-installed
+- `verify.sh`: runs the whole thing from a clean checkout: no pre-installed
   `buf`, no pre-installed Python packages, no server left running afterward.
 
 ## Run it
@@ -27,9 +27,9 @@ cd examples/03-protobuf
 Three steps, all torn down automatically when the script exits:
 
 1. **`buf build` on `contracts/`.** Proves the real shipping contracts
-   compile as one Buf module — the same module Chapter 5 onward generates
+   compile as one Buf module, the same module Chapter 5 onward generates
    stubs from and serves. `buf` is used from `PATH` if already installed
-   (`~/.local/bin/buf` on this machine); otherwise `verify.sh` downloads a
+   (for example `~/.local/bin/buf`); otherwise `verify.sh` downloads a
    pinned release binary into `.bin/` the first time it runs.
 2. **Generate Python stubs.** A throwaway virtualenv under a temp directory
    installs `grpcio-tools` and `protobuf`, then runs
@@ -37,13 +37,13 @@ Three steps, all torn down automatically when the script exits:
    contract) and `oneof_demo.proto` (this example's own file). Nothing is
    installed or written outside the temp directory and `.bin/`.
 3. **Round-trip and assert.** `roundtrip.py` builds the messages, serializes,
-   hand-decodes `Money`'s bytes, parses back, and checks every field —
-   printing one `ok —` line per assertion and a final `PASS`.
+   hand-decodes `Money`'s bytes, parses back, and checks every field,
+   printing one `ok, ` line per assertion and a final `PASS:` line.
 
 Expect output ending in:
 
 ```text
-PASS — buf build succeeded, Python stubs generated from shipping.type.v1
+PASS: buf build succeeded, Python stubs generated from shipping.type.v1
 (the real contract) plus the oneof demo, and every round-tripped message
 survived serialize -> parse with every field intact.
 ```
@@ -52,8 +52,8 @@ survived serialize -> parse with every field intact.
 
 `Money { currency = "USD"; amount = "1250.00" }` always serializes to the
 same 14 bytes, because proto3's wire format is a deterministic function of
-field number, wire type, and value — not a format version, not a struct
-layout. `roundtrip.py` asserts the exact key bytes:
+field number, wire type, and value (not a format version or a struct
+layout). `roundtrip.py` asserts the exact key bytes:
 
 ```text
 byte 0: 0x0A  =  (1 << 3) | 2   → field 1 (currency), wire type 2 (LEN)
@@ -61,7 +61,7 @@ byte 5: 0x12  =  (2 << 3) | 2   → field 2 (amount),   wire type 2 (LEN)
 ```
 
 then walks the rest of the bytes with a 20-line varint reader and confirms
-the decoded strings match what went in — the same exercise Chapter 3's prose
+the decoded strings match what went in. It is the same exercise Chapter 3's prose
 performs by hand on paper, run here against the real generated code.
 
 `Booking` exercises the constructs the chapter spends the most time on: a
@@ -72,7 +72,7 @@ and a well-known type pulled in from another `.proto` (`created_at` is a
 `google.protobuf.Timestamp`). `Notification` (in `oneof_demo.proto`) proves
 the one construct the real shipping contract doesn't currently need:
 `WhichOneof("channel")` reports whichever single branch is set, and setting
-a second branch silently clears the first — on the wire as well as in
+a second branch silently clears the first, on the wire as well as in
 memory.
 
 ## Why a separate `oneof_demo.proto`

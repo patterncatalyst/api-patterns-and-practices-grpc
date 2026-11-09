@@ -1,23 +1,23 @@
-# Ch4 — Well-known types ANCHOR: RoutingService.FindOptimalRoute
+# Chapter 4, well-known types ANCHOR: RoutingService.FindOptimalRoute
 
 The reference both-stack implementation of
-`shipping.routing.v1.RoutingService.FindOptimalRoute` — proof that the
+`shipping.routing.v1.RoutingService.FindOptimalRoute`: proof that the
 canonical proto3 JSON mapping (Chapter 4's spine) renders the exact same
-JSON on two independently-generated implementations. The contract — not
-either codebase — is the source of truth:
+JSON on two independently-generated implementations. The contract, not
+either codebase, is the source of truth:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService`
-  and its five RPCs (only `FindOptimalRoute` is implemented here; this
-  example is independent of Chapter 5's `GetQuote` anchor — the other four
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService`
+  and its five RPCs (only `FindOptimalRoute` is implemented here,
+  independently of Chapter 5's `GetQuote` anchor; the other four
   methods, including `GetQuote`, return `UNIMPLEMENTED`).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Money`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Money`,
   `Location`, `Route`, `Leg` messages, including the `google.protobuf.Timestamp`
   fields on `Leg`.
 
 Quarkus (`quarkus/`, host port 9007) and Python (`python/`, host port 9008)
 independently implement the identical RPC, generated from the **same**
-`.proto` files, and both return a **fixed, deterministic** `Route` — not
-computed from the request — so the only variable left is whether each
+`.proto` files, and both return a **fixed, deterministic** `Route` that is not
+computed from the request, so the only variable left is whether each
 stack's generated code renders a `Timestamp` and a `Money` the same way.
 `verify.sh` calls `FindOptimalRoute` on **both** stacks via `grpcurl` and
 asserts the exact rendered JSON, not just a gRPC `OK` status.
@@ -47,7 +47,7 @@ grpcurl -plaintext -d '{
 docker compose down -v
 ```
 
-Swap `9007` for `9008` to hit the Python stack instead — same request, same
+Swap `9007` for `9008` to hit the Python stack instead: same request, same
 response shape, same values.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -60,7 +60,7 @@ docker compose --profile observability up --build
 
 ## The fixed Route
 
-`FindOptimalRouteResponse` is identical on both stacks — no pricing formula,
+`FindOptimalRouteResponse` is identical on both stacks: no pricing formula,
 no randomness, so the response is pure proof of the JSON mapping, not of
 arithmetic:
 
@@ -74,10 +74,10 @@ route.price           = { currency: "USD", amount: "4200.00" }
 
 `departs_at` and `arrives_at` are `google.protobuf.Timestamp` values built
 from fixed `Instant`s (Java, `RouteBuilder.java`) / timezone-aware
-`datetime`s (Python, `app/route.py`) — never "now" — so the exact RFC 3339
+`datetime`s (Python, `app/route.py`), never "now", so the exact RFC 3339
 string each stack renders is a checkable constant, not a moving target.
 `price.amount` is a decimal **string** ("4200.00"), per
-`shipping.type.v1.Money` — never a binary float, the same convention
+`shipping.type.v1.Money`: never a binary float, the same convention
 Chapter 5's `QuoteCalculator`/`quote.py` use for the identical reason.
 
 ## The other four RPCs
@@ -88,27 +88,27 @@ implementation here (this example does not depend on, or repeat, Chapter
 
 | RPC | Status in this chapter |
 |---|---|
-| `GetQuote` | `UNIMPLEMENTED` — implemented in Chapter 5's own example |
+| `GetQuote` | `UNIMPLEMENTED` (implemented in Chapter 5's own example) |
 | `FindOptimalRoute` | implemented (this chapter) |
-| `ListRoutes` | `UNIMPLEMENTED` — later chapter (field-mask projection, Ch13) |
-| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` — Part 3 streaming |
-| `RecomputeRoutes` (async) | `UNIMPLEMENTED` — Part 6 async |
+| `ListRoutes` | `UNIMPLEMENTED` (later chapter: field-mask projection, Chapter 13) |
+| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` (Part 3 streaming) |
+| `RecomputeRoutes` (async) | `UNIMPLEMENTED` (Part 6 async) |
 
 On Quarkus, the generated Mutiny `RoutingService` interface declares all
 five RPCs as abstract methods, so `RoutingServiceImpl` implements all five
-explicitly — the four unimplemented ones just return
+explicitly; the four unimplemented ones just return
 `Status.UNIMPLEMENTED.asRuntimeException()`. On Python, the generated
 `RoutingServiceServicer` base class already sets `UNIMPLEMENTED` and raises
 for any method a subclass doesn't override, so the Python side only defines
-`FindOptimalRoute` — the rest fall through to that generated default.
+`FindOptimalRoute`; the rest fall through to that generated default.
 
 ## Proto code generation: `contracts/` is the only source of truth
 
 Neither module commits generated or copied `.proto`/stub files. Each
 `Containerfile` builds with the **repo root** as its Docker build context
 (see `compose.yaml`) specifically so it can `COPY` the two proto files this
-service needs straight from `contracts/proto/` at build time — identical
-mechanics to Chapter 5's example:
+service needs straight from `contracts/proto/` at build time, with the same
+mechanics as Chapter 5's example:
 
 - **Quarkus**: the Containerfile copies `types.proto` and `routing.proto`
   into `src/main/proto/shipping/{type,routing}/v1/` inside the build stage.
@@ -117,17 +117,17 @@ mechanics to Chapter 5's example:
   the `generate-sources` phase, before `compile` runs. The generated
   `com.google.protobuf.Timestamp` class this chapter's `RouteBuilder` uses
   ships inside `protobuf-java` itself (a transitive dependency of
-  `quarkus-grpc`) — no extra Maven dependency needed to build one.
+  `quarkus-grpc`), so building one needs no extra Maven dependency.
 - **Python**: the Containerfile copies the same two files into a `proto/`
   staging directory, then runs
   `python -m grpc_tools.protoc -I proto --python_out=generated --grpc_python_out=generated`
   to produce `generated/shipping/{type,routing}/v1/*_pb2{,_grpc}.py`, which
   `PYTHONPATH=/app/generated:/app` makes importable as
   `from shipping.routing.v1 import routing_pb2`. `google.protobuf.timestamp_pb2`
-  ships inside the `protobuf` package itself — already a runtime dependency,
+  ships inside the `protobuf` package itself, already a runtime dependency,
   not something `grpcio-tools` adds. `grpcio-tools` (needed only to run
   `protoc`) lives in a `dev` dependency group and never ships in the runtime
-  image — the venv is rebuilt with `uv sync --no-dev` after codegen.
+  image; the venv is rebuilt with `uv sync --no-dev` after codegen.
 
 For a local, non-container `mvn`/`uv` run, copy the same two files into the
 same two destinations by hand first:
@@ -148,7 +148,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/proto/`,
-`python/generated/`) are gitignored (see `../.gitignore`) — they are
+`python/generated/`) are gitignored (see `../.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -165,7 +165,7 @@ grpcurl -plaintext localhost:9007 list
 grpcurl -plaintext localhost:9007 describe shipping.routing.v1.RoutingService
 ```
 
-`verify.sh` asserts these exact fields — note the request uses proto3 JSON's
+`verify.sh` asserts these exact fields. Note that the request uses proto3 JSON's
 default `unLocode` (camelCase), while grpcurl prints the response back in
 each field's original snake_case name:
 

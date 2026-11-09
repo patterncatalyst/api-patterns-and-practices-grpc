@@ -1,7 +1,7 @@
 # API Patterns and Practices: gRPC
 
 Designing gRPC APIs well, with runnable examples in **Quarkus** and **Python** against one
-Protocol Buffers contract — a chapter-based Jekyll site plus three companion decks, in the
+Protocol Buffers contract: a chapter-based Jekyll site plus three companion decks, in the
 `lgtm` house style.
 
 Second of four per-style sites in the *API Patterns & Practices* series (REST →
@@ -12,7 +12,7 @@ latency-sensitive **routing and tracking** service that the REST booking service
 
 ## What's here
 
-- **28 chapters (Ch0–Ch27) + an OpenShift Local (CRC) appendix** — from the decision lens and
+- **28 chapters (0 to 27) + an OpenShift Local (CRC) appendix**: from the decision lens and
   Protocol Buffers through the four RPC shapes, deadlines/errors/interceptors, schema design and
   evolution under Buf, concurrency and long-running work, streaming at scale, performance, TLS/mTLS
   and token auth, observability/mesh/load-balancing, grpc-web and JSON transcoding, HTTP/3, testing
@@ -23,7 +23,7 @@ latency-sensitive **routing and tracking** service that the REST booking service
 - **Contract-first:** Protocol Buffers under [Buf](https://buf.build) (`buf lint` + `buf breaking`)
   are the single source of truth; both stacks generate from the same contract.
 - **Behavioral verification:** every example ships a `verify.sh` that calls the running service and
-  asserts response *semantics* against the proto — not just a status code.
+  asserts response *semantics* against the proto, not just a status code.
 - **Three tiers:** Docker Compose → minikube (Kubernetes) → OpenShift Local (CRC).
 - **Three decks:** a 100-level gRPC concepts deck plus 201 Quarkus and 201 Python implementation
   decks (`presentation/`).
@@ -32,7 +32,7 @@ latency-sensitive **routing and tracking** service that the REST booking service
 
 The canonical **shipping / cargo** domain used across patterncatalyst material: `Booking`,
 `Cargo`, `Location` (UN/LOCODE), `Route`, `Operation`, and `Money` as a decimal string. gRPC is
-the internal routing/tracking service the REST booking sibling calls — the same story, one tier down.
+the internal routing/tracking service the REST booking sibling calls: the same story, one tier down.
 
 ## Build locally
 
@@ -53,7 +53,7 @@ bash examples/05-contract-first/verify.sh
 | Path | What |
 |---|---|
 | `_docs/` | The chapters + the CRC appendix (Markdown). |
-| `contracts/` | The Protocol Buffers contract under Buf — the source of truth. |
+| `contracts/` | The Protocol Buffers contract under Buf, the source of truth. |
 | `examples/` | One runnable example per hands-on chapter, Quarkus + Python, each with `verify.sh`. |
 | `presentation/` | The three `.pptx` deck builders (100 concepts, 201 Quarkus, 201 Python). |
 | `_plans/` | Iteration plan, coverage matrix, domain glossary. |
@@ -63,12 +63,12 @@ bash examples/05-contract-first/verify.sh
 
 This project is dual-licensed to separate the code from the writing:
 
-- **Code** — everything under `examples/`, plus build and helper scripts and
-  inline code snippets — is licensed under the **Apache License 2.0**
+- **Code**: everything under `examples/`, plus build and helper scripts and
+  inline code snippets, is licensed under the **Apache License 2.0**
   ([`LICENSE`](LICENSE)).
-- **Content** — the tutorial and book prose (chapters under `_docs/`),
+- **Content**: the tutorial and book prose (chapters under `_docs/`),
   diagrams and images under `assets/`, and the slide decks under
-  `presentation/` — is licensed under **Creative Commons Attribution 4.0
+  `presentation/`, is licensed under **Creative Commons Attribution 4.0
   International (CC BY 4.0)** ([`LICENSE-docs.md`](LICENSE-docs.md)).
 
 Copyright 2026 PatternCatalyst (Robert Sedor).

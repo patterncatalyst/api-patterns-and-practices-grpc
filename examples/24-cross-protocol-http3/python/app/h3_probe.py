@@ -99,7 +99,7 @@ async def probe(host: str, port: int, path: str, timeout: float) -> int:
             probe_protocol = cast(H3ProbeProtocol, protocol)
             await probe_protocol.get(f"{host}:{port}", path, timeout)
     except (OSError, asyncio.TimeoutError, ConnectionError) as exc:
-        print(f"h3_probe: FAIL — could not complete an HTTP/3 request to {host}:{port}: {exc}", file=sys.stderr)
+        print(f"h3_probe: FAIL, could not complete an HTTP/3 request to {host}:{port}: {exc}", file=sys.stderr)
         print("PROBE_FAIL")
         return 1
 
@@ -120,7 +120,7 @@ async def probe(host: str, port: int, path: str, timeout: float) -> int:
         print("PROBE_OK")
         return 0
 
-    print("h3_probe: FAIL — handshake or status check did not pass", file=sys.stderr)
+    print("h3_probe: FAIL, handshake or status check did not pass", file=sys.stderr)
     print("PROBE_FAIL")
     return 1
 

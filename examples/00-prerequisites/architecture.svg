@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 460" font-family="'Red Hat Text', system-ui, sans-serif" role="img">
 <defs><marker id="a" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#555"/></marker><marker id="am" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#e8870c"/></marker></defs>
 <rect x="20" y="20" width="940" height="420" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">examples/00-prerequisites — compose stack (ch00-prereq)</text>
+<text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">examples/00-prerequisites: compose stack (ch00-prereq)</text>
 <rect x="50" y="180" width="170" height="70" rx="9" fill="#eef4fb" stroke="#2f6db5" stroke-width="2"/>
 <text x="135.0" y="213.0" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">grpcurl / grpcui</text>
 <text x="135.0" y="230.0" font-size="11.5" fill="#555555" text-anchor="middle">client</text>
@@ -41,5 +41,5 @@
 <path d="M530,300 L830,220" fill="none" stroke="#b8650a" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#am)"/>
 <text x="686.0" y="254.0" font-size="11" fill="#ffffff" stroke="#ffffff" stroke-width="3" paint-order="stroke" text-anchor="middle">OTLP</text>
 <text x="686.0" y="254.0" font-size="11" fill="#b8650a" text-anchor="middle">OTLP</text>
-<text x="50" y="410" font-size="11" fill="#555555" text-anchor="start">One proto, two independent server implementations, one canned quote — the toolchain is the thing under test here.</text>
+<text x="50" y="410" font-size="11" fill="#555555" text-anchor="start">One proto, two independent server implementations, one canned quote: the toolchain is the thing under test here.</text>
 </svg>

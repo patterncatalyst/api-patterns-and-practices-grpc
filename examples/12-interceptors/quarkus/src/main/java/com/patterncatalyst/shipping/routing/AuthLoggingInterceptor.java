@@ -77,7 +77,7 @@ public class AuthLoggingInterceptor implements ServerInterceptor {
         }
 
         // Wrap the CALL, not the handler: close(status, trailers) is the one
-        // place every RPC shape — unary, streaming, successful, or not —
+        // place every RPC shape (unary, streaming, successful or not)
         // reports its final status, so this is the one place to log it from.
         ServerCall<ReqT, RespT> timedCall =
                 new ForwardingServerCall.SimpleForwardingServerCall<>(call) {

@@ -2,82 +2,78 @@
 title: "Debugging gRPC"
 order: 26
 part: "Testing & Debugging"
-description: "Reflection and channelz, common failure modes, decoding frames, and GRPC_TRACE and GRPC_VERBOSITY."
-duration: "20 min read"
+description: "Tell a status from a failure before any connection exists, then use reflection, channelz and GRPC_TRACE to find the cause."
+duration: "15 min read"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Tell a real gRPC status (`UNIMPLEMENTED`, `DEADLINE_EXCEEDED`) apart from a failure that happens before a connection exists (`UNAVAILABLE` on a cold channel, a TLS/plaintext mismatch) by reading whether the error text carries a `Code:` line.
-- Diagnose `DEADLINE_EXCEEDED` as a budget-versus-work problem using `grpcurl -max-time` against an artificially delayed `GetQuote`.
-- Use server reflection (`grpcurl list`/`describe`) to discover a service's shape with no local `.proto` file, and know where `grpc-java` and `grpcio-reflection` diverge on method-level `describe`.
-- Query `grpc.channelz.v1.Channelz/GetServers` for live connection and call-count data from a running Python service.
-- Enable `GRPC_TRACE`/`GRPC_VERBOSITY` on a C-core-backed caller (`grpc-python`) to get wire-level call and connectivity-state trace output.
+- Tell a real gRPC status (`UNIMPLEMENTED`, `DEADLINE_EXCEEDED`) from a failure that happens before a connection exists (a cold channel, a TLS/plaintext mismatch) by checking whether the error carries a `Code:` line.
+- Diagnose `DEADLINE_EXCEEDED` as a budget-versus-work problem with `grpcurl -max-time`.
+- Discover a service's shape with server reflection and no local `.proto`, and know where Java and Python reflection differ.
+- Read live connection and call counts from `grpc.channelz.v1.Channelz/GetServers` on a Python service.
+- Turn on `GRPC_TRACE` and `GRPC_VERBOSITY` for a C-core caller to see call and connectivity-state activity.
 
 ## Why this matters
 
-Testing proved a service behaves correctly. This chapter is about the moment it doesn't: a call comes back wrong, or not at all, and the question is no longer "does it work" but "where, exactly, did this fail." `RoutingService.GetQuote` is the RPC under test again, the same formula every unary chapter has shipped, but this chapter is not really about `GetQuote`. It is about four shapes a gRPC failure takes, how to tell them apart from the client side without adding a debugger to the server, and the three tools (reflection, channelz, and the `GRPC_TRACE`/`GRPC_VERBOSITY` environment variables) that answer "why" once a failure has a name.
+A call comes back wrong, or not at all, and the question is where it failed. `RoutingService.GetQuote` is the RPC under test, with an artificial delay so a deadline has something to lose against. gRPC failures take four shapes, and the client side can tell them apart without a debugger on the server. Reflection, channelz and the `GRPC_TRACE` and `GRPC_VERBOSITY` environment variables then explain why.
 
-The code is in `examples/26-debugging/`. The run script there (`verify.sh`) builds and starts both stacks, reproduces all four failure modes against each one, then runs the diagnosis pass; its `README.md` covers what it does and how to drive it by hand.
-
-{% include excalidraw.html file="26-debug-failure-modes" alt="A table with four rows, one per failure mode, each showing symptom, cause, and fix. Row one: UNIMPLEMENTED, FindOptimalRoute call fails; cause, method never wired, declared in the proto with no server code; fix, implement it or route elsewhere, check reflection describe first. Row two: DEADLINE_EXCEEDED, GetQuote call fails; cause, budget less than work, a one second client deadline against a two second server delay; fix, raise the deadline or the budget, or speed up the slow path. Row three: UNAVAILABLE, RPC fails with no response; cause, cold or closed channel, nothing listening at the target; fix, fix the target address or wait for the server to start. Row four: TLS handshake failure, dial fails with no status code, the error text reads Failed to dial target host; cause, a TLS client talking to a plaintext server, or the reverse; fix, match the plaintext flag to the server, or add real TLS rather than flipping a flag." caption="Figure 26.1: four failure modes, read left to right: what you see, why it happens, and what fixes it." %}
+{% include excalidraw.html file="26-debug-failure-modes" alt="A table with four rows, one per failure mode, each showing symptom, cause, and fix. Row one: UNIMPLEMENTED, FindOptimalRoute call fails; cause, method never wired, declared in the proto with no server code; fix, implement it or route elsewhere, check reflection describe first. Row two: DEADLINE_EXCEEDED, GetQuote call fails; cause, budget less than work, a one second client deadline against a two second server delay; fix, raise the deadline or the budget, or speed up the slow path. Row three: UNAVAILABLE, RPC fails with no response; cause, cold or closed channel, nothing listening at the target; fix, fix the target address or wait for the server to start. Row four: TLS handshake failure, dial fails with no status code, the error text reads Failed to dial target host; cause, a TLS client talking to a plaintext server, or the reverse; fix, match the plaintext flag to the server, or add real TLS rather than flipping a flag." caption="Figure 26.1: Four failure modes, each with what you see, why it happens and what fixes it." %}
 
 ## Not every failure is a status code
 
-Every error path before this one (the rich errors, the TLS rejections, the `UNAUTHENTICATED`/`PERMISSION_DENIED` checks) assumed a call reached gRPC's own status machinery: a server received a request, decided it could not satisfy it, and returned a `Status` with a canonical code. That assumption holds for exactly one of this chapter's four failure modes. `UNIMPLEMENTED` and `DEADLINE_EXCEEDED` are real statuses, returned by a server (or, for the deadline, by the runtime on the caller's behalf) that successfully exchanged HTTP/2 frames with a client. `UNAVAILABLE` on a cold channel and a TLS/plaintext mismatch are not: they happen before a connection exists at all, which is exactly why `grpcurl` reports them with no `Code:` line, the same "Failed to dial target host" prefix first described for a TLS rejection. Telling these two families apart is the first and most useful diagnostic skill this chapter teaches: if the error text names a code, the server ran and decided something; if it doesn't, the bytes never arrived as a gRPC call at all.
+Two of the four failures are statuses. `UNIMPLEMENTED` and `DEADLINE_EXCEEDED` come from a server, or from the caller's runtime for the deadline, that exchanged HTTP/2 frames with a client. A cold channel and a TLS/plaintext mismatch happen before a connection exists, so `grpcurl` reports them with a `Failed to dial target host` prefix and no `Code:` line.
 
-## UNIMPLEMENTED: a method that exists in the contract but not in the code
+If the error names a code, the server ran and decided something. If it doesn't, the bytes never arrived as a gRPC call. Make that distinction first.
 
-`contracts/proto/shipping/routing/v1/routing.proto` declares five RPCs on `RoutingService`; this chapter's servers, like every one before it, implement only `GetQuote`. Calling `FindOptimalRoute` fails on both stacks with the same code and two different messages, because the two stacks reach `UNIMPLEMENTED` by different paths. Quarkus's `RoutingServiceImpl` throws it explicitly:
+## UNIMPLEMENTED: in the contract, not in the code
+
+`routing.proto` declares five RPCs on `RoutingService`, and the servers implement only `GetQuote`. Calling `FindOptimalRoute` fails with `UNIMPLEMENTED` on both stacks, with different messages because they get there differently. Quarkus throws it explicitly:
 
 ```java
-@Override
-public Uni<Routing.FindOptimalRouteResponse> findOptimalRoute(Routing.FindOptimalRouteRequest request) {
-    return Uni.createFrom().failure(unimplemented("FindOptimalRoute"));
-}
-
-private static StatusRuntimeException unimplemented(String method) {
-    return Status.UNIMPLEMENTED
-            .withDescription(method + " lands in a later chapter")
-            .asRuntimeException();
-}
+    @Override
+    public Uni<Routing.FindOptimalRouteResponse> findOptimalRoute(Routing.FindOptimalRouteRequest request) {
+        return Uni.createFrom().failure(unimplemented("FindOptimalRoute"));
+    }
 ```
 
-Python's `RoutingServiceServicer` never overrides `FindOptimalRoute` at all: the generated `routing_pb2_grpc.RoutingServiceServicer` base class already implements every method with a default that sets `UNIMPLEMENTED` and a stock message, so a subclass that overrides nothing still returns that status. Both are equally correct; the difference is purely cosmetic, and it is a useful one to notice in a traceback, because a custom message like `"FindOptimalRoute lands in a later chapter"` tells a caller this was a deliberate, documented gap, while `"Method not implemented!"` tells them only that nobody wrote the code: worth knowing which one you're looking at before filing a bug against someone else's service.
+```java
+    private static StatusRuntimeException unimplemented(String method) {
+        return Status.UNIMPLEMENTED
+                .withDescription(method + " lands in a later chapter")
+                .asRuntimeException();
+    }
+```
+
+In Python the generated `RoutingServiceServicer` base class already answers every method with `UNIMPLEMENTED` and the stock message `Method not implemented!`, so a subclass that overrides nothing returns it. A custom message marks a deliberate, documented gap. The stock one only says nobody wrote the code. Know which you're looking at before filing a bug against someone else's service.
 
 ## DEADLINE_EXCEEDED: a budget that can't cover the work
 
-Deadline propagation was taught with a real downstream hop; this chapter needs only a deadline to have something to lose against, so `GetQuote` here carries a configurable artificial delay instead: `QUOTE_DELAY_MS`, 2000ms by default, read on both stacks and applied right before the response is built. On Quarkus, the delay is a Mutiny operator, not a blocking sleep:
+`GetQuote` waits `QUOTE_DELAY_MS` (2,000 ms by default) before it responds; Quarkus reads it through the `ch26.quote-delay-ms` config property, Python straight from the environment. On Quarkus the delay is a Mutiny operator, which schedules the emission on a worker pool instead of parking the event-loop thread the way `Thread.sleep()` would:
 
 ```java
-@ConfigProperty(name = "ch26.quote-delay-ms", defaultValue = "2000")
-long quoteDelayMs;
-// ...
-return Uni.createFrom().item(response)
-        .onItem().delayIt().by(Duration.ofMillis(quoteDelayMs));
+        return Uni.createFrom().item(response)
+                .onItem().delayIt().by(Duration.ofMillis(quoteDelayMs));
 ```
 
-`.delayIt()` schedules the emission on Mutiny's worker pool rather than parking the event-loop thread the way a `Thread.sleep()` call in this method would: the request waits, but the server keeps serving everything else while it does. Python reaches the same effect with a plain coroutine sleep, which is non-blocking by construction on an `asyncio` event loop:
+Python uses a coroutine sleep, which doesn't block the `asyncio` event loop:
 
 ```python
-_QUOTE_DELAY_MS = int(os.environ.get("QUOTE_DELAY_MS", "2000"))
-# ...
-if _QUOTE_DELAY_MS > 0:
-    await asyncio.sleep(_QUOTE_DELAY_MS / 1000)
-return routing_pb2.GetQuoteResponse(quote=quote, route=route)
+        if _QUOTE_DELAY_MS > 0:
+            await asyncio.sleep(_QUOTE_DELAY_MS / 1000)
+
+        return routing_pb2.GetQuoteResponse(quote=quote, route=route)
 ```
 
-With the delay fixed at 2000ms, a 1-second client deadline (`grpcurl -max-time 1`) cannot possibly be satisfied: the call fails `DEADLINE_EXCEEDED` on both stacks every time, not occasionally, because the race is 1000ms of budget against 2000ms of unavoidable work. A 5-second deadline clears it with room to spare. Nothing about the server's correctness changed between those two calls; only how much time the caller was willing to wait did. That is the entire diagnostic value of this failure mode: `DEADLINE_EXCEEDED` almost never means "the server is broken"; it means "the budget and the work disagree," and the fix is to change one of those two numbers, not to go looking for a bug in `QuoteCalculator`.
+A 1-second deadline (`grpcurl -max-time 1`) against 2,000 ms of work fails every time, not occasionally. A 5-second deadline succeeds. The server is correct in both calls. `DEADLINE_EXCEEDED` almost never means the server is broken. It means the budget and the work disagree, so change one of those two numbers instead of hunting for a bug in the quote formula.
 
-## UNAVAILABLE on a cold channel, and why grpcurl can't show it
+## UNAVAILABLE on a cold channel
 
-`UNAVAILABLE` is gRPC's catch-all for "no usable connection to the target," and this chapter reproduces the simplest version of it: a channel aimed at a port nothing is listening on. `compose.yaml` never publishes anything on port 9999 on either container, so a call against `quarkus:9999` or `python:9999` is refused by the operating system every single run: deterministic, not a race against a server that hasn't finished starting yet.
+`UNAVAILABLE` means there is no usable connection to the target. The simplest repro is a channel aimed at port 9999, where nothing listens, so the operating system refuses every attempt.
 
-Reproducing this with `grpcurl` demonstrates the same gap TLS already exposed for a mismatch: `grpcurl` dials **blocking**, before it ever attempts an RPC, so against a closed port it reports a raw dial failure (`Failed to dial target host "...": connection refused`) with no `Code:` line, because the call never reached gRPC's status machinery at all. A real application client built the way every unary chapter in this book has built one behaves differently. `grpc.aio.insecure_channel(target)` returns immediately without dialing anything; the channel only attempts to connect the first time a call is actually made on it. That first call against a dead target therefore surfaces the condition **as a status** (`grpc.StatusCode.UNAVAILABLE`) because the attempt and the failure both happen inside the RPC itself, not before it.
-
-`examples/26-debugging/python/app/unavailable_probe.py` makes exactly that call:
+`grpcurl` dials blocking before it issues an RPC, so against a closed port it prints a raw `connection refused` dial error with no `Code:` line, which looks like a TLS mismatch. An application client behaves differently. `grpc.aio.insecure_channel(target)` returns without dialing, and the first call is what connects. The failure then arrives as a status on the call:
 
 ```python
 async def run(target: str) -> int:
@@ -87,49 +83,80 @@ async def run(target: str) -> int:
         try:
             await stub.GetQuote(_REQUEST, timeout=5)
         except grpc.aio.AioRpcError as exc:
+            print(f"unavailable_probe: target={target} code={exc.code()} details={exc.details()!r}")
             if exc.code() == grpc.StatusCode.UNAVAILABLE:
+                print("unavailable_probe: ok, UNAVAILABLE on a cold/closed channel")
                 return 0
+            print(f"unavailable_probe: FAIL, expected UNAVAILABLE, got {exc.code()}", file=sys.stderr)
             return 1
+        print("unavailable_probe: FAIL, call against a dead target unexpectedly succeeded", file=sys.stderr)
+        return 1
     finally:
         await channel.close()
 ```
 
-`verify.sh` runs this script from the already-built Python image (`docker compose run --rm --entrypoint python python -m app.unavailable_probe quarkus:9999`) against each stack's own dead port in turn, so the assertion is a real `grpc.StatusCode.UNAVAILABLE`, not a text match on a CLI tool's dial-failure wording. The lesson generalizes past this one script: whatever client library is making the call, if it builds a channel lazily (and most do), a cold or closed channel shows up as an application-visible status the caller's own error-handling code already knows how to catch; it is `grpcurl`'s particular dialing strategy that makes this one failure mode look, on the command line, indistinguishable from a TLS mismatch.
+Most client libraries build channels lazily, so a cold or closed channel reaches your error handling as `grpc.StatusCode.UNAVAILABLE`, which the code already knows how to catch. Only the CLI's dialing strategy makes it look like a transport error.
 
 ## TLS handshake failure: the wrong assumption about plaintext
 
-This chapter's servers are plaintext, exactly like every chapter before TLS arrived. `grpcurl` defaults to TLS unless told otherwise with `-plaintext`, so a call that omits that flag against either server fails before a single byte of `GetQuoteRequest` is deserialized:
+The servers are plaintext. `grpcurl` assumes TLS unless told `-plaintext`, so omitting the flag fails before any request is deserialized:
 
 ```
 Failed to dial target host "localhost:9260": tls: first record does not look like a TLS handshake
 ```
 
-This is the single most common real confusion in gRPC tooling, and the fix is almost never TLS configuration: it's checking that the `-plaintext` flag (or your client library's equivalent, `grpc.insecure_channel` versus `grpc.secure_channel`) matches what the server speaks. The same mismatch in the other direction (a plaintext client against a TLS-only server) produces the same family of error, as shown earlier with three different exact wordings depending on where the handshake dies. All three wordings, and this chapter's, share the one property that matters: no `Code:` line, because TLS negotiation happens below gRPC's own framing, and a failure there never reaches it.
+This is the most common confusion in gRPC tooling, and the fix is rarely TLS configuration. Check that `-plaintext`, or `grpc.insecure_channel` versus `grpc.secure_channel` in a client library, matches what the server speaks. A plaintext client against a TLS-only server fails the same way with different wording. In every case there is no `Code:` line, because TLS negotiation happens below gRPC framing.
 
-<div class="callout callout--warn"><p class="callout__title">Watch out</p><p>Reflection's two implementations disagree about what they can resolve. <code>grpc-java</code>'s reflection service (Quarkus) answers <code>grpcurl describe shipping.routing.v1.RoutingService.GetQuote</code> (a full method name) directly. <code>grpcio-reflection</code> (Python) only resolves service and message symbols; the identical method-level <code>describe</code> call against the Python stack fails with <code>Symbol not found: shipping.routing.v1.RoutingService.GetQuote</code>, confirmed while writing this chapter. Neither behavior is a bug (the v1alpha reflection protocol never mandated method-level symbol resolution), but it means a <code>describe</code> script written and tested against one stack can silently stop working against the other. <code>describe shipping.routing.v1.RoutingService</code> (the service, not the method) resolves identically on both, which is why <code>verify.sh</code> asserts that form.</p></div>
+## Diagnosis tools
 
-## How the code works: channelz, and the two probe scripts
+{% include excalidraw.html file="26-diagnosis-toolbox" alt="Three columns, one per diagnosis tool. Column one, Reflection: server reflection via grpcurl list and describe; reveals services, methods, and message shapes with no proto file needed; Quarkus has full support for service, method, and message describe; Python supports service and message describe only, method-level describe returns Symbol not found. Column two, channelz: the grpc channelz v1 Channelz GetServers call; reveals live servers, sockets, and calls started, succeeded, and failed counts; Quarkus has no support, shown with a dashed box; Python has full support, registered on the same port as the same server. Column three, GRPC_TRACE and GRPC_VERBOSITY: environment variables read by the calling library, not the server; reveals C-core transport and call activity written to stderr; grpcurl, built on grpc-go, is silent and uses GRPC_GO_LOG_VERBOSITY_LEVEL instead, shown with a dashed box; grpc-python, built on the C-core, is verbose, and the exact lines are illustrative and vary by release." caption="Figure 26.2: What each diagnosis tool reveals, and where it applies on each stack." %}
 
-This chapter's Python server adds one registration to the same `grpc.aio.server()` every prior chapter built, right alongside `RoutingServiceServicer`:
+| Tool | Answers | Quarkus | Python |
+|---|---|---|---|
+| Reflection (`grpcurl list`, `describe`) | What services, methods and messages exist | Service, method and message symbols | Service and message symbols only |
+| channelz (`Channelz/GetServers`) | What the running server did: sockets, calls started, succeeded, failed | Not available in `quarkus-grpc` | Registered on the same port |
+| `GRPC_TRACE`, `GRPC_VERBOSITY` | What the calling library does on the wire | Works against it; set on the caller | Works against it; set on the caller |
+
+### Reflection
+
+`grpcurl describe shipping.routing.v1.RoutingService` resolves identically on both stacks. A method-level `describe shipping.routing.v1.RoutingService.GetQuote` works on `grpc-java` and fails on `grpcio-reflection` with `Symbol not found`. Neither is a bug, because the reflection protocol never required method-level resolution, but a script written against one stack can stop working against the other. Describe the service, not the method.
+
+### channelz
+
+channelz reports the server's own view: listening sockets and calls started, succeeded and failed. It doesn't touch the business logic. On Python it is one more servicer on the same `grpc.aio` server, so there is no separate admin port:
 
 ```python
-from grpc_channelz.v1 import channelz, channelz_pb2, channelz_pb2_grpc
+    channelz_pb2_grpc.add_ChannelzServicer_to_server(channelz.aio.ChannelzServicer(), server)
 
-server = grpc.aio.server()
-routing_pb2_grpc.add_RoutingServiceServicer_to_server(RoutingServiceServicer(), server)
-channelz_pb2_grpc.add_ChannelzServicer_to_server(channelz.aio.ChannelzServicer(), server)
-
-service_names = (
-    routing_pb2.DESCRIPTOR.services_by_name["RoutingService"].full_name,
-    channelz_pb2.DESCRIPTOR.services_by_name["Channelz"].full_name,
-    reflection.SERVICE_NAME,
-)
-reflection.enable_server_reflection(service_names, server)
+    service_names = (
+        routing_pb2.DESCRIPTOR.services_by_name["RoutingService"].full_name,
+        channelz_pb2.DESCRIPTOR.services_by_name["Channelz"].full_name,
+        reflection.SERVICE_NAME,
+    )
+    reflection.enable_server_reflection(service_names, server)
 ```
 
-`channelz.aio.ChannelzServicer()` is the asyncio-server variant of the servicer the `grpcio-channelz` package ships (a synchronous `grpc.server()` would instead call the module-level `channelz.add_channelz_servicer(server)`); either way, it is a gRPC service like any other, added to the same server, answering on the same port; there is no separate admin listener to stand up or firewall. The one mistake worth watching for is forgetting the second line in `service_names`: channelz's servicer is registered and will answer a call that names it exactly, but without its full name in the reflection set, `grpcurl` cannot discover or resolve it by name at all, and a `describe grpc.channelz.v1.Channelz` would fail exactly the way an unregistered symbol always does.
+Add the channelz name to the reflection set too. The servicer answers a call that names it exactly, but without the name `grpcurl` can't discover or describe it. A synchronous `grpc.server()` registers it with `channelz.add_channelz_servicer(server)` instead.
 
-`unavailable_probe.py` and `trace_probe.py` (both under `examples/26-debugging/python/app/`) are one-shot clients, not servers: the same shape as the earlier `reuse_client.py`, run from the already-built Python image via `docker compose run --entrypoint python`, never shipped as a second image. `unavailable_probe.py`'s full logic is above; `trace_probe.py` is simpler still: it builds a channel, makes exactly one `GetQuote` call, and exits, because its entire job is to exist as something `GRPC_TRACE`/`GRPC_VERBOSITY` can act on when `verify.sh` sets them in the container environment it runs in. Both scripts import the generated `routing_pb2`/`routing_pb2_grpc` the same way the production server does, from `PYTHONPATH=/app/generated:/app`; nothing about them requires a special build step beyond the one the server already needs.
+`quarkus-grpc` has no channelz support. A Quarkus service gets its diagnostic surface from reflection, structured logs and the gRPC metrics from Micrometer, which report aggregate counts and latencies without per-connection detail.
+
+### GRPC_TRACE and GRPC_VERBOSITY
+
+These variables configure the calling library, not the server, so they work against either stack; what matters is the client. `grpc-python` wraps the C-core gRPC implementation, and `GRPC_VERBOSITY=DEBUG` with `GRPC_TRACE=api,call_error,connectivity_state` logs each call and connectivity-state transition to stderr. `grpcurl` is built on `grpc-go`, which ignores both and uses `GRPC_GO_LOG_VERBOSITY_LEVEL` and `GRPC_GO_LOG_SEVERITY_LEVEL`. The output is large and its exact lines vary between releases, so narrow the tracer list and treat it as a last resort.
+
+| Symptom | First step |
+|---|---|
+| Error text has no `Code:` line | Check plaintext versus TLS, then port and network, before certificates or firewalls |
+| `UNIMPLEMENTED` | `grpcurl describe <service>` to see whether the method exists |
+| `DEADLINE_EXCEEDED` | Compare the deadline to how long the call takes |
+| Need live call counts from a Python service without redeploying | channelz |
+| Wire-level detail from a C-core caller | `GRPC_TRACE`, narrowed to a few tracers |
+
+> **🤖 Explore with your agent**
+>
+> "In examples/26-debugging, call RoutingService.GetQuote on the Quarkus service (9260) and the Python service (9261) with grpcurl -max-time 1, then -max-time 5. Classify each result as a status or a failure before a connection exists using the Code: line rule, and say whether QUOTE_DELAY_MS or the client deadline should change."
+>
+> Check: the 1-second calls fail with `Code: DeadlineExceeded` on both stacks, the 5-second calls return the quote, and the reply names the budget against the 2,000 ms delay as the cause.
 
 ## Build, run, observe
 
@@ -137,112 +164,26 @@ reflection.enable_server_reflection(service_names, server)
 cd examples/26-debugging && ./verify.sh
 ```
 
-Expect `PASS` after roughly two minutes of build time (first run) or a few seconds (cached): both stacks come up, the baseline `GetQuote` correctness check passes on each, all four failure modes above reproduce and assert on each, and the diagnosis pass (reflection on both, channelz on Python, `GRPC_TRACE`/`GRPC_VERBOSITY` on both) completes last. Real output from each step is in `examples/26-debugging/README.md` and in the "On the wire" section below.
+`verify.sh` builds and starts both stacks (Quarkus on 9260, Python on 9261), checks the baseline `GetQuote`, reproduces all four failures on each, and runs the diagnosis pass. It prints `PASS` when everything holds, after a couple of minutes on the first run and seconds when cached. `examples/26-debugging/README.md` lists each command to run by hand.
 
-{% include excalidraw.html file="26-diagnosis-toolbox" alt="Three columns, one per diagnosis tool. Column one, Reflection: server reflection via grpcurl list and describe; reveals services, methods, and message shapes with no proto file needed; Quarkus has full support for service, method, and message describe; Python supports service and message describe only, method-level describe returns Symbol not found. Column two, channelz: the grpc channelz v1 Channelz GetServers call; reveals live servers, sockets, and calls started, succeeded, and failed counts; Quarkus has no support, absent from quarkus-grpc 3.40.x, shown with a dashed box; Python has full support, registered on the same port as the same server. Column three, GRPC_TRACE and GRPC_VERBOSITY: environment variables read by the calling library, not the server; reveals C-core transport and call activity written to stderr; grpcurl, built on grpc-go, is silent and uses GRPC_GO_LOG_VERBOSITY_LEVEL instead, shown with a dashed box; grpc-python, built on the C-core, is verbose, and the exact lines are illustrative and vary by release." caption="Figure 26.2: what each diagnosis tool reveals, and where it does and doesn't apply across the two stacks." %}
+By hand:
 
-## Diagnosis: reflection, channelz, and GRPC_TRACE
+- Run `docker compose run --rm --entrypoint python python -m app.unavailable_probe quarkus:9999`. The probe reports `StatusCode.UNAVAILABLE`.
+- Run `grpcurl -plaintext -d '{}' localhost:9261 grpc.channelz.v1.Channelz/GetServers`. The reply carries the listening socket and `calls_started` and `calls_failed` counts.
+- Run the trace probe with tracing on: `docker compose run --rm -e GRPC_TRACE=api,call_error,connectivity_state -e GRPC_VERBOSITY=DEBUG --entrypoint python python -m app.trace_probe quarkus:9000`. Channel creation and the `IDLE` to `CONNECTING` to `READY` transitions appear on stderr before `trace_probe: GetQuote ok`.
+- Confirm the cold-channel cause with no gRPC involved: `docker compose -p ch26-debugging exec quarkus sh -c "echo > /dev/tcp/quarkus/9999"` is refused at the TCP layer.
 
-Reflection is unchanged from every prior chapter: both stacks answer `grpcurl list` and `grpcurl describe shipping.routing.v1.RoutingService` without a local copy of the `.proto` file, which is the whole reason a tool like `grpcurl` is useful against a service you didn't build. Channelz goes one layer deeper than reflection: instead of describing the *shape* of a service, `grpc.channelz.v1.Channelz/GetServers` reports what the running server did (how many calls started, succeeded, and failed, what socket it's listening on) all without touching `RoutingServiceImpl` or `RoutingServiceServicer` at all. This chapter's Python server exposes it; its Quarkus server does not, because `quarkus-grpc` 3.40.x has no channelz support at all: it appears nowhere in either the gRPC reference guide or the service-implementation guide, confirmed by searching both before writing this chapter. That gap is a property of the extension, not a configuration this book skipped: a Quarkus deployment's equivalent diagnostic surface is the combination this chapter already covers for it: reflection to confirm shape, and structured logs (`LOG.infof` in `RoutingServiceImpl`) to confirm behavior, plus the Micrometer-based gRPC metrics observability covered, which report aggregate call counts and latencies without channelz's live per-connection detail.
+Experiments:
 
-`GRPC_TRACE` and `GRPC_VERBOSITY` sit outside both of those: they are environment variables the **calling** library reads, not a service the target server exposes, so they work identically against either stack's `GetQuote`; what varies is which client library is doing the calling. `grpc-python`, like `grpc-java` and the C++ core, wraps the same underlying C-core gRPC implementation, and `GRPC_VERBOSITY=DEBUG` with `GRPC_TRACE=api,call_error,connectivity_state` makes that core log every call, every connectivity-state transition, on stderr. `grpcurl` cannot demonstrate this at all, for the same reason it dials differently than `grpc.aio` does: it's built on `grpc-go`, a from-scratch Go implementation with its own logging surface (`GRPC_GO_LOG_VERBOSITY_LEVEL`, `GRPC_GO_LOG_SEVERITY_LEVEL`) that ignores `GRPC_TRACE` entirely. `trace_probe.py` exists specifically to have a C-core-backed caller available for this demonstration.
-
-## Cross-check
-
-Independent of the Python probe's own assertion, a connection attempt at the TCP level (no gRPC involved at all) confirms the same fact the UNAVAILABLE repro depends on:
-
-```bash
-docker compose -p ch26-debugging exec quarkus sh -c "echo > /dev/tcp/quarkus/9999"
-# sh: connect: Connection refused
-# sh: line 1: /dev/tcp/quarkus/9999: Connection refused
-```
-
-A shell built-in that knows nothing about gRPC, protobuf, or status codes gets refused at exactly the same TCP layer `unavailable_probe.py` does, confirming the failure is what this chapter claims it is (nothing listening on that port) rather than some gRPC-specific misbehavior that only looks like a connection problem.
-
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Start every unexplained gRPC failure with reflection: <code>grpcurl describe &lt;service&gt;</code> against the target costs one command and tells you whether the method you're calling exists at all, which rules out <code>UNIMPLEMENTED</code> in one step. If the error text contains a <code>Code:</code> line, the server ran: treat <code>DEADLINE_EXCEEDED</code> as a budget-versus-work problem first (what did the deadline say, how long did the call take) before suspecting application logic. If it doesn't contain a <code>Code:</code> line, nothing reached the server: check the obvious transport mismatch first (plaintext versus TLS, wrong port, wrong network) before reaching for certificates or firewalls. Reach for channelz when you need live connection and call-count data from a running Python service without redeploying it with new logging; reach for <code>GRPC_TRACE</code>/<code>GRPC_VERBOSITY</code> only as a last resort on a C-core-backed caller (grpc-python, grpc-java, grpc-c++), since the volume of output is large and the exact lines are not a stable contract across releases.</p></div>
-
-## What you learned
-
-- Only two of this chapter's four failure modes are real gRPC statuses (`UNIMPLEMENTED`, `DEADLINE_EXCEEDED`); the other two (a cold channel, a TLS/plaintext mismatch) fail before a connection exists, which is why their error text never contains a `Code:` line; that absence is itself the diagnostic signal.
-- `grpcurl`'s blocking dial and `grpc.aio`'s lazy channel disagree about how a dead target shows up: a CLI dial failure with no status code, versus an application-visible `grpc.StatusCode.UNAVAILABLE` on the first real RPC: the same underlying condition, reported two different ways by two different client designs.
-- channelz and `GRPC_TRACE`/`GRPC_VERBOSITY` answer different questions at different layers: channelz asks the server what it's doing right now; the trace variables ask the calling library's C-core what it's doing on the wire, and both have real gaps (no channelz in `quarkus-grpc` 3.40.x; no `GRPC_TRACE` support in `grpcurl`'s Go-based client) worth knowing before you go looking for output that was never going to appear.
-- Reflection's own symbol resolution is not identical across implementations: service- and message-level `describe` are portable across `grpc-java` and `grpcio-reflection`; method-level `describe` is not.
-
-The final project puts every piece this book has built (contracts, both language stacks, TLS, auth, observability, and now debugging) into one running system end to end.
-
-## On the wire
-
-The four failure modes, real output from an authoring-machine run:
-
-```bash
-grpcurl -plaintext -d '{"origin":{"unLocode":"USNYC"},"destination":{"unLocode":"NLRTM"},"preferSpeed":false}' \
-  localhost:9260 shipping.routing.v1.RoutingService/FindOptimalRoute
-# ERROR:
-#   Code: Unimplemented
-#   Message: FindOptimalRoute lands in a later chapter
-```
-
-```bash
-grpcurl -plaintext -max-time 1 -d '{"origin":{"unLocode":"USNYC"},"destination":{"unLocode":"NLRTM"},"cargo":[{"weightKg":1200.5}]}' \
-  localhost:9260 shipping.routing.v1.RoutingService/GetQuote
-# ERROR:
-#   Code: DeadlineExceeded
-#   Message: context deadline exceeded
-```
-
-```bash
-docker compose run --rm --entrypoint python python -m app.unavailable_probe quarkus:9999
-# unavailable_probe: target=quarkus:9999 code=StatusCode.UNAVAILABLE
-#   details='failed to connect to all addresses; last error: UNKNOWN:
-#   ipv4:172.19.0.3:9999: Failed to connect to remote host: Connection refused'
-# unavailable_probe: ok — UNAVAILABLE on a cold/closed channel
-```
-
-```bash
-grpcurl -d '{}' localhost:9260 shipping.routing.v1.RoutingService/GetQuote
-# Failed to dial target host "localhost:9260": tls: first record does not look like a TLS handshake
-```
-
-The diagnosis pass, in order: reflection, channelz, trace.
-
-```bash
-grpcurl -plaintext localhost:9260 describe shipping.routing.v1.RoutingService
-# service RoutingService {
-#   rpc FindOptimalRoute ( .shipping.routing.v1.FindOptimalRouteRequest ) returns ( .shipping.routing.v1.FindOptimalRouteResponse );
-#   rpc GetQuote ( .shipping.routing.v1.GetQuoteRequest ) returns ( .shipping.routing.v1.GetQuoteResponse );
-#   ...
-# }
-
-grpcurl -plaintext -d '{}' localhost:9261 grpc.channelz.v1.Channelz/GetServers
-# {
-#   "server": [
-#     {
-#       "ref": { "server_id": "2" },
-#       "data": {
-#         "trace": { "creation_timestamp": "2026-10-14T11:47:17.543483636Z", "events": [...] },
-#         "calls_started": "3",
-#         "calls_failed": "1",
-#         "last_call_started_timestamp": "2026-10-14T11:47:20.335483678Z"
-#       },
-#       "listen_socket": [{ "socket_id": "3", "name": "chttp2 listener ipv4:0.0.0.0:9000" }]
-#     }
-#   ],
-#   "end": true
-# }
-
-docker compose run --rm -e GRPC_TRACE=api,call_error,connectivity_state -e GRPC_VERBOSITY=DEBUG \
-  --entrypoint python python -m app.trace_probe quarkus:9000
-# I1014 11:46:31.754228       1 channel_create.cc:249] grpc_channel_create(target=quarkus:9000, creds=0x55bd30d982f0, args=0x7f2b0c5676d0)
-# I1014 11:46:31.755093      13 connectivity_state.cc:150] ConnectivityStateTracker client_channel[0x55bd30f81888]: IDLE -> CONNECTING (started resolving, OK)
-# I1014 11:46:31.795887      17 connectivity_state.cc:150] ConnectivityStateTracker client_channel[0x55bd30f81888]: CONNECTING -> READY (helper, OK)
-# trace_probe: GetQuote ok, quote.amount=3001.25
-```
+- **Drop `-plaintext`.** Call either port without it: the call fails with `tls: first record does not look like a TLS handshake` and no `Code:` line.
+- **Describe a method.** Run `grpcurl -plaintext localhost:9261 describe shipping.routing.v1.RoutingService.GetQuote`: Python answers `Symbol not found`, and the same call on 9260 resolves.
+- **Remove the delay.** Set `QUOTE_DELAY_MS=0` in `compose.yaml` and recreate the stacks: the `-max-time 1` call now returns the quote, because the work fits the budget.
 
 ---
 
 ## For deeper coverage
 
-- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly, 2021): resilient inter-service calls and the failure handling this chapter's four failure modes fall under.
+- Sam Newman, *Building Microservices*, 2nd ed. (O'Reilly, 2021): resilient inter-service calls and the failure handling these four modes fall under.
 - Cloud Native Design Patterns, Appendix M, "Failure Modes."
 - [grpc.io: Debugging](https://grpc.io/docs/guides/debugging/): channelz, health checking, and CSDS tooling for inspecting a running gRPC server.
-- [grpc.io: Reflection](https://grpc.io/docs/guides/reflection/): the protocol `grpcurl list`/`describe` rely on.
+- [grpc.io: Reflection](https://grpc.io/docs/guides/reflection/): the protocol `grpcurl list` and `describe` rely on.

@@ -88,7 +88,7 @@ run_stack_tests "quarkus" "localhost:9110"
 run_stack_tests "python" "localhost:9111"
 
 echo
-echo "PASS — Ch11 error-handling anchor: Quarkus and Python both map" \
+echo "PASS: Ch11 error-handling anchor: Quarkus and Python both map" \
      "GetQuote's inputs to the same canonical status codes (INVALID_ARGUMENT," \
      "NOT_FOUND, UNAVAILABLE, OK) AND carry the same rich google.rpc.Status" \
      "detail type (BadRequest, ErrorInfo, RetryInfo) in the trailers for" \

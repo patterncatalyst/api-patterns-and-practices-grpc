@@ -1,21 +1,21 @@
-# Ch5 — Contract-first ANCHOR: RoutingService.GetQuote
+# Chapter 5, contract-first ANCHOR: RoutingService.GetQuote
 
-The reference both-stack implementation of `shipping.routing.v1.RoutingService.GetQuote`
-— the earliest "it runs, end to end" milestone for this site. The contract
-— not either codebase — is the source of truth:
+The reference both-stack implementation of `shipping.routing.v1.RoutingService.GetQuote`,
+the earliest "it runs, end to end" milestone for this site. The contract,
+not either codebase, is the source of truth:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService`
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService`
   and its five RPCs (only `GetQuote` is implemented here; the rest land in
   later chapters and return `UNIMPLEMENTED`).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Money`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Money`,
   `Location`, `Cargo`, `Route`, `Leg` messages.
 
 Quarkus (`quarkus/`, host port 9005) and Python (`python/`, host port 9006)
 independently implement the identical RPC, generated from the **same**
 `.proto` files, against no persistence (stateless quote computation).
 `verify.sh` calls `GetQuote` on **both** stacks via `grpcurl` and asserts
-**response field semantics** — not just a gRPC `OK` status. That's the
-load-bearing correctness step this chapter exists to teach: two independent
+**response field semantics**, not just a gRPC `OK` status. That's the
+correctness step this chapter exists to teach: two independent
 implementations built from one proto contract produce identical, assertable
 wire output.
 
@@ -45,7 +45,7 @@ grpcurl -plaintext -d '{
 docker compose down -v
 ```
 
-Swap `9005` for `9006` to hit the Python stack instead — same request, same
+Swap `9005` for `9006` to hit the Python stack instead: same request, same
 response shape, same numbers.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -70,14 +70,14 @@ route.price    = quote
 ```
 
 `amount` is always a **decimal string** (e.g. `"3001.25"`), per
-`shipping.type.v1.Money` — never a binary float. Both implementations
+`shipping.type.v1.Money`: never a binary float. Both implementations
 compute the sum/round independently (`QuoteCalculator.java` /
 `app/quote.py`) and both round the same way: Java via
 `BigDecimal.valueOf(amount).setScale(2, RoundingMode.HALF_UP)`, Python via
 `Decimal(str(amount)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)`.
-Explicit `HALF_UP` on both sides — rather than Java's `String.format("%.2f",
-...)` (also HALF_UP) paired with Python's `f"{x:.2f}"` (round-half-to-even)
-— means the two stacks agree on every input, not just ones that land
+Explicit `HALF_UP` on both sides, rather than Java's `String.format("%.2f",
+...)` (also HALF_UP) paired with Python's `f"{x:.2f}"` (round-half-to-even),
+means the two stacks agree on every input, not just ones that land
 exactly on two decimal places. `verify.sh` proves the formula sums every
 cargo item (not just one) with a second call: `1000 + 500.5 = 1500.5kg *
 2.50 = "3751.25"`.
@@ -90,18 +90,18 @@ implementation here:
 | RPC | Status in this chapter |
 |---|---|
 | `GetQuote` | implemented (this chapter) |
-| `FindOptimalRoute` | `UNIMPLEMENTED` — later chapter |
-| `ListRoutes` | `UNIMPLEMENTED` — later chapter |
-| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` — Ch26 streaming |
-| `RecomputeRoutes` (async) | `UNIMPLEMENTED` — Ch26 async |
+| `FindOptimalRoute` | `UNIMPLEMENTED` (later chapter) |
+| `ListRoutes` | `UNIMPLEMENTED` (later chapter) |
+| `NegotiateRoute` (bidi stream) | `UNIMPLEMENTED` (Chapter 26 streaming) |
+| `RecomputeRoutes` (async) | `UNIMPLEMENTED` (Chapter 26 async) |
 
 On Quarkus, the generated Mutiny `RoutingService` interface declares all
 five RPCs as abstract methods, so `RoutingServiceImpl` implements all five
-explicitly — the four unimplemented ones just return
+explicitly; the four unimplemented ones just return
 `Status.UNIMPLEMENTED.asRuntimeException()`. On Python, the generated
 `RoutingServiceServicer` base class already sets `UNIMPLEMENTED` and raises
 for any method a subclass doesn't override, so the Python side only defines
-`GetQuote` — the rest fall through to that generated default.
+`GetQuote`; the rest fall through to that generated default.
 
 ## Proto code generation: `contracts/` is the only source of truth
 
@@ -112,11 +112,11 @@ service needs straight from `contracts/proto/` at build time:
 
 - **Quarkus**: the Containerfile copies `types.proto` and `routing.proto`
   into `src/main/proto/shipping/{type,routing}/v1/` inside the build stage.
-  The module's `pom.xml` declares `<packaging>quarkus</packaging>` — not
-  plain `jar` — which is what binds the `quarkus-grpc` extension's
+  The module's `pom.xml` declares `<packaging>quarkus</packaging>`, not
+  plain `jar`, which is what binds the `quarkus-grpc` extension's
   proto-to-Mutiny code generation to the `generate-sources` phase, before
   `compile` runs. (Using plain `jar` packaging compiles fine but silently
-  skips code generation — the module needs the custom lifecycle.)
+  skips code generation; the module needs the custom lifecycle.)
 - **Python**: the Containerfile copies the same two files into a `proto/`
   staging directory, then runs
   `python -m grpc_tools.protoc -I proto --python_out=generated --grpc_python_out=generated ...`
@@ -124,7 +124,7 @@ service needs straight from `contracts/proto/` at build time:
   `PYTHONPATH=/app/generated:/app` makes importable as
   `from shipping.routing.v1 import routing_pb2`. `grpcio-tools` (needed only
   to run `protoc`) lives in a `dev` dependency group and never ships in the
-  runtime image — the venv is rebuilt with `uv sync --no-dev` after codegen.
+  runtime image; the venv is rebuilt with `uv sync --no-dev` after codegen.
 
 For a local, non-container `mvn`/`uv` run, copy the same two files into the
 same two destinations by hand first:
@@ -145,7 +145,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/generated/`,
-`python/proto/`) are gitignored (see `../.gitignore`) — they are
+`python/proto/`) are gitignored (see `../.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -172,7 +172,7 @@ grpcurl -plaintext localhost:9005 describe shipping.routing.v1.RoutingService
 | `route.legs[0].carrier` | `"MAERSK"` |
 | `route.price.amount` | `"3001.25"` |
 
-and `"3751.25"` for `quote.amount` on a second, two-cargo-item request —
+and `"3751.25"` for `quote.amount` on a second, two-cargo-item request,
 proving the formula sums every item rather than hardcoding the single-item
 answer.
 

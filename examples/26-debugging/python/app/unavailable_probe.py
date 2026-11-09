@@ -44,11 +44,11 @@ async def run(target: str) -> int:
         except grpc.aio.AioRpcError as exc:
             print(f"unavailable_probe: target={target} code={exc.code()} details={exc.details()!r}")
             if exc.code() == grpc.StatusCode.UNAVAILABLE:
-                print("unavailable_probe: ok — UNAVAILABLE on a cold/closed channel")
+                print("unavailable_probe: ok, UNAVAILABLE on a cold/closed channel")
                 return 0
-            print(f"unavailable_probe: FAIL — expected UNAVAILABLE, got {exc.code()}", file=sys.stderr)
+            print(f"unavailable_probe: FAIL, expected UNAVAILABLE, got {exc.code()}", file=sys.stderr)
             return 1
-        print("unavailable_probe: FAIL — call against a dead target unexpectedly succeeded", file=sys.stderr)
+        print("unavailable_probe: FAIL, call against a dead target unexpectedly succeeded", file=sys.stderr)
         return 1
     finally:
         await channel.close()

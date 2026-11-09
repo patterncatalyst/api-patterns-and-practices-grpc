@@ -80,7 +80,7 @@ run_stack_tests "quarkus" "localhost:9080"
 run_stack_tests "python" "localhost:9081"
 
 echo
-echo "PASS — Ch8 server-streaming: Quarkus and Python both implement" \
+echo "PASS: Ch8 server-streaming: Quarkus and Python both implement" \
      "shipping.tracking.v1.TrackingService.WatchShipment identically — the" \
      "same 4-event, strictly-ordered PENDING -> CONFIRMED -> IN_TRANSIT ->" \
      "DELIVERED sequence for bkg_demo, generated from one proto."

@@ -44,7 +44,7 @@ def _pack(message) -> any_pb2.Any:
 
 def _apply_field_mask(route: types_pb2.Route, mask: field_mask_pb2.FieldMask) -> types_pb2.Route:
     """Returns `route` unchanged when the caller sent no mask (an unset
-    FieldMask means "I want everything" — the only reading that keeps
+    FieldMask means "I want everything", the only reading that keeps
     ListRoutes backward compatible with a client built before this field
     existed). Otherwise builds a FRESH, empty Route and merges only the named
     top-level paths into it, so any field not named in the mask stays at its

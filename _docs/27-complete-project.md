@@ -2,140 +2,139 @@
 title: "The final project"
 order: 27
 part: "Running It & the Final Project"
-description: "The routing, tracking and quote services end to end: all four RPC types, deadlines and retries, rich errors, mTLS and JWT, OTel across the seam, buf-gated, ghz load-tested, Compose to minikube, both stacks."
-duration: "25 min read"
+description: "Routing, tracking and quote services with all four RPC shapes behind mTLS, JWT and OpenTelemetry, buf-gated and load-tested, on Quarkus and Python."
+duration: "20 min read"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Run all four RPC shapes (unary, bidirectional, server streaming, client streaming) together in one process across `RoutingService`, `QuoteService`, and `TrackingService`.
-- Layer mTLS, a JWT `AuthzInterceptor` with per-method scopes, and OpenTelemetry tracing onto the same calls, each mechanism operating on its own layer (transport, metadata, span context) without needing to know the others exist.
-- Trace a single `traceparent` across the REST → `RoutingService` → `QuoteService` hop chain and confirm trace-id continuity in logs.
-- Distinguish a transport-layer rejection, `UNAUTHENTICATED`, and `PERMISSION_DENIED` as three independent failure classes, encountered in that order.
-- Prove the same frozen contract across three deployment tiers (CI-gated Compose, run-by-hand minikube, and OpenShift/CRC), each anchored by its own traced call.
+- Run all four RPC shapes (unary, bidirectional, server streaming, client streaming) together across `RoutingService`, `QuoteService` and `TrackingService`.
+- Layer mTLS, a JWT `AuthzInterceptor` with per-method scopes, and OpenTelemetry tracing onto the same calls, each working on its own layer.
+- Follow one `traceparent` across the REST, `RoutingService` and `QuoteService` hops and confirm the trace id in logs.
+- Tell a transport rejection, `UNAUTHENTICATED` and `PERMISSION_DENIED` apart as three failure classes, met in that order.
+- Run the same frozen contract on Compose, minikube and OpenShift Local.
 
 ## Why this matters
 
-Every prior chapter in this book picked one topic and held everything else constant. mTLS went on `RoutingService.GetQuote` in isolation, leaving JWT, tracing, and the other three RPC shapes untouched. A bearer token went on the same `GetQuote` next, with transport security held constant. Tracing crossed a REST-to-gRPC seam without once asking whether the call behind it was authenticated at all. A chapter teaching one mechanism is easier to verify and easier to read when nothing else is moving, but it leaves one question unanswered: do these mechanisms still work when they are all turned on at once, against a service that actually implements every RPC shape the contract declares, not just the one shape each lean example needed? This chapter answers it. `examples/27-complete-project/` runs `shipping.routing.v1.RoutingService` (`GetQuote`, unary; `NegotiateRoute`, bidirectional), `shipping.quote.v1.QuoteService` (the downstream hop), and `shipping.tracking.v1.TrackingService` (`WatchShipment`, server streaming; `ReportPositions`, client streaming) in one process per stack, behind mTLS, a JWT interceptor with per-method scopes, and OpenTelemetry tracing across every hop, with an always-on Grafana LGTM stack and a pinned `ghz` load-test gate, on both Quarkus and Python, verified by one `verify.sh` CI runs on every push.
+Each mechanism so far was added to one RPC with everything else held constant: mTLS on `GetQuote`, then a bearer token, then tracing across a REST-to-gRPC seam. The open question is whether they still work when all are on at once, against a service that implements every RPC shape the contract declares.
 
-Nothing here is a new RPC. Every method this chapter calls was already declared in `contracts/proto/shipping/{routing,quote,tracking,type}/v1/*.proto` from the earliest chapters that introduced each service; `git diff main -- contracts/` for this iteration is empty, and `buf breaking` in CI proves it stays that way. What changes is that several of these methods (`NegotiateRoute`, `WatchShipment`, and `ReportPositions` chief among them) have answered `UNIMPLEMENTED` in every lean, single-topic example that declared them, because implementing a streaming RPC wasn't that chapter's lesson. This chapter is where all three run together, for the first time.
+One process per stack runs `shipping.routing.v1.RoutingService` (`GetQuote`, unary; `NegotiateRoute`, bidirectional), `shipping.quote.v1.QuoteService` (the downstream hop) and `shipping.tracking.v1.TrackingService` (`WatchShipment`, server streaming; `ReportPositions`, client streaming). All of them sit behind mTLS, a JWT interceptor with per-method scopes and OpenTelemetry tracing, on Quarkus and on Python, with a Grafana LGTM stack and a `ghz` load-test gate. One `verify.sh` runs on every push.
 
-{% include excalidraw.html file="27-final-project-architecture" alt="A large band labeled ch27-final-project, Compose, both stacks contains five boxes. A light-blue box at upper left is labeled REST front door, POST slash booking slash quote. An amber-accented box to its right is labeled RoutingService, GetQuote unary, NegotiateRoute bidi. A plain box further right is labeled QuoteService, GetQuote unary. Below RoutingService, a second plain box is labeled TrackingService, WatchShipment stream, ReportPositions stream. A grey sub box at lower left is labeled certgen, mTLS CA plus certs, connected upward to the REST front door and RoutingService boxes. A dark ink box at right is labeled LGTM stack, Tempo plus Grafana, connected by dashed lines labeled OTel spans from the REST front door, RoutingService, and QuoteService boxes. Solid amber arrows labeled mTLS plus JWT connect REST to RoutingService, RoutingService to QuoteService, and REST to TrackingService. Below the main band, a second band labeled CI gates contains two smaller boxes: buf lint slash build slash breaking, contracts frozen, and ghz smoke, GetQuote, loose bounds. A bold note across the top reads all four RPC modes, mTLS plus JWT at every hop, one trace REST arrow Routing arrow Quote." caption="Figure 27.1: the whole system on one canvas: four RPC shapes behind mTLS and JWT, one OpenTelemetry trace crossing the REST-to-gRPC seam, buf and ghz framing the CI gate." %}
+Nothing here is a new RPC. The contracts under `contracts/proto/shipping/` are unchanged, and `buf breaking` in CI keeps them that way. What changes is that `NegotiateRoute`, `WatchShipment` and `ReportPositions` answered `UNIMPLEMENTED` in every single-topic example, and here all three run together.
 
-## Four RPC shapes, one system, no shortcuts
+{% include excalidraw.html file="27-final-project-architecture" alt="A large band labeled final project, Compose, both stacks contains five boxes. A light-blue box at upper left is labeled REST front door, POST slash booking slash quote. An amber-accented box to its right is labeled RoutingService, GetQuote unary, NegotiateRoute bidi. A plain box further right is labeled QuoteService, GetQuote unary. Below RoutingService, a second plain box is labeled TrackingService, WatchShipment stream, ReportPositions stream. A grey sub box at lower left is labeled certgen, mTLS CA plus certs, connected upward to the REST front door and RoutingService boxes. A dark ink box at right is labeled LGTM stack, Tempo plus Grafana, connected by dashed lines labeled OTel spans from the REST front door, RoutingService, and QuoteService boxes. Solid amber arrows labeled mTLS plus JWT connect REST to RoutingService, RoutingService to QuoteService, and REST to TrackingService. Below the main band, a second band labeled CI gates contains two smaller boxes: buf lint slash build slash breaking, contracts frozen, and ghz smoke, GetQuote, loose bounds. A bold note across the top reads all four RPC modes, mTLS plus JWT at every hop, one trace REST arrow Routing arrow Quote." caption="Figure 27.1: The whole system: four RPC shapes behind mTLS and JWT, one OpenTelemetry trace crossing the REST-to-gRPC seam, and buf and ghz gating CI." %}
 
-The Decision-Framework's first axis, RPC shape, only means something when a system actually has more than one shape to choose between. `GetQuote` stays unary because pricing a shipment is a single question with a single answer: the caller sends an origin, a destination, and a cargo manifest, and gets back one `Money` and one `Route`. `NegotiateRoute` is bidirectional because a negotiation is inherently a back-and-forth: the caller streams `NegotiateRouteRequest` proposals and the server streams back one `NegotiateRouteResponse` per proposal, each carrying a `counter` route and an `accepted` flag, with no requirement that the two streams move in lockstep beyond this implementation's own choice to answer each proposal as it arrives. `WatchShipment` is server streaming because a shipment's location is a continuous feed the caller doesn't know the length of in advance; this example streams the same four deterministic `TrackingEvent`s server-streaming established (`PENDING` at the origin port, `CONFIRMED` at the same port, `IN_TRANSIT` and `DELIVERED` at the destination), in order, over one HTTP/2 stream. `ReportPositions` is client streaming for the mirror-image reason: a bulk position upload is naturally many messages folded into one acknowledgment, so the server reads the inbound stream to exhaustion and returns a single `ReportPositionsResponse` carrying `accepted_count`: the count of reports it saw, not an echo of their contents.
+## Four RPC shapes, one system
 
-`RoutingService.NegotiateRoute`'s policy is deterministic and small: a proposal priced at or under $5,000.00 is accepted as-is, and anything over that is countered at 90% of the proposed price, computed with the same decimal, round-half-up arithmetic every quote formula in this book uses so `verify.sh` can assert on it without floating-point slop. Two test proposals exercise both branches of that policy in one bidirectional call: one priced at $2,500.00, which comes back `accepted: true` with the counter equal to the proposal; one priced at $9,000.00, which comes back `accepted: false` with a counter at $8,100.00. Both prove the bidi response pair, not just that the stream opened and closed cleanly.
+| RPC | Shape | Why |
+|---|---|---|
+| `GetQuote` | Unary | One question (origin, destination, cargo), one answer (`Money` and a `Route`) |
+| `NegotiateRoute` | Bidirectional | A negotiation is a back-and-forth: each proposal gets a response with a `counter` route and an `accepted` flag |
+| `WatchShipment` | Server streaming | A location feed of unknown length: four deterministic `TrackingEvent`s (`PENDING` and `CONFIRMED` at the origin, `IN_TRANSIT` and `DELIVERED` at the destination) over one HTTP/2 stream |
+| `ReportPositions` | Client streaming | Many reports folded into one `ReportPositionsResponse` carrying `accepted_count`, the number seen |
 
-## The REST-to-gRPC seam, now carrying a certificate and a token
+`NegotiateRoute`'s policy is small and deterministic. A proposal at or under $5,000.00 is accepted as sent, and anything over is countered at 90% of the proposed price, using the same decimal round-half-up arithmetic as every quote formula. A $2,500.00 proposal comes back `accepted: true` with the counter equal to the proposal, and a $9,000.00 proposal comes back `accepted: false` with a counter of $8,100.00.
 
-An earlier `POST /booking/quote` called `RoutingService.GetQuote` over a loopback channel with nothing guarding it. This chapter's front door calls the identical method over the identical kind of loopback channel, except that channel now presents the mTLS client certificate certgen mints (the same mTLS shape: one shared CA, one server identity covering both the `quarkus` and `python` in-container names plus `localhost`, one client identity) and attaches an internal service token as `authorization: Bearer <jwt>` metadata on every call. The same `AuthzInterceptor` that rejects an external caller's missing or wrong-scope token rejects an internal one too, because there is no code path in this example that treats a loopback hop as implicitly trusted. `RoutingServiceImpl.getQuote` calling downstream into `QuoteServiceImpl.getQuote` presents that same certificate and the same internal token on its own loopback hop, a second hop behind a second, independent mTLS-and-JWT check rather than a single edge check that the interior of the system takes on faith.
+## The REST seam carries a certificate and a token
 
-That internal token is scoped broadly enough to cross every hop this example's own code makes (`quote:read` for `GetQuote` on both services, plus the scopes any other internal call might need), but a caller presenting any other token is held to the per-method map the auth interceptor introduced: `GetQuote` needs `quote:read`, `NegotiateRoute` needs `routes:negotiate`, and `ListRoutes` (still `UNIMPLEMENTED`, as in every prior chapter) is gated on `routes:admin`, a scope none of this example's demo tokens carry. That last mapping is deliberate: `ListRoutes` is this chapter's admin-gated RPC specifically because reusing an already-`UNIMPLEMENTED` method to prove `PERMISSION_DENIED` keeps the authorization check demonstrably independent of whether a handler exists behind it: the interceptor rejects the call before `RoutingServiceImpl`/`RoutingServiceServicer.listRoutes` is ever reached, the identical property the auth interceptor established and this chapter inherits unchanged.
+The REST front door calls `RoutingService.GetQuote` over a loopback channel. That channel presents the mTLS client certificate minted by `certgen` and attaches an internal service token as `authorization: Bearer <jwt>` metadata. The certificates share one CA, and the server identity covers the `quarkus` and `python` container names plus `localhost`. The same `AuthzInterceptor` that rejects an external caller's missing or wrong-scope token rejects an internal one, because no code path treats a loopback hop as trusted. `RoutingService` calling `QuoteService` presents the same certificate and token on its own hop, behind a second independent check.
 
-## Tracing a seam that now has guards on it
+The internal token carries the scopes this code needs, including `quote:read` for `GetQuote` on both services. Any other token is held to the per-method map:
 
-Observability proved a W3C `traceparent` crosses a REST-to-gRPC boundary and one downstream gRPC hop with zero manual propagation code, because `quarkus-opentelemetry` and `opentelemetry-instrument`'s zero-code instrumentation inject and extract it automatically. Layering mTLS and a JWT interceptor on top of that same seam does not disturb it: `traceparent` is ordinary gRPC metadata, riding in the same HEADERS frame as the `authorization` entry `AuthzInterceptor` reads, and TLS encrypts that frame without inspecting its contents. The interceptor runs after the TLS handshake has already succeeded and reads one metadata key without touching another, so tracing, authentication, and authorization stack as three independent checks on the same wire format rather than three competing mechanisms. `BookingResource.quote` (and the Python `booking_quote` handler) logs the trace id it reads from the current span; `RoutingServiceImpl.getQuote`/`RoutingServiceServicer.GetQuote` logs the same id a hop later; `QuoteServiceImpl.getQuote`/`QuoteServiceServicer.GetQuote` logs it a hop after that. `verify.sh`'s trace-id-continuity check is the same synchronous `docker compose logs | grep` assertion introduced earlier, now run across three logged lines instead of two, because this chapter's request path is one hop longer.
+| Method | Required scope |
+|---|---|
+| `GetQuote` | `quote:read` |
+| `NegotiateRoute` | `routes:negotiate` |
+| `ListRoutes` | `routes:admin`, which no demo token carries |
 
-{% include excalidraw.html file="27-booking-route-track-flow" alt="A band labeled one verify dot sh run, traceparent threaded contains five boxes arranged left to right and one box below. At far left, a light-blue box labeled grpcurl slash curl, the caller. To its right, an amber box labeled REST front door. To its right, a second amber box labeled RoutingService. To its right, a plain box labeled QuoteService. Below RoutingService, a plain box labeled TrackingService. Numbered arrows trace a round trip: arrow 1 POST slash booking slash quote from the caller to the REST front door; arrow 2 GetQuote traceparent, amber, from the REST front door to RoutingService; arrow 3 GetQuote traceparent, amber, from RoutingService to QuoteService; arrow 4 Money, dashed, back from QuoteService to RoutingService; arrow 5 quote plus route, dashed, back from RoutingService to the REST front door; arrow 6 traceId plus quote, dashed, back from the REST front door to the caller. A double-headed amber arrow 7 labeled WatchShipment stream slash ReportPositions stream connects RoutingService down to TrackingService. A second double-headed amber arrow 8 labeled NegotiateRoute bidi, proposals left right arrow counters, connects the caller directly across to RoutingService. A bold note above reads same trace id logged by the REST handler, RoutingService, and QuoteService." caption="Figure 27.2: the asserted end-to-end sequence across all four RPC modes: the unary GetQuote path threading a trace id through three hops, plus the independently-asserted NegotiateRoute, WatchShipment, and ReportPositions calls." %}
+`ListRoutes` is still `UNIMPLEMENTED`, which is why it works as the `PERMISSION_DENIED` case: the interceptor rejects the call before any handler runs, so authorization is shown to be independent of whether a handler exists.
 
-`WatchShipment`, `ReportPositions`, and `NegotiateRoute` are not called through the REST front door in this example: `verify.sh` exercises them directly over gRPC, the same way a service mesh sidecar or another internal service would, so they are not part of the three-hop trace Figure 27.2's numbered sequence draws through the REST path. They are still authenticated, still authorized, and still mTLS-protected by the identical interceptor and server configuration; they simply are not where this chapter's trace-id-continuity assertion looks. A production system exposing `WatchShipment` to a browser would put it behind its own instrumented gateway hop, exactly as `GetQuote` sits behind this one.
+## Tracing through the guards
 
-## Two failure layers before any handler runs, not one
+A W3C `traceparent` is ordinary gRPC metadata. It rides in the same HEADERS frame as the `authorization` entry, and TLS encrypts that frame without inspecting it. The interceptor runs after the handshake and reads one key without touching the other, so tracing, authentication and authorization are three independent checks on one wire format. Zero-code OpenTelemetry instrumentation injects and extracts `traceparent` on both stacks. The REST handler logs the trace id from the current span, `RoutingService` logs the same id a hop later, and `QuoteService` logs it a hop after that.
 
-A call against this example's gRPC port can fail for reasons that have nothing to do with each other, and `verify.sh` asserts each one with the tool built for it. A `grpcurl` call presenting no client certificate against a `client-auth: REQUIRED` server fails at the TLS handshake: the `assert_tls_rejected` pattern, which checks the error text names a transport failure (`tls: certificate required`, `EOF`, or a dial-level `context deadline exceeded`) rather than a clean application-level gRPC status, because a handshake failure and a `PERMISSION_DENIED` are not the same claim and the test has to tell them apart. A `-plaintext` call against the same server fails the same way, one layer earlier: there is no gRPC exchange to produce a status code at all, because the server never negotiated a TLS session to carry one. Both of these are transport-layer rejections, and both happen before a single byte of `AuthzInterceptor`'s logic runs.
+{% include excalidraw.html file="27-booking-route-track-flow" alt="A band labeled one verify dot sh run, traceparent threaded contains five boxes arranged left to right and one box below. At far left, a light-blue box labeled grpcurl slash curl, the caller. To its right, an amber box labeled REST front door. To its right, a second amber box labeled RoutingService. To its right, a plain box labeled QuoteService. Below RoutingService, a plain box labeled TrackingService. Numbered arrows trace a round trip: arrow 1 POST slash booking slash quote from the caller to the REST front door; arrow 2 GetQuote traceparent, amber, from the REST front door to RoutingService; arrow 3 GetQuote traceparent, amber, from RoutingService to QuoteService; arrow 4 Money, dashed, back from QuoteService to RoutingService; arrow 5 quote plus route, dashed, back from RoutingService to the REST front door; arrow 6 traceId plus quote, dashed, back from the REST front door to the caller. A double-headed amber arrow 7 labeled WatchShipment stream slash ReportPositions stream connects RoutingService down to TrackingService. A second double-headed amber arrow 8 labeled NegotiateRoute bidi, proposals left right arrow counters, connects the caller directly across to RoutingService. A bold note above reads same trace id logged by the REST handler, RoutingService, and QuoteService." caption="Figure 27.2: The unary GetQuote path threads one trace id through three hops. NegotiateRoute, WatchShipment and ReportPositions are called directly over gRPC." %}
 
-Only once mTLS succeeds does the JWT layer get a turn: a call with no `authorization` metadata gets `UNAUTHENTICATED`, using the exact `grpc_expect_code` helper and canonical-code normalization written earlier. A call with a well-formed, correctly-signed, unexpired token that lacks the scope a given method requires gets `PERMISSION_DENIED` instead: the authenticated-but-not-entitled case this chapter demonstrates against `ListRoutes`, reusing the `mint_token`-and-header-aware-assertion pattern rather than inventing a new one. Three failure classes, three distinct checks, three distinct status families (a dial-level failure, `UNAUTHENTICATED`, and `PERMISSION_DENIED`), stacked in the order a real call actually encounters them, never collapsed into one undifferentiated "rejected" bucket.
+`WatchShipment`, `ReportPositions` and `NegotiateRoute` are called directly over gRPC, the way a mesh sidecar or another internal service would, not through the REST front door. They are still authenticated, authorized and mTLS-protected by the same interceptor and server configuration; they are just outside the three-hop trace-id check, which follows the REST path. A production system exposing `WatchShipment` to a browser would put it behind its own instrumented gateway hop, as `GetQuote` sits behind this one.
 
-## Proving the gate actually bites
+## Three failure classes, in order
 
-An integration test that always passes is not proof of anything; it might be asserting on a field the handler doesn't even set. After `verify.sh` ran green on both stacks, this example's authoring process seeded one wrong expected value, changing the asserted `GetQuote` amount for the standard 1,000 kg booking from `2500.00` to `2500.01`, and re-ran `verify.sh` to confirm it failed loudly at exactly that assertion, with `lib.sh`'s `assert_eq` reporting the expected-versus-actual mismatch rather than the run silently passing. That seeded change was then reverted before this chapter was considered done. The purpose isn't paranoia for its own sake: a semantic check that can't be observed to fail is functionally equivalent to no check at all, and this book's examples have, in earlier chapters, caught real defects (a missing `wget` binary, a synchronous-versus-`aio` health servicer mismatch) precisely because their checks were built to fail loudly when something was actually wrong.
+A call to the gRPC port can fail for unrelated reasons, met in a fixed order.
 
-## ghz, buf, and the two gates that never touch this chapter's logic
+| Order | Failure | What the caller sees |
+|---|---|---|
+| 1 | No client certificate against a `client-auth: REQUIRED` server, or `-plaintext` against a TLS server | A transport error such as `tls: certificate required`, `EOF` or a dial-level `context deadline exceeded`, never a gRPC status |
+| 2 | Valid mTLS, no `authorization` metadata | `UNAUTHENTICATED` |
+| 3 | Valid mTLS, a valid, unexpired token without the method's scope | `PERMISSION_DENIED` |
 
-`buf lint`, `buf build`, and `buf breaking` run against `contracts/` exactly as they have since the contract was declared; this chapter adds zero proto changes, so the only thing to prove is that it didn't accidentally make one. The `ghz` smoke test is new to this example's shape only in scale, not in kind: the pinned `ghcr.io/bojand/ghz:0.121.0` image, fed `contracts/proto/shipping/routing/v1/routing.proto` directly over a read-only volume mount (ghz has no server-reflection support, so it needs the `.proto` file, not just an address), runs a short burst of `GetQuote` calls against one stack with latency and error-rate bounds loose enough to absorb CI jitter, backed by three retries. CI runners are shared and noisy, and a flaky performance assertion that fails the build on unrelated infrastructure jitter teaches the wrong lesson. The point of running `ghz` here at all isn't a performance claim; it's proof that the mTLS-and-JWT-protected server under load behaves the same as it does under `verify.sh`'s one-request-at-a-time assertions, that neither mechanism silently degrades or starts timing out once concurrent load shows up.
+The first class happens below gRPC, so no status exists to carry. The other two come from the interceptor. A caller debugging `PERMISSION_DENIED` needs to know the credentials were accepted and the entitlements weren't, which one merged "auth failed" bucket would hide.
 
-{% include excalidraw.html file="27-three-tier-deploy" alt="Three side-by-side vertical bands. The left band is labeled CI-gated and contains an amber box labeled Tier 1 Compose, both stacks, mTLS plus JWT, above a dark ink box labeled traced call, REST arrow Routing arrow Quote, Tempo-ingested trace id. The middle band is labeled run by hand and contains a plain box labeled Tier 2 minikube, headless plus round_robin, Istio DestinationRule, above a dark ink box labeled traced call, GetQuote plus NegotiateRoute, trace id in pod logs. The right band is also labeled run by hand and contains a plain box labeled Tier 3 CRC Appendix A, OSSM STRICT mTLS plus canary, above a dark ink box labeled traced call, GetQuote over an HTTP slash 2 Route. Amber arrows connect Tier 1 to Tier 2 labeled same contract, same quote formula, and Tier 2 to Tier 3 labeled same contract, STRICT mTLS. A bold note along the bottom reads one contract, three deployment tiers, a traced call proving each one." caption="Figure 27.3: one contract proven three ways: a CI-gated Compose stack, a run-by-hand minikube load-balancing fix, and a run-by-hand OpenShift Local mesh canary, each anchored by its own traced call." %}
+## Load and contract gates
 
-## Three tiers, one contract, two of them run by hand
+`buf lint`, `buf build` and `buf breaking` run against `contracts/`. Since no proto changed, they only confirm that nothing slipped in. The `ghz` smoke test runs a short burst of `GetQuote` against one stack from a pinned image, with the `.proto` mounted read-only because `ghz` needs the file and doesn't use reflection. Latency and error-rate bounds are loose enough to absorb shared-runner jitter, backed by three retries. The point isn't a performance claim: it shows the mTLS-and-JWT server behaves under concurrent load as it does one request at a time.
 
-This chapter's Compose stack is CI-gated: `examples/27-complete-project/verify.sh` is auto-discovered by the same `examples/*/verify.sh` glob every chapter's harness uses, and runs on every push. Nested one level deeper, `examples/27-complete-project/k8s/`, `istio/`, `scripts/`, and `loadclient/` are a separate, run-by-hand tier: a minikube deployment of this chapter's RoutingService/QuoteService/TrackingService logic, rebuilt as a plaintext, unauthenticated server for this tier only, that reruns the load-balancing fix. A plain `ClusterIP` Service pins one gRPC channel's entire lifetime to a single pod (0 out of 3 other pods ever answer), a headless Service with client-side `round_robin` fans the identical 30 calls out roughly evenly across all three, and switching the Deployment into an Istio mesh with a `ROUND_ROBIN` `DestinationRule` makes the original plain Service fan out evenly too, because the sidecar, not the client, now owns the upstream connections. None of this tier's scripts is named `verify.sh`, and it is never auto-discovered by CI; it is recorded, by hand, in `expected-output.md`, the same convention established for what CI cannot see. mTLS and JWT are absent from this tier's server, for the same reason the load-balancing demo never layered them in: doing so would obscure the one mechanism this tier exists to teach, and Appendix A's OpenShift Service Mesh tier demonstrates STRICT mesh-wide mTLS at the platform layer instead, where it belongs architecturally. A fourth, lightweight step in this tier fires `GetQuote`, `NegotiateRoute`, and `WatchShipment` against the deployed service and greps the resulting trace id out of `kubectl logs` on both the `RoutingService` and `QuoteService` log lines: proof the propagate-and-log pattern this book has used throughout survives a real cluster deployment. That hop runs in-process on the pod (`RoutingService` calling `QuoteService` over the loopback channel), so the continuity it demonstrates is the application-level one, not a through-the-sidecar trace, and it needs no Tempo instance inside minikube to show it.
+## Three tiers, one contract
 
-## What you learned
+{% include excalidraw.html file="27-three-tier-deploy" alt="Three side-by-side vertical bands. The left band is labeled CI-gated and contains an amber box labeled Tier 1 Compose, both stacks, mTLS plus JWT, above a dark ink box labeled traced call, REST arrow Routing arrow Quote, Tempo-ingested trace id. The middle band is labeled run by hand and contains a plain box labeled Tier 2 minikube, headless plus round_robin, Istio DestinationRule, above a dark ink box labeled traced call, GetQuote plus NegotiateRoute, trace id in pod logs. The right band is also labeled run by hand and contains a plain box labeled Tier 3 CRC Appendix A, OSSM STRICT mTLS plus canary, above a dark ink box labeled traced call, GetQuote over an HTTP slash 2 Route. Amber arrows connect Tier 1 to Tier 2 labeled same contract, same quote formula, and Tier 2 to Tier 3 labeled same contract, STRICT mTLS. A bold note along the bottom reads one contract, three deployment tiers, a traced call proving each one." caption="Figure 27.3: One contract in three tiers: a CI-gated Compose stack, a minikube load-balancing fix and an OpenShift Local mesh canary, each shown by a traced call." %}
 
-- A service can run every RPC shape its contract declares (unary, server streaming, client streaming, and bidirectional) in one process, with mTLS, a JWT interceptor, and OpenTelemetry tracing all active simultaneously, because each mechanism operates on a different layer of the same call (transport, metadata, and span context respectively) and none of them need to know the others exist.
-- An internal, loopback gRPC hop gets no exemption from the checks an external caller faces: this example's own REST-to-Routing and Routing-to-Quote hops present the identical client certificate and bearer token grpcurl does, verified by the identical interceptor.
-- Transport failures (a rejected TLS handshake), authentication failures (`UNAUTHENTICATED`), and authorization failures (`PERMISSION_DENIED`) are three different claims, encountered in that order, and a test suite that can't tell them apart is weaker than one that can.
-- An integration test that has never been observed to fail hasn't proven anything; seeding one wrong expected value and confirming the gate turns red, then reverting it, is how this chapter confirmed its own assertions are real.
-- Splitting a system into a CI-gated tier and run-by-hand tiers is not a compromise forced by this book's constraints: it keeps a fast, deterministic contract gate (Compose, every push) separate from a slower, environment-dependent proof (a real cluster, a real mesh, a real load balancer), without losing either one.
+The Compose stack is the CI-gated tier. The `k8s/`, `istio/`, `scripts/` and `loadclient/` directories in `examples/27-complete-project` are a separate run-by-hand tier on minikube, using a plaintext, unauthenticated build of the same service logic. That tier shows the load-balancing fix:
 
-## On the wire
+- A plain `ClusterIP` Service pins one gRPC channel to a single pod, so none of the other pods answer.
+- A headless Service with client-side `round_robin` fans the same 30 calls out roughly evenly across all three pods.
+- Moving the Deployment into an Istio mesh with a `ROUND_ROBIN` `DestinationRule` makes the plain Service fan out evenly too, because the sidecar now owns the upstream connections.
 
-Server reflection on the Quarkus stack lists every service this chapter implements, alongside the standard health and reflection services:
+None of its scripts is named `verify.sh`, so CI never discovers them, and results are recorded by hand in `expected-output.md`. The split is deliberate: a fast, deterministic contract gate runs on every push, and the slower, environment-dependent proof (a real cluster, mesh and load balancer) runs by hand without being lost. mTLS and JWT are absent there to keep the load-balancing mechanism visible. The OpenShift Local tier covers STRICT mesh-wide mTLS at the platform layer. A final step fires `GetQuote`, `NegotiateRoute` and `WatchShipment` at the deployed service and greps the trace id out of `kubectl logs` on both the `RoutingService` and `QuoteService` lines. That hop runs in-process on the pod, so it shows application-level continuity, not a trace through the sidecar, and needs no Tempo inside minikube.
+
+## Design decisions
+
+| Axis | Choice here |
+|---|---|
+| RPC shape | Each method keeps the shape its pattern needs: unary, bidirectional, server streaming, client streaming |
+| Sync or stream | The REST front door is one request and response. The tracking RPCs stay streams, because a location history and a batch of reports aren't single messages |
+| Deadline and budget | The `GetQuote` to `QuoteService` hop propagates the unary deadline. `NegotiateRoute` needs its own idle-timeout and overall-duration policy, and this build sets none |
+| Failure class | Transport, authentication and authorization are asserted as separate outcomes |
+| Concurrency | Every handler is non-blocking: Mutiny `Uni` and `Multi` on Quarkus, `grpc.aio` coroutines on Python, including the loopback calls |
+
+For production, replace the long-lived internal service token with a short-lived, rotated, IdP-issued credential, and give `NegotiateRoute` an explicit stream-level deadline before trusting it with real negotiations.
+
+## Build, run, observe
+
+```bash
+cd examples/27-complete-project && ./verify.sh
+```
+
+`verify.sh` starts both stacks with Compose (gRPC on 9270 and 9271, REST on 8270 and 8271), runs every assertion and prints `PASS`. It also runs `buf` and the `ghz` smoke test. Reflection with the client certificate lists the health, reflection, quote, routing and tracking services:
 
 ```bash
 grpcurl -cacert .host-out/ca.crt -cert .host-out/client.crt -key .host-out/client.key \
   -servername quarkus localhost:9270 list
 ```
 
-```
-grpc.health.v1.Health
-grpc.reflection.v1.ServerReflection
-shipping.quote.v1.QuoteService
-shipping.routing.v1.RoutingService
-shipping.tracking.v1.TrackingService
-```
-
-A plaintext call against the same port fails at the handshake, never reaching a gRPC status:
-
-```bash
-grpcurl -plaintext localhost:9270 list
-```
-
-```
-Failed to dial target host "localhost:9270": tls: first record does not look like a TLS handshake
-```
-
-A valid mTLS call with no bearer token gets `UNAUTHENTICATED` before `RoutingServiceImpl` ever runs:
-
-```bash
-grpcurl -cacert .host-out/ca.crt -cert .host-out/client.crt -key .host-out/client.key \
-  -servername quarkus -d '{"origin":{"unLocode":"USNYC"},"destination":{"unLocode":"NLRTM"},"cargo":[{"weightKg":1000}]}' \
-  localhost:9270 shipping.routing.v1.RoutingService/GetQuote
-```
-
-```
-ERROR:
-  Code: Unauthenticated
-  Message: missing 'authorization: Bearer <jwt>' metadata
-```
-
-And the full flow, mTLS and a valid token both present, over the REST front door:
+The REST front door runs the whole flow, with the `traceId` matching the three log lines:
 
 ```bash
 curl -s -X POST localhost:8270/booking/quote -H 'content-type: application/json' \
   -d '{"origin":"USNYC","destination":"NLRTM","cargoKg":1000}'
 ```
 
-```json
-{
-  "traceId": "7a1f9c3e4b2d4e6f8091a2b3c4d5e6f7",
-  "quote": { "currency": "USD", "amount": "2500.00" },
-  "route": { "id": "rte_USNYC-NLRTM", "legs": [ { "carrier": "MAERSK" } ] }
-}
-```
+The Python stack answers identically on 8271 and 9271.
 
-Swap port `8270`/`9270` for `8271`/`9271` and the Python stack answers identically, because `examples/27-complete-project/verify.sh` asserts precisely that, on both stacks, before it prints `PASS`.
+The response carries `"amount": "2500.00"` and route `rte_USNYC-NLRTM`.
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Run this chapter's design through the same five axes every chapter in this book answers to. <b>RPC shape:</b> each of the four methods this example implements keeps the shape its own communication pattern demands: unary for a single question-and-answer (<code>GetQuote</code>), bidirectional for a two-way exchange that runs as long as the negotiation takes (<code>NegotiateRoute</code>), server streaming for an open-ended feed (<code>WatchShipment</code>), client streaming for a bulk-then-acknowledge upload (<code>ReportPositions</code>), none of them forced into unary the way a REST-only mindset would default to. <b>Sync vs. stream:</b> the REST front door stays a single synchronous request/response, because a caller asking for one quote wants one answer, not a feed; the two tracking RPCs stay streams, because neither a shipment's location history nor a batch of position reports is naturally one message. <b>Deadline and budget:</b> this chapter inherits the unary deadline-propagation shape for the <code>GetQuote</code>-to-<code>QuoteService</code> hop unchanged and does not re-litigate it here. A long-lived bidirectional stream like <code>NegotiateRoute</code> needs its own idle-timeout and overall-duration policy, distinct from a single unary deadline, that a production deployment of this example would have to add explicitly; this build does not set one, and that gap is real, not quietly left implicit.</p><p><b>Failure class:</b> stacking a transport rejection, an authentication rejection, and an authorization rejection as three independently-asserted outcomes, in the order a real call actually encounters them, tells a caller more than collapsing authentication and authorization into one "auth failed" bucket would. A caller debugging a <code>PERMISSION_DENIED</code> needs to know their credentials were accepted and their entitlements weren't, not just that something about the call was rejected. <b>Concurrency model:</b> every handler in this example is non-blocking end to end: Mutiny's <code>Uni</code>/<code>Multi</code> on Quarkus, <code>grpc.aio</code> coroutines on Python, including the loopback calls that attach mTLS credentials and a bearer token on every hop, because a system layering three cross-cutting concerns onto every call cannot afford even one of them to block a thread the runtime needed for other work. Where this chapter is weaker than it could be: a reader taking this into production should treat the long-lived internal service token as a placeholder for a short-lived, rotated, IdP-issued credential, and should give <code>NegotiateRoute</code> an explicit stream-level deadline before trusting it with real negotiations.</p></div>
+Experiments:
+
+- **Drop TLS.** Run `grpcurl -plaintext localhost:9270 list`: it fails with `tls: first record does not look like a TLS handshake` and no status.
+- **Drop the token.** Make the mTLS `grpcurl` call to `GetQuote` above without `-H "authorization: Bearer ..."`: it returns `Code: Unauthenticated` with `missing 'authorization: Bearer <jwt>' metadata`, before `RoutingServiceImpl` runs.
+- **Seed a wrong expectation.** Change the expected `GetQuote` amount for the 1,000 kg booking in `verify.sh` from `2500.00` to `2500.01`: the run fails at that assertion with an expected-versus-actual mismatch from `assert_eq`. A check never seen to fail proves nothing. Revert it afterward.
+
+---
 
 ## For deeper coverage
 
-- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021: resilient inter-service calls, the pattern behind every hop this chapter layers mTLS and JWT onto.
-- Clément Jean, *gRPC Go for Professionals*, Packt, 2023: protobuf schema design and evolution behind the frozen contract this chapter's `buf breaking` gate protects.
-- [Quarkus gRPC guides](https://quarkus.io/guides/grpc) ([reference](https://quarkus.io/guides/grpc-reference)): `quarkus-grpc` specifics for the mTLS/JWT/tracing stack this example runs.
-- Cloud Native Design Patterns, Appendix I, "L7 Routing & Traffic Management": the `DestinationRule`/`VirtualService` canary pattern this chapter's minikube tier reruns.
+- Sam Newman, *Building Microservices*, 2nd ed., O'Reilly, 2021: resilient inter-service calls, the pattern behind every hop that carries mTLS and JWT here.
+- Clément Jean, *gRPC Go for Professionals*, Packt, 2023: protobuf schema design and evolution behind the frozen contract the `buf breaking` gate protects.
+- [Quarkus gRPC guides](https://quarkus.io/guides/grpc) ([reference](https://quarkus.io/guides/grpc-reference)): `quarkus-grpc` specifics for the mTLS, JWT and tracing stack.
+- Cloud Native Design Patterns, Appendix I, "L7 Routing & Traffic Management": the `DestinationRule` and `VirtualService` canary pattern the minikube tier reruns.
 - Cloud Native Design Patterns, Appendix R, "Running Example 05 on minikube": companion coverage of the same run-by-hand cluster tier.

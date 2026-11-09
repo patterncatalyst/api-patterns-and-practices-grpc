@@ -25,14 +25,14 @@ import oneof_demo_pb2
 
 
 def fail(msg):
-    print(f"FAIL — {msg}", file=sys.stderr)
+    print(f"FAIL, {msg}", file=sys.stderr)
     sys.exit(1)
 
 
 def check(condition, context):
     if not condition:
         fail(context)
-    print(f"ok — {context}")
+    print(f"ok, {context}")
 
 
 def read_varint(data, pos):
@@ -154,7 +154,7 @@ def main():
 
     print()
     print(
-        "PASS — Money's bytes hand-decoded and parsed; Booking's nested "
+        "PASS: Money's bytes hand-decoded and parsed; Booking's nested "
         "message, enum, map, repeated field, and well-known Timestamp all "
         "survived serialize -> parse; both oneof_demo branches round-tripped "
         "independently."

@@ -80,10 +80,10 @@ import sys
 bigger, factor, smaller = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
 sys.exit(0 if bigger > smaller * factor else 1)
 ' "$bigger" "$factor" "$smaller"; then
-    echo "lib.sh: FAIL — ${context}: ${bigger}s is not > ${smaller}s * ${factor}" >&2
+    echo "lib.sh: FAIL, ${context}: ${bigger}s is not > ${smaller}s * ${factor}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${bigger}s > ${smaller}s * ${factor}" >&2
+  echo "lib.sh: ok, ${context}: ${bigger}s > ${smaller}s * ${factor}" >&2
 }
 
 # assert_lt_num / assert_gt_num — float-aware comparisons for ghz bounds.
@@ -94,10 +94,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a < b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not < ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not < ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} < ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} < ${bound}" >&2
 }
 
 assert_gt_num() {
@@ -107,10 +107,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a > b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not > ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not > ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} > ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} > ${bound}" >&2
 }
 
 # run_client <stack> <in_network_target> <module> [args...] — runs a bundled
@@ -125,7 +125,7 @@ run_client() {
   out="$(mktemp)"
   if ! docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --no-deps \
         --entrypoint python python -m "$module" "$target" "$@" >"$out"; then
-    echo "lib.sh: FAIL — $stack: $module against $target failed" >&2
+    echo "lib.sh: FAIL, $stack: $module against $target failed" >&2
     rm -f "$out"
     return 1
   fi
@@ -167,7 +167,7 @@ run_stack_tests() {
   local footgun_total pooled_total
   footgun_total="$(run_client "$stack" "$in_network_target" app.footgun_client "$REUSE_CALLS")"
   pooled_total="$(run_client "$stack" "$in_network_target" app.pooled_client "$REUSE_CALLS")"
-  echo "lib.sh: info — $stack: footgun_total=${footgun_total}s pooled_total=${pooled_total}s" >&2
+  echo "lib.sh: info, $stack: footgun_total=${footgun_total}s pooled_total=${pooled_total}s" >&2
   assert_gt_factor "$footgun_total" "$REUSE_FACTOR" "$pooled_total" \
     "$stack channel-per-call ($REUSE_CALLS calls) vs one reused channel"
 
@@ -233,7 +233,7 @@ print(p99 / 1e9)
 ' "$out_file")"
   rm -f "$out_file"
 
-  echo "lib.sh: info — $stack ghz: errors=$errors rps=$rps p99=${p99_s}s" >&2
+  echo "lib.sh: info, $stack ghz: errors=$errors rps=$rps p99=${p99_s}s" >&2
   assert_eq "0" "$errors" "$stack ghz error count"
   assert_lt_num "$p99_s" "$GHZ_P99_CEILING_S" "$stack ghz p99 latency vs generous ceiling"
   assert_gt_num "$rps" "$GHZ_RPS_FLOOR" "$stack ghz throughput vs low floor"
@@ -253,7 +253,7 @@ run_ghz "quarkus" "quarkus:9000"
 run_ghz "python" "python:9000"
 
 echo
-echo "PASS — Ch18 performance-tuning: Quarkus and Python both serve GetQuote" \
+echo "PASS: Ch18 performance-tuning: Quarkus and Python both serve GetQuote" \
      "and a deterministic ~5MB ListRoutes catalog; channel reuse beats a" \
      "new channel per call by over ${REUSE_FACTOR}x on both stacks; the" \
      "full catalog trips RESOURCE_EXHAUSTED at the default 4MB cap and" \
