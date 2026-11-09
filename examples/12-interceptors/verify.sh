@@ -61,7 +61,7 @@ run_stack_tests "quarkus" "localhost:9120"
 run_stack_tests "python" "localhost:9121"
 
 echo
-echo "PASS — Ch12 interceptors anchor: on both stacks, a single server" \
+echo "PASS: Ch12 interceptors anchor: on both stacks, a single server" \
      "interceptor logs+times every call and rejects any call missing" \
      "'authorization' metadata with UNAUTHENTICATED before GetQuote runs;" \
      "with the header present, the identical Ch5 quote formula answers."

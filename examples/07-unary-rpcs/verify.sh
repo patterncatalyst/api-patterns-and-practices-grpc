@@ -64,7 +64,7 @@ run_reuse_demo() {
   # the known-good amount for REQUEST_1.
   if ! docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --no-deps \
         --entrypoint python python -m app.reuse_client "$in_network_target" 3 "$EXPECTED_AMOUNT_1"; then
-    echo "lib.sh: FAIL — $stack reuse_client.py against $in_network_target" >&2
+    echo "lib.sh: FAIL, $stack reuse_client.py against $in_network_target" >&2
     exit 1
   fi
 
@@ -85,7 +85,7 @@ run_reuse_demo "quarkus" "quarkus:9000"
 run_reuse_demo "python" "python:9000"
 
 echo
-echo "PASS — Ch7 unary-rpcs: Quarkus and Python both serve" \
+echo "PASS: Ch7 unary-rpcs: Quarkus and Python both serve" \
      "shipping.routing.v1.RoutingService.GetQuote from one generated stub-to-stub" \
      "path, and reuse_client.py proves one channel + one stub survive repeated" \
      "GetQuote calls against both stacks."

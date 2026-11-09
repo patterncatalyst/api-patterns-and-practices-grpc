@@ -60,10 +60,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a < b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not < ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not < ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} < ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} < ${bound}" >&2
 }
 
 assert_gt_num() {
@@ -73,10 +73,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a > b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not > ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not > ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} > ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} > ${bound}" >&2
 }
 
 # --- 1. HARD: h2 correctness ------------------------------------------------
@@ -124,7 +124,7 @@ print(p99 / 1e9)
 ' "$out_file")"
   rm -f "$out_file"
 
-  echo "lib.sh: info — $stack ghz (h2): errors=$errors rps=$rps p99=${p99_s}s" >&2
+  echo "lib.sh: info, $stack ghz (h2): errors=$errors rps=$rps p99=${p99_s}s" >&2
   assert_eq "0" "$errors" "$stack ghz (h2) error count"
   assert_lt_num "$p99_s" "$GHZ_P99_CEILING_S" "$stack ghz (h2) p99 latency vs generous ceiling"
   assert_gt_num "$rps" "$GHZ_RPS_FLOOR" "$stack ghz (h2) throughput vs low floor"
@@ -143,14 +143,14 @@ run_h3_probe() {
 
   local attempt out rc
   for (( attempt=1; attempt<=H3_PROBE_ATTEMPTS; attempt++ )); do
-    echo "lib.sh: info — h3 probe attempt $attempt/$H3_PROBE_ATTEMPTS" >&2
+    echo "lib.sh: info, h3 probe attempt $attempt/$H3_PROBE_ATTEMPTS" >&2
     rc=0
     out="$(docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --no-deps \
           --entrypoint python python -m app.h3_probe caddy 8443 --path /transport.json 2>&1)" || rc=$?
     echo "$out" | sed 's/^/lib.sh: h3_probe: /' >&2
 
     if [[ "$rc" -eq 0 ]] && grep -q "PROBE_OK" <<<"$out"; then
-      echo "lib.sh: ok — h3 transport confirmed: a real QUIC handshake completed and Caddy" >&2
+      echo "lib.sh: ok, h3 transport confirmed: a real QUIC handshake completed and Caddy" >&2
       echo "          answered HTTP/3 with 200. This is the transport, not gRPC-over-HTTP/3 —" >&2
       echo "          no gRPC call was made against it; GetQuote above is the only gRPC traffic" >&2
       echo "          in this chapter's example, and it ran over native gRPC/HTTP2." >&2
@@ -159,7 +159,7 @@ run_h3_probe() {
     [[ "$attempt" -lt "$H3_PROBE_ATTEMPTS" ]] && sleep "$H3_PROBE_RETRY_DELAY_S"
   done
 
-  echo "lib.sh: SKIP — h3 transport probe did not complete after $H3_PROBE_ATTEMPTS attempt(s)." >&2
+  echo "lib.sh: SKIP, h3 transport probe did not complete after $H3_PROBE_ATTEMPTS attempt(s)." >&2
   echo "          Non-fatal by design: this environment may block outbound/inter-container UDP" >&2
   echo "          (QUIC rides on UDP), which some sandboxed CI runners and corporate networks do." >&2
   echo "          Documented fallback: run 'docker compose up caddy' and 'docker compose run --rm" >&2
@@ -188,11 +188,11 @@ echo "=== Step 4: HTTP/3 transport probe (SOFT, capability-gated, non-fatal) ===
 run_h3_probe
 
 echo
-echo "PASS — Ch24 cross-protocol-http3: GetQuote is correct over native gRPC/HTTP2" \
+echo "PASS: Ch24 cross-protocol-http3: GetQuote is correct over native gRPC/HTTP2" \
      "on both stacks, and ghz reports zero errors with generous latency/throughput" \
      "bounds against GetQuote on both stacks (the HARD gates). The HTTP/3 transport" \
      "probe result is logged above as either confirmed or a documented, non-fatal" \
-     "SKIP — it never gates this build, and it never asserts a gRPC-over-HTTP/3" \
+     "SKIP, it never gates this build, and it never asserts a gRPC-over-HTTP/3" \
      "measurement."
 
 # Explicit teardown in addition to lib.sh's EXIT trap (belt-and-suspenders);

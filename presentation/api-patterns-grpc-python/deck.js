@@ -1,7 +1,7 @@
-// deck.js — "API Patterns & Practices: gRPC — Python / grpcio Implementation".
+// deck.js, "API Patterns & Practices: gRPC, Python / grpcio Implementation".
 // How the gRPC patterns are built in Python: grpc.aio, generated *_pb2 stubs,
 // async generators for streaming, interceptors, PyJWT, OpenTelemetry, and the
-// uv-managed toolchain. Real code from examples/*/python/** — shipping/cargo
+// uv-managed toolchain. Real code from examples/*/python/**, shipping/cargo
 // domain, one Protobuf contract shared with the Quarkus sibling stack.
 //
 // Build:  export NODE_PATH="$(cd ../_shared/node_modules && pwd)" && node deck.js
@@ -21,8 +21,8 @@ const {
   addSectionDivider, addNotes,
 } = H;
 
-const OUT = path.resolve(__dirname, "api-patterns-grpc-python-r1.1.pptx");
-const REV = "r1.1";
+const OUT = path.resolve(__dirname, "api-patterns-grpc-python-r1.2.pptx");
+const REV = "r1.2";
 const LANG = "python · grpc.aio";
 
 const pres = newDeck();
@@ -115,7 +115,7 @@ divider("01", "Setup & codegen",
       "    \"opentelemetry-instrumentation-grpc>=0.50b0\",",
       "]",
       "",
-      "# grpcio-tools is build-time only (generates stubs from contracts/proto/ —",
+      "# grpcio-tools is build-time only (generates stubs from contracts/proto/,",
       "# see Containerfile); the runtime image never needs it.",
       "[dependency-groups]",
       "dev = [",
@@ -141,7 +141,7 @@ divider("01", "Setup & codegen",
     "examples/05-contract-first/python/Containerfile: contracts/proto/ is the single source of truth; each image generates its own stubs.",
     { fontSize: 13 });
   addPerfCallout(s, "buf lint + buf breaking gate the contract itself in CI (contracts/buf.yaml), independent of either stack's build; the one upstream `buf generate` convenience config (contracts/buf.gen.yaml) documents a local-inspection path CI does not depend on.");
-  addNotes(s, "The authoritative stub generation happens inside each stack's own build: there is no shared generated-code artifact checked in anywhere, and the root .gitignore enforces that (star star slash generated slash, star_pb2.py, star_pb2_grpc.py are all ignored). This Containerfile excerpt shows the Python side: copy only the two .proto files this particular service needs, preserving the package path routing.proto's import statement expects, then run python -m grpc_tools.protoc with both the --python_out and --grpc_python_out flags, which together emit routing_pb2.py and routing_pb2_grpc.py. The generated files land in a generated/ directory that's added to PYTHONPATH at runtime, sitting alongside app/ the same way a local, non-container protoc run would produce. Separately, contracts/buf.yaml configures buf lint with the STANDARD rule set and buf breaking against the whole file, which is what Chapter 14's evolution gate runs in CI; that gate fires before either stack's build ever starts, so a breaking contract change never gets as far as a Python or Java compile error.");
+  addNotes(s, "The authoritative stub generation happens inside each stack's own build: there is no shared generated-code artifact checked in anywhere, and the root .gitignore enforces that (star star slash generated slash, star_pb2.py, star_pb2_grpc.py are all ignored). This Containerfile excerpt shows the Python side: copy only the two .proto files this particular service needs, preserving the package path routing.proto's import statement expects, then run python -m grpc_tools.protoc with both the --python_out and --grpc_python_out flags, which together emit routing_pb2.py and routing_pb2_grpc.py. The generated files land in a generated/ directory that's added to PYTHONPATH at runtime, sitting alongside app/ the same way a local, non-container protoc run would produce. Separately, contracts/buf.yaml configures buf lint with the STANDARD rule set and buf breaking against the whole file, which is what the evolution gate runs in CI; that gate fires before either stack's build ever starts, so a breaking contract change never gets as far as a Python or Java compile error.");
 }
 
 /* ======================= DIVIDER 02 · PROTOBUF & WKT ======================= */
@@ -166,7 +166,7 @@ divider("02", "Generated Protobuf & well-known types",
       "",
       "def _to_timestamp(when: datetime) -> timestamp_pb2.Timestamp:",
       "    # google.protobuf.timestamp_pb2 ships inside the `protobuf` package",
-      "    # itself (the compiled well-known-type module) — no extra dependency.",
+      "    # itself (the compiled well-known-type module); no extra dependency.",
       "    ts = timestamp_pb2.Timestamp()",
       "    ts.FromDatetime(when)",
       "    return ts",
@@ -183,7 +183,7 @@ divider("02", "Generated Protobuf & well-known types",
     ],
     "examples/04-well-known-types/python/app/route.py: Timestamp via FromDatetime, Money as a decimal string by convention.",
     { fontSize: 11 });
-  addNotes(s, "This is FindOptimalRoute's route-building helper. The Timestamp conversion is the whole point of this chapter's example: ts.FromDatetime takes an ordinary, timezone-aware Python datetime and does the seconds-and-nanos encoding for you: no manual epoch math, and ToJsonString on the way out (used in the servicer's log line, not shown here) produces the exact RFC 3339 string the chapter's 'On the wire' box asserts against. Money is the contrasting case: it's an ordinary message this contract defines, not a well-known type, and the amount field is typed as string specifically so '4200.00' is never coerced through a binary float, the same convention the sibling REST site's JSON Schema enforces, so a currency amount round-trips byte-for-byte across both protocol families. Both departs_at and arrives_at are fixed, deterministic instants here rather than 'now'; that's what lets verify.sh assert an exact expected timestamp instead of just checking that a call succeeded.");
+  addNotes(s, "This is FindOptimalRoute's route-building helper. The Timestamp conversion is the whole point of the example: ts.FromDatetime takes an ordinary, timezone-aware Python datetime and does the seconds-and-nanos encoding for you: no manual epoch math, and ToJsonString on the way out (used in the servicer's log line, not shown here) produces the exact RFC 3339 string the chapter's 'On the wire' box asserts against. Money is the contrasting case: it's an ordinary message this contract defines, not a well-known type, and the amount field is typed as string specifically so '4200.00' is never coerced through a binary float, the same convention the sibling REST site's JSON Schema enforces, so a currency amount round-trips byte-for-byte across both protocol families. Both departs_at and arrives_at are fixed, deterministic instants here rather than 'now'; that's what lets verify.sh assert an exact expected timestamp instead of just checking that a call succeeded.");
 }
 
 /* ======================= DIVIDER 03 · UNARY RPC ======================= */
@@ -238,7 +238,7 @@ divider("04", "Server, client & bidirectional streaming",
   addDiagramSlide(s, "STREAMING", "Three shapes, one HTTP/2 stream",
     "09-client-bidi-streaming",
     "Client streaming folds many requests into one response; bidirectional streaming interleaves both directions on the same stream.");
-  addNotes(s, "One HTTP/2 stream carries every direction of streaming this contract defines: server streaming (Chapter 8's WatchShipment), client streaming, and bidirectional streaming (both in Chapter 9's TrackingService). The diagram shows the client-and-bidi case: ReportPositions reads the client's stream to exhaustion before answering once, while Sync reads and writes independently, responding to each inbound request as it arrives. Nothing about HTTP/2 itself requires the two directions of a bidirectional stream to be in lockstep; that's a choice each handler makes, not a protocol guarantee, and the code on the next two slides makes that choice explicit.");
+  addNotes(s, "One HTTP/2 stream carries every direction of streaming this contract defines: server streaming (WatchShipment), client streaming, and bidirectional streaming (both in TrackingService). The diagram shows the client-and-bidi case: ReportPositions reads the client's stream to exhaustion before answering once, while Sync reads and writes independently, responding to each inbound request as it arrives. Nothing about HTTP/2 itself requires the two directions of a bidirectional stream to be in lockstep; that's a choice each handler makes, not a protocol guarantee, and the code on the next two slides makes that choice explicit.");
 }
 
 {
@@ -255,14 +255,14 @@ divider("04", "Server, client & bidirectional streaming",
       "",
       "        # Each `yield` sends one WatchShipmentResponse as a DATA frame on the",
       "        # one HTTP/2 stream this call opened, in the order yielded; the",
-      "        # async generator returning is what sends grpc.aio's half-close —",
+      "        # async generator returning is what sends grpc.aio's half-close,",
       "        # no explicit \"end of stream\" call needed.",
       "        for event in sequence(request.booking_id):",
       "            yield tracking_pb2.WatchShipmentResponse(event=event)",
     ],
     "examples/08-server-streaming/python/app/tracking_service.py: an async generator is the entire server-streaming contract.",
     { fontSize: 13 });
-  addNotes(s, "This is as small as server streaming gets, and that's the point: the method signature returns AsyncIterator instead of a single response, the body is an ordinary for loop, and yield is the only new vocabulary. Each yield sends exactly one DATA frame on the stream grpc.aio opened for this call, in the order yielded. When the generator returns (falling off the end of the loop), grpc.aio sends the half-close on the server's side automatically; there's no separate 'end of stream' call to remember, unlike some reactive APIs where you call onComplete explicitly. Chapter 17 revisits this exact method and turns the loop into a demand-driven async generator with an await between each yield, in the streaming-at-scale section later in this deck.");
+  addNotes(s, "This is as small as server streaming gets, and that's the point: the method signature returns AsyncIterator instead of a single response, the body is an ordinary for loop, and yield is the only new vocabulary. Each yield sends exactly one DATA frame on the stream grpc.aio opened for this call, in the order yielded. When the generator returns (falling off the end of the loop), grpc.aio sends the half-close on the server's side automatically; there's no separate 'end of stream' call to remember, unlike some reactive APIs where you call onComplete explicitly. The streaming-at-scale section revisits this exact method and turns the loop into a demand-driven async generator with an await between each yield, in the streaming-at-scale section later in this deck.");
 }
 
 {
@@ -270,7 +270,7 @@ divider("04", "Server, client & bidirectional streaming",
   addCodeSlide(s, "STREAMING", "Client streaming & bidirectional: ReportPositions, Sync", LANG,
     [
       "async def ReportPositions(self, request_iterator, context) -> tracking_pb2.ReportPositionsResponse:",
-      "    # Client streaming: `async for` only ends when the client half-closes —",
+      "    # Client streaming: `async for` only ends when the client half-closes,",
       "    # folding every ReportPositionsRequest into a single count, then",
       "    # returns ONE response. Nothing is sent back until the stream ends.",
       "    accepted_count = 0",
@@ -280,7 +280,7 @@ divider("04", "Server, client & bidirectional streaming",
       "",
       "async def Sync(self, request_iterator, context):",
       "    # Bidirectional: read and write are independent directions on the",
-      "    # same stream — this handler answers each request as it arrives,",
+      "    # same stream; this handler answers each request as it arrives,",
       "    # but the protocol itself does not require that lockstep.",
       "    async for request in request_iterator:",
       "        yield tracking_pb2.SyncResponse(event=request.event)",
@@ -314,7 +314,7 @@ divider("05", "Deadlines, rich errors & interceptors",
       "            await asyncio.sleep(_ARTIFICIAL_DELAY_S)",
       "        except asyncio.CancelledError:",
       "            logger.info(",
-      "                \"downstream deadline expired upstream — \"",
+      "                \"downstream deadline expired upstream, \"",
       "                \"abandoning the %.0fs delay early\", _ARTIFICIAL_DELAY_S,",
       "            )",
       "            raise",
@@ -340,13 +340,13 @@ divider("05", "Deadlines, rich errors & interceptors",
       "async def _abort_rich(context, code: int, message: str, detail) -> None:",
       "    \"\"\"Builds a google.rpc.Status (canonical code + one rich detail) and",
       "    hands it to context.abort_with_status so it lands in the gRPC",
-      "    trailers — the same place grpcurl, or any client library, looks.\"\"\"",
+      "    trailers; the same place grpcurl, or any client library, looks.\"\"\"",
       "    rich_status = status_pb2.Status(code=code, message=message, details=[detail])",
       "    await context.abort_with_status(rpc_status.to_status(rich_status))",
     ],
     "examples/11-error-handling/python/app/routing_service.py: grpcio-status's google.rpc.error_details_pb2, a runtime library, not generated code.",
     { fontSize: 12 });
-  addNotes(s, "The canonical gRPC status code is the first thing any client branches on: UNAVAILABLE here signals 'retry me'. But a client that wants to retry correctly needs to know how long to wait, and that's what RetryInfo, a google.rpc detail message, carries. _abort_rich is the one helper every branch in this servicer funnels through: it builds a google.rpc.Status protobuf (the canonical code, a human-readable message, and a list of packed Any details) and hands it to context.abort_with_status, which is grpcio-status's bridge between that rich status and the gRPC trailers a client actually receives. BadRequest for missing required fields and ErrorInfo for the unroutable-origin case follow the identical shape with a different detail message packed in. None of error_details_pb2's types are generated from this chapter's own .proto; they ship as a runtime library, grpcio-status, that every gRPC implementation can produce and consume without needing them in its own contract.");
+  addNotes(s, "The canonical gRPC status code is the first thing any client branches on: UNAVAILABLE here signals 'retry me'. But a client that wants to retry correctly needs to know how long to wait, and that's what RetryInfo, a google.rpc detail message, carries. _abort_rich is the one helper every branch in this servicer funnels through: it builds a google.rpc.Status protobuf (the canonical code, a human-readable message, and a list of packed Any details) and hands it to context.abort_with_status, which is grpcio-status's bridge between that rich status and the gRPC trailers a client actually receives. BadRequest for missing required fields and ErrorInfo for the unroutable-origin case follow the identical shape with a different detail message packed in. None of error_details_pb2's types are generated from the example's own .proto; they ship as a runtime library, grpcio-status, that every gRPC implementation can produce and consume without needing them in its own contract.");
 }
 
 /* ======================= DIVIDER 06 · SCHEMA DESIGN & EVOLUTION ======================= */
@@ -489,7 +489,7 @@ divider("08", "Async operations: poll, watch, cancel",
     ],
     "examples/16-async-long-running-jobs/python/app/operations_service.py: the same OperationRegistry instance backs RecomputeRoutes and all three of these.",
     { fontSize: 10 });
-  addNotes(s, "GetOperation is a plain unary poll: look up the record, return its current snapshot, NOT_FOUND if the id doesn't exist. WatchOperation turns the identical state into a server stream: it yields one snapshot, checks whether that snapshot was terminal, and either returns, ending the stream with the same half-close mechanic Chapter 8's WatchShipment uses, or awaits a short poll interval and loops. CancelOperation marks the record done early and returns whether this call was the one that moved it to terminal, which matters because a cancel arriving after the job already finished, or a duplicate cancel, should be distinguishable from the first one that actually took effect. The OperationRegistry backing all of this needs no lock: asyncio runs exactly one coroutine at a time, there's never a context switch mid-statement, so every await is the only point where another coroutine can interleave, and none of these state transitions span an await: a structural difference from the Quarkus side, where the background job and the RPC handlers can run on different OS threads and do need a lock.");
+  addNotes(s, "GetOperation is a plain unary poll: look up the record, return its current snapshot, NOT_FOUND if the id doesn't exist. WatchOperation turns the identical state into a server stream: it yields one snapshot, checks whether that snapshot was terminal, and either returns, ending the stream with the same half-close mechanic WatchShipment uses, or awaits a short poll interval and loops. CancelOperation marks the record done early and returns whether this call was the one that moved it to terminal, which matters because a cancel arriving after the job already finished, or a duplicate cancel, should be distinguishable from the first one that actually took effect. The OperationRegistry backing all of this needs no lock: asyncio runs exactly one coroutine at a time, there's never a context switch mid-statement, so every await is the only point where another coroutine can interleave, and none of these state transitions span an await: a structural difference from the Quarkus side, where the background job and the RPC handlers can run on different OS threads and do need a lock.");
 }
 
 /* ======================= DIVIDER 09 · STREAMING AT SCALE & PERFORMANCE ======================= */
@@ -512,7 +512,7 @@ divider("09", "Streaming at scale & performance",
       "async def _demand_driven_sequence(booking_id, waypoints, delays_s):",
       "    \"\"\"Builds and stamps one event per pass, awaiting `delays_s[i]`",
       "    (never a blocking time.sleep) before each one. Nothing beyond the",
-      "    current await/yield pair runs ahead of what the consumer asked for —",
+      "    current await/yield pair runs ahead of what the consumer asked for,",
       "    the async generator protocol itself is the demand signal.\"\"\"",
       "    for i in range(len(waypoints)):",
       "        if delays_s[i] > 0:",
@@ -531,7 +531,7 @@ divider("09", "Streaming at scale & performance",
     "examples/17-streaming-at-scale/python/app/tracking_service.py + app/main.py: options tuples are the same channel-argument API as the sync grpc.server.",
     { fontSize: 11 });
   addPerfCallout(s, "Build one channel and reuse its stub for every call: a fresh channel per call pays a TLS + TCP handshake every time (examples/18-performance-tuning/python/app/pooled_client.py vs. footgun_client.py).");
-  addNotes(s, "_demand_driven_sequence is the generalized version of the earlier WatchShipment generator: it builds and stamps one event per pass, awaiting a real delay rather than blocking, so a slow or fast consumer gets events at the pace it can actually keep up with. The eager contrast this chapter also ships (not shown here) builds and stamps every event in a tight loop before the first yield, which proves the opposite point: demand plays no role at all once everything's already built. Server keepalive is the other performance lever on this slide: grpc.aio.server accepts the same options tuple the synchronous grpc.server API does, so grpc.keepalive_time_ms controls how often an otherwise-silent connection gets pinged, and min_ping_interval_without_data_ms caps how aggressively a client is allowed to ping back before the server treats it as abusive. The perf callout's channel-reuse rule is the single highest-leverage fix in the whole performance chapter: pooled_client.py times fifty calls over one reused channel against footgun_client.py's fifty calls each over a brand-new one, and the gap is the whole argument.");
+  addNotes(s, "_demand_driven_sequence is the generalized version of the earlier WatchShipment generator: it builds and stamps one event per pass, awaiting a real delay rather than blocking, so a slow or fast consumer gets events at the pace it can actually keep up with. The eager contrast the example also ships (not shown here) builds and stamps every event in a tight loop before the first yield, which proves the opposite point: demand plays no role at all once everything's already built. Server keepalive is the other performance lever on this slide: grpc.aio.server accepts the same options tuple the synchronous grpc.server API does, so grpc.keepalive_time_ms controls how often an otherwise-silent connection gets pinged, and min_ping_interval_without_data_ms caps how aggressively a client is allowed to ping back before the server treats it as abusive. The perf callout's channel-reuse rule is the single highest-leverage fix in the whole performance chapter: pooled_client.py times fifty calls over one reused channel against footgun_client.py's fifty calls each over a brand-new one, and the gap is the whole argument.");
 }
 
 /* ======================= DIVIDER 10 · TLS/MTLS ======================= */
@@ -576,14 +576,14 @@ divider("10", "TLS and mTLS",
 /* ======================= DIVIDER 11 · AUTHN/AUTHZ ======================= */
 divider("11", "AuthN/AuthZ with PyJWT",
   "One interceptor: verify the signature and expiry, then check the scope the method requires.",
-  "A bearer token in call metadata is verified with PyJWT before any servicer method runs; a per-method scope map decides authorization once authentication passes. Reflection stays exempt from both checks, the same exemption Chapter 12's logging interceptor made, because a client has to be able to discover the service before it has any token to send.");
+  "A bearer token in call metadata is verified with PyJWT before any servicer method runs; a per-method scope map decides authorization once authentication passes. Reflection stays exempt from both checks, the same exemption the logging interceptor made, because a client has to be able to discover the service before it has any token to send.");
 
 {
   const s = S();
   addDiagramSlide(s, "AUTHN / AUTHZ", "Metadata carries the bearer token",
     "20-jwt-in-metadata-flow",
     "authorization: Bearer <jwt> rides in gRPC metadata, the Python name for what Quarkus calls Metadata headers.");
-  addNotes(s, "gRPC metadata is the one mechanism every cross-cutting concern in this deck rides on: logging, tracing, and now authentication all read and write the same key-value map, just under different keys. The diagram traces a JWT from the client's authorization header through the wire as metadata, into the interceptor that reads it before the real servicer method ever runs, through PyJWT's signature-and-expiry check, and finally into the per-method scope decision the next slide's code implements. Every authentication failure in this chapter (missing header, malformed Bearer prefix, bad signature, expired token) collapses into the same UNAUTHENTICATED outcome, so a client can't distinguish 'your token expired' from 'you forged a signature' by status code alone.");
+  addNotes(s, "gRPC metadata is the one mechanism every cross-cutting concern in this deck rides on: logging, tracing, and now authentication all read and write the same key-value map, just under different keys. The diagram traces a JWT from the client's authorization header through the wire as metadata, into the interceptor that reads it before the real servicer method ever runs, through PyJWT's signature-and-expiry check, and finally into the per-method scope decision the next slide's code implements. Every authentication failure in the example (missing header, malformed Bearer prefix, bad signature, expired token) collapses into the same UNAUTHENTICATED outcome, so a client can't distinguish 'your token expired' from 'you forged a signature' by status code alone.");
 }
 
 {
@@ -617,20 +617,20 @@ divider("11", "AuthN/AuthZ with PyJWT",
     ],
     "examples/20-authn-authz/python/app/interceptors.py + app/auth.py: jwt.decode rejects a bad signature and an expired exp on its own.",
     { fontSize: 10 });
-  addNotes(s, "METHOD_SCOPES is the authorization policy in one small dict: GetQuote needs quote:read, ListRoutes needs routes:admin, and any method with no entry needs only a valid token, not a specific scope. The interceptor resolves the real handler first: continuation only looks up what would run, it doesn't call it, then makes three decisions in order, before that handler ever executes. Reflection is exempt unconditionally, same as Chapter 12's logging interceptor, because grpcurl's list and describe have to work before a token exists. Authentication comes next: no bearer token, or one verify_token rejects. PyJWT's jwt.decode raises its own exceptions for a bad signature, an expired exp, or a malformed token, and verify_token collapses every one of those into a single TokenError; both map to UNAUTHENTICATED. Only once authentication passes does authorization run: a token whose scope claim doesn't contain the method's required scope gets PERMISSION_DENIED, and the real GetQuote or ListRoutes handler is never reached. This mirrors Chapter 12's resolve-then-wrap structure exactly, extended from presence-only checking to real verification.");
+  addNotes(s, "METHOD_SCOPES is the authorization policy in one small dict: GetQuote needs quote:read, ListRoutes needs routes:admin, and any method with no entry needs only a valid token, not a specific scope. The interceptor resolves the real handler first: continuation only looks up what would run, it doesn't call it, then makes three decisions in order, before that handler ever executes. Reflection is exempt unconditionally, same as the logging interceptor, because grpcurl's list and describe have to work before a token exists. Authentication comes next: no bearer token, or one verify_token rejects. PyJWT's jwt.decode raises its own exceptions for a bad signature, an expired exp, or a malformed token, and verify_token collapses every one of those into a single TokenError; both map to UNAUTHENTICATED. Only once authentication passes does authorization run: a token whose scope claim doesn't contain the method's required scope gets PERMISSION_DENIED, and the real GetQuote or ListRoutes handler is never reached. This mirrors the logging interceptor's resolve-then-wrap structure exactly, extended from presence-only checking to real verification.");
 }
 
 /* ======================= DIVIDER 12 · OBSERVABILITY ======================= */
 divider("12", "Observability & health",
   "A hand-rolled Prometheus interceptor, a health servicer, and zero-code OTLP tracing.",
-  "grpcio ships no Prometheus binder of its own, so this chapter writes grpc_server_* metrics by hand, following the same resolve-then-wrap interceptor shape every cross-cutting concern in this deck uses. grpc.health.v1.Health is wired by hand too: the asyncio-native servicer, not the classic synchronous one. OpenTelemetry's zero-code wrapper instruments the grpc.aio server, the client channel, and a co-located FastAPI app in one trace per request.");
+  "grpcio ships no Prometheus binder of its own, so the example writes grpc_server_* metrics by hand, following the same resolve-then-wrap interceptor shape every cross-cutting concern in this deck uses. grpc.health.v1.Health is wired by hand too: the asyncio-native servicer, not the classic synchronous one. OpenTelemetry's zero-code wrapper instruments the grpc.aio server, the client channel, and a co-located FastAPI app in one trace per request.");
 
 {
   const s = S();
   addDiagramSlide(s, "OBSERVABILITY", "One interceptor, metrics for every unary call",
     "21-observability-surfaces",
     "grpc_server_handled_total and grpc_server_handling_seconds follow the same label names the Go and Java gRPC ecosystems use.");
-  addNotes(s, "This figure lays out the three observability surfaces this chapter wires up in one process: Prometheus metrics scraped from GET /metrics on a co-located FastAPI app, a grpc.health.v1.Health service any orchestrator can poll, and OTLP traces exported by the zero-code opentelemetry-instrument wrapper. None of these are automatic the way they are on the Quarkus side: grpcio ships no Prometheus binder and no automatic health registration, so both are hand-wired here, in code shown next, following the exact same interceptor pattern Chapter 12 and Chapter 20 already established. The metric and label names (grpc_server_handled_total, grpc_server_handling_seconds, labeled by grpc_service, grpc_method, grpc_code) match the names the community's grpc-ecosystem Prometheus interceptors use in Go and Java, so a dashboard built against one gRPC service recognizes the shape of metrics from any other.");
+  addNotes(s, "This figure lays out the three observability surfaces the example wires up in one process: Prometheus metrics scraped from GET /metrics on a co-located FastAPI app, a grpc.health.v1.Health service any orchestrator can poll, and OTLP traces exported by the zero-code opentelemetry-instrument wrapper. None of these are automatic the way they are on the Quarkus side: grpcio ships no Prometheus binder and no automatic health registration, so both are hand-wired here, in code shown next, following the exact same interceptor pattern the logging and authorization interceptors use. The metric and label names (grpc_server_handled_total, grpc_server_handling_seconds, labeled by grpc_service, grpc_method, grpc_code) match the names the community's grpc-ecosystem Prometheus interceptors use in Go and Java, so a dashboard built against one gRPC service recognizes the shape of metrics from any other.");
 }
 
 {
@@ -659,12 +659,12 @@ divider("12", "Observability & health",
       "                GRPC_SERVER_HANDLING_SECONDS.labels(service, rpc_method).observe(time.monotonic() - start)",
       "        return grpc.unary_unary_rpc_method_handler(wrapped, ...)",
       "",
-      "health_servicer = health_aio.HealthServicer()  # asyncio-native — NOT the classic sync HealthServicer",
+      "health_servicer = health_aio.HealthServicer()  # asyncio-native, NOT the classic sync HealthServicer",
       "await health_servicer.set(service_name, health_pb2.HealthCheckResponse.SERVING)",
     ],
     "examples/21-observability/python/app/metrics.py + app/main.py: health.aio.HealthServicer's Check is a coroutine; the classic one is not.",
     { fontSize: 9 });
-  addNotes(s, "MetricsInterceptor follows the exact resolve-then-wrap structure Chapter 12's AuthLoggingInterceptor and Chapter 20's AuthzInterceptor already use: continuation resolves the real handler, this interceptor wraps only its unary_unary behavior function (this chapter's example only times GetQuote calls, so streaming handlers pass through untouched), and the finally block records both the counter and the histogram regardless of whether the call succeeded or raised. context.code() reports the status explicitly set by context.abort or by the generated UNIMPLEMENTED stub; it's still None for a handler that simply returned, which is exactly the OK case, so 'or grpc.StatusCode.OK' covers that. The health servicer line at the bottom is a real pitfall this chapter calls out by name: grpc_health.v1.health.aio.HealthServicer is the asyncio-native implementation whose Check method is a coroutine, matching this grpc.aio server; registering the classic, synchronous health.HealthServicer here instead raises 'object can't be awaited' the moment anything calls Check. SERVING is set per service name and for the empty string, which is what grpcurl's overall-server health check looks up.");
+  addNotes(s, "MetricsInterceptor follows the exact resolve-then-wrap structure AuthLoggingInterceptor and AuthzInterceptor already use: continuation resolves the real handler, this interceptor wraps only its unary_unary behavior function (the example only times GetQuote calls, so streaming handlers pass through untouched), and the finally block records both the counter and the histogram regardless of whether the call succeeded or raised. context.code() reports the status explicitly set by context.abort or by the generated UNIMPLEMENTED stub; it's still None for a handler that simply returned, which is exactly the OK case, so 'or grpc.StatusCode.OK' covers that. The health servicer line at the bottom is a real pitfall the example calls out by name: grpc_health.v1.health.aio.HealthServicer is the asyncio-native implementation whose Check method is a coroutine, matching this grpc.aio server; registering the classic, synchronous health.HealthServicer here instead raises 'object can't be awaited' the moment anything calls Check. SERVING is set per service name and for the empty string, which is what grpcurl's overall-server health check looks up.");
 }
 
 /* ======================= DIVIDER 13 · MESH / LOAD BALANCING & TRANSCODING ======================= */
@@ -677,7 +677,7 @@ divider("13", "Load balancing & grpc-web transcoding",
   addDiagramSlide(s, "LOAD BALANCING", "The pinned-pod baseline on a plain Service",
     "22-grpc-lb-problem",
     "kube-proxy picks a backend pod once per TCP connection, not once per request; every call on a reused channel goes to the same pod.");
-  addNotes(s, "This is the minikube-tier demonstration, run by hand on a real generic Kubernetes cluster rather than in CI, because it needs multiple pods and a cluster DNS to show. A plain ClusterIP Service is a virtual IP with no process behind it; kube-proxy rewrites a connection's destination to one backing pod exactly once, at connection time, not per request. For a gRPC client doing exactly what Chapter 7 recommends (build one channel, reuse it for the process lifetime), that one connection-time decision sticks for every call the channel ever carries. Thirty calls against a three-replica Deployment land on one pod, every time, while the other two sit idle and ready. Nothing here is misconfigured; it's the correct, recommended client behavior colliding with the one Kubernetes primitive most engineers reach for first.");
+  addNotes(s, "This is the minikube-tier demonstration, run by hand on a real generic Kubernetes cluster rather than in CI, because it needs multiple pods and a cluster DNS to show. A plain ClusterIP Service is a virtual IP with no process behind it; kube-proxy rewrites a connection's destination to one backing pod exactly once, at connection time, not per request. For a gRPC client doing exactly what the unary section recommends (build one channel, reuse it for the process lifetime), that one connection-time decision sticks for every call the channel ever carries. Thirty calls against a three-replica Deployment land on one pod, every time, while the other two sit idle and ready. Nothing here is misconfigured; it's the correct, recommended client behavior colliding with the one Kubernetes primitive most engineers reach for first.");
 }
 
 {
@@ -704,7 +704,7 @@ divider("13", "Load balancing & grpc-web transcoding",
     ],
     "examples/22-mesh-loadbalancing/python/app/loadclient.py: TARGET=dns:///...-headless + LB_POLICY=round_robin is the client-side fix.",
     { fontSize: 11 });
-  addNotes(s, "This is the one client this chapter's whole minikube demo runs, in three configurations: against a plain ClusterIP Service with no LB_POLICY set (the pinned-pod baseline: one connection, one pod, every call), against a headless Service with LB_POLICY=round_robin (the headless + round-robin fix: DNS now returns one address per ready pod, and grpc-core's round_robin policy opens a persistent subchannel to each, cycling through all three), and a third run against the plain Service again with an Istio sidecar injected and no client change at all, where the mesh balances at Layer 7, per request, instead of Layer 4, per connection. The code itself never changes between the first two runs, only the TARGET DNS name and one channel option, which is exactly the point: fixing this from the client means every caller, in every language, has to independently remember to ask for the headless name and set round_robin. The x-served-by trailer is what makes which pod answered observable at all; it rides as gRPC metadata, outside the message, the same mechanism every interceptor in this deck reads and writes.");
+  addNotes(s, "This is the one client the example's whole minikube demo runs, in three configurations: against a plain ClusterIP Service with no LB_POLICY set (the pinned-pod baseline: one connection, one pod, every call), against a headless Service with LB_POLICY=round_robin (the headless + round-robin fix: DNS now returns one address per ready pod, and grpc-core's round_robin policy opens a persistent subchannel to each, cycling through all three), and a third run against the plain Service again with an Istio sidecar injected and no client change at all, where the mesh balances at Layer 7, per request, instead of Layer 4, per connection. The code itself never changes between the first two runs, only the TARGET DNS name and one channel option, which is exactly the point: fixing this from the client means every caller, in every language, has to independently remember to ask for the headless name and set round_robin. The x-served-by trailer is what makes which pod answered observable at all; it rides as gRPC metadata, outside the message, the same mechanism every interceptor in this deck reads and writes.");
 }
 
 {
@@ -739,7 +739,7 @@ divider("13", "Load balancing & grpc-web transcoding",
       "        \"content-type\": \"application/grpc-web+proto\", \"x-grpc-web\": \"1\",",
       "    })",
     ],
-    "examples/23-grpc-web-transcoding/python/app/grpcweb_client.py: standard library only; this book's deterministic stand-in for a browser's grpc-web client.",
+    "examples/23-grpc-web-transcoding/python/app/grpcweb_client.py: standard library only; a deterministic stand-in for a browser's grpc-web client.",
     { fontSize: 10 });
   addNotes(s, "This client is the deterministic, CI-runnable stand-in for a real browser's grpc-web JavaScript library: it uses only the standard library's urllib and struct, plus protobuf for the message itself, no JavaScript runtime and no grpc-web npm package. frame is the whole encoding: a 1-byte flag, a 4-byte big-endian length, then the raw serialized GetQuoteRequest bytes: the exact same length-prefixed-message idea native gRPC uses over HTTP/2, reused as an HTTP/1.1-body-safe envelope. The request path is the ordinary gRPC '/package.Service/Method' convention, completely unchanged from a native call; what signals grpc-web rather than plain gRPC is purely the content-type header and the framing, which is also why Envoy's grpc_web filter can sit transparently between a browser and an unmodified RoutingService implementation. The unframe side, not shown here, splits the response body back into its DATA frame and its TRAILER frame: the trailer carrying grpc-status as HTTP/1.1-style text instead of a real HTTP/2 trailer, which is the one piece of information the browser transport could never deliver any other way.");
 }
@@ -754,7 +754,7 @@ divider("14", "Testing & debugging",
   addDiagramSlide(s, "TESTING", "A real server, not a fake channel",
     "25-grpc-test-pyramid",
     "grpc_testing's fake channel has no asyncio support: the only way to exercise an async servicer in-process is to actually start one.");
-  addNotes(s, "The test pyramid for this book's gRPC examples looks the way any service's pyramid should, more unit-level assertions than end-to-end ones, but the in-process layer has a Python-specific wrinkle this figure calls out: grpc_testing, the library's own fake-channel testing helper, has no asyncio support at all, so it simply cannot drive an async servicer. The only way to exercise a grpc.aio servicer in-process is to start an actual grpc.aio server bound to an OS-assigned ephemeral port and connect to it with a real grpc.aio channel: exactly what the fixture on the next slide does, and exactly why it's a few more lines than a typical mocked-dependency unit test.");
+  addNotes(s, "The test pyramid for these gRPC examples looks the way any service's pyramid should, more unit-level assertions than end-to-end ones, but the in-process layer has a Python-specific wrinkle this figure calls out: grpc_testing, the library's own fake-channel testing helper, has no asyncio support at all, so it simply cannot drive an async servicer. The only way to exercise a grpc.aio servicer in-process is to start an actual grpc.aio server bound to an OS-assigned ephemeral port and connect to it with a real grpc.aio channel: exactly what the fixture on the next slide does, and exactly why it's a few more lines than a typical mocked-dependency unit test.");
 }
 
 {
@@ -792,14 +792,14 @@ divider("14", "Testing & debugging",
   const s = S();
   addCodeSlide(s, "DEBUGGING", "Deterministic failure probes", LANG,
     [
-      "# trace_probe.py — GRPC_TRACE / GRPC_VERBOSITY make the C-core log",
+      "# trace_probe.py, GRPC_TRACE / GRPC_VERBOSITY make the C-core log",
       "# low-level transport activity to stderr (grpc-python wraps the SAME",
       "# C-core grpc-java and grpc-c++ embed; grpcurl, built on grpc-go, reads",
-      "# different variables entirely — GRPC_GO_LOG_VERBOSITY_LEVEL instead).",
+      "# different variables entirely, GRPC_GO_LOG_VERBOSITY_LEVEL instead).",
       "channel = grpc.aio.insecure_channel(target)",
       "response = await stub.GetQuote(_REQUEST, timeout=10)",
       "",
-      "# unavailable_probe.py — a real client's channel dials LAZILY; the",
+      "# unavailable_probe.py; a real client's channel dials LAZILY; the",
       "# first RPC against a dead target surfaces as a gRPC status, UNAVAILABLE,",
       "# never as grpcurl's pre-flight \"Failed to dial\" error.",
       "channel = grpc.aio.insecure_channel(target)",
@@ -811,7 +811,7 @@ divider("14", "Testing & debugging",
     ],
     "examples/26-debugging/python/app/trace_probe.py + app/unavailable_probe.py: each script proves exactly one failure mode.",
     { fontSize: 11 });
-  addNotes(s, "Two small, deterministic probes, each proving exactly one thing this chapter's prose claims. trace_probe.py exists so GRPC_TRACE and GRPC_VERBOSITY, set in the container environment around this one GetQuote call, have a call to actually log: grpc-python wraps the same C-core implementation grpc-java and grpc-c++ embed, so these two environment variables surface its internal transport and call activity, while grpcurl, built on grpc-go from scratch, doesn't read either variable at all and needs GRPC_GO_LOG_VERBOSITY_LEVEL instead. unavailable_probe.py proves a subtler point: grpc.aio.insecure_channel returns immediately without dialing anything, since a real application channel is lazy, so a call against a target nothing is listening on surfaces as a gRPC status, UNAVAILABLE, on the RPC itself, which is a status grpcurl can never produce for this exact condition, because grpcurl dials blocking, before any RPC, and reports a raw connection-refused error with no status code at all.");
+  addNotes(s, "Two small, deterministic probes, each proving exactly one claim. trace_probe.py exists so GRPC_TRACE and GRPC_VERBOSITY, set in the container environment around this one GetQuote call, have a call to actually log: grpc-python wraps the same C-core implementation grpc-java and grpc-c++ embed, so these two environment variables surface its internal transport and call activity, while grpcurl, built on grpc-go from scratch, doesn't read either variable at all and needs GRPC_GO_LOG_VERBOSITY_LEVEL instead. unavailable_probe.py proves a subtler point: grpc.aio.insecure_channel returns immediately without dialing anything, since a real application channel is lazy, so a call against a target nothing is listening on surfaces as a gRPC status, UNAVAILABLE, on the RPC itself, which is a status grpcurl can never produce for this exact condition, because grpcurl dials blocking, before any RPC, and reports a raw connection-refused error with no status code at all.");
 }
 
 /* ======================= DIVIDER 15 · THE FINAL PROJECT ======================= */
@@ -909,7 +909,7 @@ divider("A", "Appendix: extra Python code",
       "[project]",
       "name = \"shipping-python-ch05-routing\"",
       "version = \"1.0.0\"",
-      "description = \"Ch5 contract-first anchor — gRPC RoutingService.GetQuote (Python side).\"",
+      "description = \"Contract-first anchor, gRPC RoutingService.GetQuote (Python side).\"",
       "requires-python = \">=3.14\"",
       "dependencies = [",
       "    \"grpcio>=1.75,<2\",",
@@ -932,7 +932,7 @@ divider("A", "Appendix: extra Python code",
     ],
     "examples/05-contract-first/python/pyproject.toml, verbatim.",
     { fontSize: 10 });
-  addNotes(s, "The complete pyproject.toml behind the setup section's excerpt, for reference. hatchling is the build backend every example in this book uses: a small, standards-based choice with no extra plugin ecosystem to evaluate. packages = [\"app\"] under [tool.hatch.build.targets.wheel] is what tells hatchling the installable package is the app/ directory, not the repository root. No uv.lock is committed at this chapter's point in the book, since the dependency set is small and pure-Python, but later chapters that add a persistence layer adopt --locked once a lockfile lands alongside it.");
+  addNotes(s, "The complete pyproject.toml behind the setup section's excerpt, for reference. hatchling is the build backend every example in this book uses: a small, standards-based choice with no extra plugin ecosystem to evaluate. packages = [\"app\"] under [tool.hatch.build.targets.wheel] is what tells hatchling the installable package is the app/ directory, not the repository root. No uv.lock is committed for this example, since the dependency set is small and pure-Python, but later chapters that add a persistence layer adopt --locked once a lockfile lands alongside it.");
 }
 
 {
@@ -1034,7 +1034,7 @@ divider("A", "Appendix: extra Python code",
   const s = S();
   addCodeSlide(s, "APPENDIX · PERFORMANCE", "keepalive_client.py and gzip_client.py", LANG,
     [
-      "# keepalive_client.py — proves a keepalive-configured channel survives",
+      "# keepalive_client.py, proves a keepalive-configured channel survives",
       "# an idle gap on the SAME channel, no reconnect needed.",
       "_KEEPALIVE_OPTIONS = [",
       "    (\"grpc.keepalive_time_ms\", 5_000),",
@@ -1046,14 +1046,14 @@ divider("A", "Appendix: extra Python code",
       "await asyncio.sleep(idle_seconds)",
       "second = await stub.GetQuote(_REQUEST)  # same channel, after the idle gap",
       "",
-      "# gzip_client.py — per-call compression changes wire bytes, never content.",
+      "# gzip_client.py, per-call compression changes wire bytes, never content.",
       "plain = await stub.ListRoutes(request)",
       "gzipped = await stub.ListRoutes(request, compression=grpc.Compression.Gzip)",
       "assert plain == gzipped",
     ],
     "examples/18-performance-tuning/python/app/keepalive_client.py + app/gzip_client.py.",
     { fontSize: 12 });
-  addNotes(s, "Two more performance-tuning clients referenced in the body section's perf callout, shown in full here. keepalive_client.py builds one channel with the identical keepalive options the server uses, calls GetQuote once, sleeps past the configured keepalive window while making no calls at all, then calls GetQuote again on the same channel, proving the configured pings kept the connection alive across an idle gap that would otherwise risk a silent drop behind a NAT or load balancer, even though this book's flat container network has no such intermediary to actually trigger one. gzip_client.py proves the complementary, purely functional point: requesting the same ListRoutes page once with default compression and once with grpc.Compression.Gzip set explicitly on the call must decode to byte-identical responses, because compression changes wire bytes, never message content; a mismatch here would mean a bug in the compression path, not an expected side effect of asking for a smaller payload.");
+  addNotes(s, "Two more performance-tuning clients referenced in the body section's perf callout, shown in full here. keepalive_client.py builds one channel with the identical keepalive options the server uses, calls GetQuote once, sleeps past the configured keepalive window while making no calls at all, then calls GetQuote again on the same channel, proving the configured pings kept the connection alive across an idle gap that would otherwise risk a silent drop behind a NAT or load balancer, even though the examples' flat container network has no such intermediary to actually trigger one. gzip_client.py proves the complementary, purely functional point: requesting the same ListRoutes page once with default compression and once with grpc.Compression.Gzip set explicitly on the call must decode to byte-identical responses, because compression changes wire bytes, never message content; a mismatch here would mean a bug in the compression path, not an expected side effect of asking for a smaller payload.");
 }
 
 {
@@ -1079,7 +1079,7 @@ divider("A", "Appendix: extra Python code",
     ],
     "examples/18-performance-tuning/python/app/pooled_client.py: footgun_client.py (not shown) opens a fresh channel per call for the comparison.",
     { fontSize: 13 });
-  addNotes(s, "This is the fix side of the channel-reuse comparison the body section's perf callout referenced. One channel and one stub are built once, before the loop, and every one of the calls in that loop reuses that same stub: the HTTP/2 connection's setup cost, TCP handshake plus TLS handshake where applicable, is paid exactly once, before the first call, rather than once per call. The companion footgun_client.py, not shown here, performs the identical workload but builds a brand-new channel inside the loop for every single call: the mistake Chapter 7 warns against from the very first unary example in this deck. Run both against the same target with the same call count and the elapsed-time gap between them is the entire argument for 'build a channel once and reuse it,' made with a stopwatch instead of a claim.");
+  addNotes(s, "This is the fix side of the channel-reuse comparison the body section's perf callout referenced. One channel and one stub are built once, before the loop, and every one of the calls in that loop reuses that same stub: the HTTP/2 connection's setup cost, TCP handshake plus TLS handshake where applicable, is paid exactly once, before the first call, rather than once per call. The companion footgun_client.py, not shown here, performs the identical workload but builds a brand-new channel inside the loop for every single call: the mistake the unary section warns against from the very first unary example in this deck. Run both against the same target with the same call count and the elapsed-time gap between them is the entire argument for 'build a channel once and reuse it,' made with a stopwatch instead of a claim.");
 }
 
 {
@@ -1116,7 +1116,7 @@ divider("A", "Appendix: extra Python code",
     ],
     "examples/13-schema-design/python/app/routing_service.py, complete: invalid page tokens and invalid masks both abort with a BadRequest detail.",
     { fontSize: 9 });
-  addNotes(s, "The body section's schema-design code slide compressed this for space; here's the complete method, including the two abort paths the earlier slide only mentioned in notes. An out-of-range or non-numeric page_token aborts through _abort_invalid_page_token, which packs a BadRequest field violation naming page_token specifically: never a generic INTERNAL error, because a malformed continuation token is a client mistake the client can act on, not a server fault. A field_mask naming a path Route doesn't have raises ValueError inside the list comprehension, caught just outside it, and aborts through the parallel _abort_invalid_field_mask helper with the same BadRequest shape, naming field_mask instead. Both abort helpers funnel through the identical _abort_rich static method the error-handling section's code slide showed; this servicer and Chapter 11's error-handling servicer share that exact helper, because the rich-error pattern is meant to be reused verbatim across every chapter that needs it, not reinvented per chapter.");
+  addNotes(s, "The body section's schema-design code slide compressed this for space; here's the complete method, including the two abort paths the earlier slide only mentioned in notes. An out-of-range or non-numeric page_token aborts through _abort_invalid_page_token, which packs a BadRequest field violation naming page_token specifically: never a generic INTERNAL error, because a malformed continuation token is a client mistake the client can act on, not a server fault. A field_mask naming a path Route doesn't have raises ValueError inside the list comprehension, caught just outside it, and aborts through the parallel _abort_invalid_field_mask helper with the same BadRequest shape, naming field_mask instead. Both abort helpers funnel through the identical _abort_rich static method the error-handling section's code slide showed; this servicer and the error-handling servicer share that exact helper, because the rich-error pattern is meant to be reused verbatim across every chapter that needs it, not reinvented per chapter.");
 }
 
 {
@@ -1136,12 +1136,12 @@ divider("A", "Appendix: extra Python code",
   const s = S();
   addContentTitle(s, "APPENDIX · ON OPENSHIFT LOCAL", "Where OpenShift Local fits this book");
   addBullets(s, [
-    "Generic Kubernetes (minikube) is this book's primary target for every pattern in this deck, the load-balancing section's cluster demo included.",
+    "Generic Kubernetes (minikube) is the primary target for every pattern in this deck, the load-balancing section's cluster demo included.",
     "This book's OpenShift Local (CRC) appendix exercises the Quarkus stack specifically (binary S2I build, Routes, OSSM + STRICT mTLS); there is no Python variant of that appendix example in this repository.",
     "Nothing in the Python stack's contract, servicer code, or TLS/mTLS setup is OpenShift-specific; the same UBI 10 base images and the same add_secure_port call this deck's TLS section showed would carry over to any Kubernetes distribution.",
     "This deck does not claim a Python run against OpenShift Local that hasn't been built; see the Quarkus sibling deck for the verified CRC walkthrough.",
   ], { fontSize: 15 });
-  addNotes(s, "This book's generic-Kubernetes target, minikube, is what every pattern in this deck (including the load-balancing section's pinned-pod-baseline and headless-plus-round-robin-fix cluster demo) runs against and is verified on. The book's separate OpenShift Local appendix, which walks through a binary S2I build, Routes, and OpenShift Service Mesh with STRICT mTLS, is a Quarkus-stack example; there is no python/ directory under that example in this repository, so nothing in this deck claims a Python run against OpenShift Local that was built and verified. Nothing about the Python stack's contract, servicer code, or TLS/mTLS wiring is OpenShift-specific: the identical UBI 10 base images and the identical grpc.ssl_server_credentials/add_secure_port call this deck's TLS section showed would carry over to any Kubernetes distribution without modification. For the verified OpenShift Local walkthrough, see the Quarkus sibling deck.");
+  addNotes(s, "This book's generic-Kubernetes target, minikube, is what every pattern in this deck (including the load-balancing section's pinned-pod-baseline and headless-plus-round-robin-fix cluster demo) runs against and is verified on. A separate OpenShift Local walkthrough, which walks through a binary S2I build, Routes, and OpenShift Service Mesh with STRICT mTLS, is a Quarkus-stack example; there is no python/ directory under that example in this repository, so nothing in this deck claims a Python run against OpenShift Local that was built and verified. Nothing about the Python stack's contract, servicer code, or TLS/mTLS wiring is OpenShift-specific: the identical UBI 10 base images and the identical grpc.ssl_server_credentials/add_secure_port call this deck's TLS section showed would carry over to any Kubernetes distribution without modification. For the verified OpenShift Local walkthrough, see the Quarkus sibling deck.");
 }
 
 

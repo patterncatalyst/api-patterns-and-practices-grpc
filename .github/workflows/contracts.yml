@@ -58,7 +58,7 @@ jobs:
       - name: Static validation (front matter, diagrams, coverage)
         run: python -I scripts/validate.py
 
-      - name: Word-count gate (draft/verified chapters)
+      - name: Word-count cap (2,500 words, no floor)
         run: GATE=1 bash scripts/wordcount.sh
 
       - name: Build Jekyll

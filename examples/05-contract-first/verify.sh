@@ -60,7 +60,7 @@ run_stack_tests "quarkus" "localhost:9005"
 run_stack_tests "python" "localhost:9006"
 
 echo
-echo "PASS — Ch5 contract-first anchor: Quarkus and Python both implement" \
+echo "PASS: Ch5 contract-first anchor: Quarkus and Python both implement" \
      "shipping.routing.v1.RoutingService.GetQuote identically — same quote" \
      "formula (HALF_UP decimal string), same route.id, same single MAERSK" \
      "leg — generated from one proto."

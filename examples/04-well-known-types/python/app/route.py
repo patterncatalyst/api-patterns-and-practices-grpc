@@ -17,16 +17,16 @@ from shipping.type.v1 import types_pb2
 
 _CARRIER = "MAERSK"
 
-# Fixed, deterministic instants — not "now" — so both stacks' responses are
-# byte-identical and the chapter's "On the wire" box can print an exact
-# expected RFC 3339 string instead of "some recent timestamp".
+# Fixed, deterministic instants, not "now", so both stacks' responses are
+# byte-identical and the expected RFC 3339 string is exact rather than
+# "some recent timestamp".
 _DEPARTS_AT = datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
 _ARRIVES_AT = datetime(2026, 2, 18, 6, 0, 0, tzinfo=timezone.utc)
 
 
 def _to_timestamp(when: datetime) -> timestamp_pb2.Timestamp:
     # google.protobuf.timestamp_pb2 ships inside the `protobuf` package
-    # itself (the compiled well-known-type module) — no extra dependency
+    # itself (the compiled well-known-type module), no extra dependency
     # beyond the grpcio/protobuf pair this project already needs.
     ts = timestamp_pb2.Timestamp()
     ts.FromDatetime(when)

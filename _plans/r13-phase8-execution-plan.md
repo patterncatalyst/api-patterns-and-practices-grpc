@@ -12,7 +12,7 @@ no-planning-language rule applies in full (no "capstone" → "Final Project"; no
 matrix/build plan/wave/deck-map in any deck).
 
 ## Accelerator
-The REST sibling `/home/rsedor/Dev/api-patterns-and-practices-rest/presentation/` already ships this exact
+The REST sibling `~/Dev/api-patterns-and-practices-rest/presentation/` already ships this exact
 three-deck pattern — PORT its `_shared/` layout wholesale. This repo is ALREADY wired: `.gitignore` excludes
 `presentation/_shared/node_modules/`, `presentation/**/{__pycache__,qa}/`, `.deck-src/`; `_config.yml` excludes
 `presentation/`. Dir name is fixed as `presentation/` (not `decks/`). Toolchain present (Node 22, cairosvg,

@@ -32,7 +32,7 @@ class TrackingServiceServicer(tracking_pb2_grpc.TrackingServiceServicer):
 
         # Each `yield` sends one WatchShipmentResponse as a DATA frame on the
         # one HTTP/2 stream this call opened, in the order yielded; the
-        # async generator returning is what sends grpc.aio's half-close —
-        # no explicit "end of stream" call needed.
+        # async generator returning is what sends grpc.aio's half-close,
+        # so no explicit "end of stream" call is needed.
         for event in sequence(request.booking_id):
             yield tracking_pb2.WatchShipmentResponse(event=event)

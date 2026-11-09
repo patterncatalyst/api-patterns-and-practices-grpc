@@ -43,7 +43,7 @@ run_stack_check "quarkus" "localhost:9000"
 run_stack_check "python" "localhost:9001"
 
 echo
-echo "PASS — Ch0 prerequisites skeleton: Quarkus and Python both build from" \
+echo "PASS: Ch0 prerequisites skeleton: Quarkus and Python both build from" \
      "the same proto, boot under Compose, answer server reflection, and" \
      "return shipping.routing.v1.RoutingService.GetQuote with the canned" \
      "quote.currency == \"USD\" — the toolchain works. The real quote" \

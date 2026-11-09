@@ -66,7 +66,7 @@ expect_code_with_header() {
   local out rc=0
   out="$(grpcurl -plaintext -H "authorization: Bearer $token" -d "$data" "$target" "$method" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "lib.sh: FAIL — ${context}: expected error code $expected, but the call succeeded" >&2
+    echo "lib.sh: FAIL, ${context}: expected error code $expected, but the call succeeded" >&2
     return 1
   fi
   local got exp_n got_n
@@ -74,10 +74,10 @@ expect_code_with_header() {
   exp_n="$(printf '%s' "$expected" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   got_n="$(printf '%s' "$got" | tr -d '_ ' | tr '[:upper:]' '[:lower:]')"
   if [[ -n "$got_n" && "$got_n" == "$exp_n" ]]; then
-    echo "lib.sh: ok — ${context}: got expected code $expected (grpcurl: ${got})" >&2
+    echo "lib.sh: ok, ${context}: got expected code $expected (grpcurl: ${got})" >&2
     return 0
   fi
-  echo "lib.sh: FAIL — ${context}: expected code $expected, got: $out" >&2
+  echo "lib.sh: FAIL, ${context}: expected code $expected, got: $out" >&2
   return 1
 }
 
@@ -91,7 +91,7 @@ run_stack_tests() {
   # --- 1. Reflection works WITHOUT a token -----------------------------------
   ensure_grpcurl
   grpcurl -plaintext "$target" list >/dev/null
-  echo "lib.sh: ok — $stack reflection 'list' succeeds with no token" >&2
+  echo "lib.sh: ok, $stack reflection 'list' succeeds with no token" >&2
 
   # --- 2. Valid token -> OK, correct quote ------------------------------------
   local valid_token resp
@@ -134,7 +134,7 @@ run_stack_tests "quarkus" "localhost:9200"
 run_stack_tests "python" "localhost:9201"
 
 echo
-echo "PASS — Ch20 authn-authz: on both stacks, reflection works with no" \
+echo "PASS: Ch20 authn-authz: on both stacks, reflection works with no" \
      "token; a valid JWT reaches GetQuote and returns the identical Ch5" \
      "quote; a missing, bad-signature, or expired token is rejected with" \
      "UNAUTHENTICATED before the handler runs; and an authenticated token" \

@@ -1,15 +1,15 @@
-# Ch13 — Schema design ANCHOR: pagination + FieldMask on `RoutingService.ListRoutes`
+# Chapter 13: schema design anchor, pagination + FieldMask on `RoutingService.ListRoutes`
 
 The reference both-stack implementation of `shipping.routing.v1.RoutingService.ListRoutes`
-over a fixed 5-route in-memory catalog — the chapter's proof that `page_size`/
+over a fixed 5-route in-memory catalog, the chapter's proof that `page_size`/
 `page_token` pagination and `google.protobuf.FieldMask` projection are the
 same contract and the same client-visible behavior on two independently
-built servers. The contract — not either codebase — is the source of truth:
+built servers. The contract, not either codebase, is the source of truth:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService`
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService`
   and its five RPCs (only `ListRoutes` is implemented here; the rest return
   `UNIMPLEMENTED`, same discipline as every prior chapter's example).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Route`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Route`,
   `Leg`, `Location`, `Money` messages `ListRoutes` returns.
 
 Quarkus (`quarkus/`, host port 9130) and Python (`python/`, host port 9131)
@@ -17,7 +17,7 @@ independently implement the identical RPC, generated from the **same**
 `.proto` files. `verify.sh` calls `ListRoutes` on **both** stacks via
 `grpcurl` and asserts page 1's exact contents, page 2's continuation with no
 overlap and an empty terminal token, and a `field_mask` projection's exact
-shape — not just an `OK` status.
+shape, not just an `OK` status.
 
 ## Run it
 
@@ -52,7 +52,7 @@ grpcurl -plaintext -d '{"pageSize":3,"fieldMask":{"paths":["id","price"]}}' \
 docker compose down -v
 ```
 
-Swap `9130` for `9131` to hit the Python stack instead — same inputs, same
+Swap `9130` for `9131` to hit the Python stack instead: same inputs, same
 page contents, same projected shape.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -66,7 +66,7 @@ docker compose --profile observability up --build
 ## The catalog
 
 Both stacks build the identical five `Route`s, in the identical order, as a
-plain in-memory list (`RouteCatalog.java` / `app/catalog.py`) — a real
+plain in-memory list (`RouteCatalog.java` / `app/catalog.py`); a real
 routing engine would page over a database query ordered by a stable key, but
 the catalog's job here is only to give pagination and field-mask projection
 deterministic data to walk:
@@ -87,13 +87,13 @@ deterministic data to walk:
 - `page_size > MAX_PAGE_SIZE` (5) -> clamped to `MAX_PAGE_SIZE`.
 - `page_token == ""` -> start at index 0 (the first page).
 - `page_token == "<n>"` -> start at index `n`. In this demo the token is
-  just the next offset rendered as a string — opaque to the client (it never
+  just the next offset rendered as a string and opaque to the client (it never
   parses or constructs one itself), kept simple here for this README. A
   production catalog would encode a stable cursor (a last-seen key,
   not a raw offset) so the token survives inserts/deletes between calls; see
   the chapter's "Pagination" section for why.
 - An invalid or out-of-range token returns `INVALID_ARGUMENT` with a
-  `BadRequest` naming `page_token` — the same rich-error shape Ch11
+  `BadRequest` naming `page_token`, the same rich-error shape Chapter 11
   established.
 
 | Call | `page_size` | `page_token` | Returns | `next_page_token` |
@@ -121,29 +121,29 @@ Both stacks implement this with the **same well-known-type library each
 stack already ships**, not hand-rolled field clearing:
 
 - **Quarkus**: `com.google.protobuf.util.FieldMaskUtil` (from
-  `protobuf-java-util`, version-managed by the Quarkus BOM) — `isValid`
+  `protobuf-java-util`, version-managed by the Quarkus BOM): `isValid`
   rejects a path `Route` doesn't have, `normalize` sorts/de-duplicates the
   paths, and `merge(mask, source, destination)` copies only the named paths
   from `source` into a **fresh, empty** `destination` builder, which is what
   turns "merge" into "project."
 - **Python**: `google.protobuf.field_mask_pb2.FieldMask`'s own
   `IsValidForDescriptor` and `MergeMessage` methods do the identical two
-  steps — reject an unknown path, then merge into a fresh `Route()`.
+  steps: reject an unknown path, then merge into a fresh `Route()`.
 
 `verify.sh` asserts the masked response's `routes[0].id` and
 `routes[0].price.currency` are present and that the string `"legs"` never
-appears in the masked response body at all — not just that the call
+appears in the masked response body at all, not just that the call
 succeeded.
 
 ## The other four RPCs
 
 Only `ListRoutes` has a real implementation; the rest return `UNIMPLEMENTED`,
-same as every prior chapter — see `RoutingServiceImpl.java` / the generated
-`RoutingServiceServicer` base class's default behavior in `app/routing_service.py`.
+same as every prior chapter (see `RoutingServiceImpl.java` / the generated
+`RoutingServiceServicer` base class's default behavior in `app/routing_service.py`).
 
 ## Proto code generation: `contracts/` is the only source of truth
 
-Neither module commits generated or copied `.proto`/stub files — same
+Neither module commits generated or copied `.proto`/stub files: the same
 discipline as every prior anchor. Each `Containerfile` builds with the
 **repo root** as its Docker build context (see `compose.yaml`) so it can
 `COPY` the two proto files this service needs straight from
@@ -165,7 +165,7 @@ cd python && uv sync --group dev && \
     proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto
 ```
 
-Both copy destinations are gitignored (see `.gitignore`) — build-time-only,
+Both copy destinations are gitignored (see `.gitignore`): build-time-only,
 never committed.
 
 ## On the wire
@@ -185,13 +185,13 @@ joined string of camelCase paths (`"id,price"`), not as `{"paths":[...]}`.
 `grpcurl` doesn't get that special case automatically, because server reflection
 hands it a *dynamic* descriptor rather than a compiled-in Go type, and its
 JSON unmarshaler only applies the well-known-type shortcuts it recognizes
-statically — so a `grpcurl` request has to spell `field_mask` out as the
+statically, so a `grpcurl` request has to spell `field_mask` out as the
 message it actually is, `{"paths":["id","price"]}`, which works regardless
 of whether the request key is written `fieldMask` or `field_mask`. The
 response side has the mirror asymmetry: `grpcurl`'s own JSON output renders
 every field by its **proto name** (`next_page_token`, `un_locode`), not the
 lowerCamelCase a browser `fetch()` calling the same service over grpc-web
-would see. Both are `grpcurl` rendering choices, not protocol differences —
+would see. Both are `grpcurl` rendering choices, not protocol differences;
 the bytes on the wire are identical either way. `verify.sh` sends the object
 form and reads the proto-name response fields for exactly this reason.
 

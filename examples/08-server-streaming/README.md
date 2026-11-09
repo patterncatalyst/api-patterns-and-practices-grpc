@@ -1,15 +1,15 @@
-# Ch8 — Server-streaming: TrackingService.WatchShipment
+# Chapter 8, server-streaming: TrackingService.WatchShipment
 
 The reference both-stack implementation of
-`shipping.tracking.v1.TrackingService.WatchShipment` — one request, a stream
-of `TrackingEvent` responses. The contract — not either codebase — is the
+`shipping.tracking.v1.TrackingService.WatchShipment`: one request, a stream
+of `TrackingEvent` responses. The contract, not either codebase, is the
 source of truth:
 
-- `contracts/proto/shipping/tracking/v1/tracking.proto` — the
+- `contracts/proto/shipping/tracking/v1/tracking.proto`: the
   `TrackingService` and its three RPCs (only `WatchShipment` is implemented
   here; `ReportPositions` and `Sync` land in Chapter 9 and return
   `UNIMPLEMENTED`).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Location` and
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Location` and
   `BookingState` the events carry.
 
 Quarkus (`quarkus/`, host port 9080) and Python (`python/`, host port 9081)
@@ -17,7 +17,7 @@ independently implement the identical RPC, generated from the **same**
 `.proto` files, streaming the same deterministic 4-event sequence for any
 `bookingId`. `verify.sh` calls `WatchShipment` on **both** stacks via
 `grpcurl` and asserts **event count, per-event field semantics, and
-order** — not just a gRPC `OK` status.
+order**, not just a gRPC `OK` status.
 
 ## Run it
 
@@ -44,9 +44,9 @@ docker compose down -v
 ```
 
 `grpcurl` prints one JSON object per streamed message and keeps printing
-until the server half-closes — there's no "give me N messages" flag,
+until the server half-closes; there's no "give me N messages" flag,
 because the RPC itself decides how many frames the stream carries. Swap
-`9080` for `9081` to hit the Python stack instead — same request, same
+`9080` for `9081` to hit the Python stack instead: same request, same
 4-event stream, same numbers.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -75,7 +75,7 @@ Both implementations build this sequence from the same fixed table
 (`TrackingEvents.java` / `app/events.py`) rather than computing it from
 wall-clock time or any external state, so the two stacks' streams are
 byte-for-byte comparable on every run, not just independently plausible.
-After the 4th event, the server ends the stream (half-close) — there is no
+After the 4th event, the server ends the stream (half-close); there is no
 5th event and no trailing error.
 
 ## The other two RPCs
@@ -86,24 +86,24 @@ implementation here:
 | RPC | Shape | Status in this chapter |
 |---|---|---|
 | `WatchShipment` | server-streaming | implemented (this chapter) |
-| `ReportPositions` | client-streaming | `UNIMPLEMENTED` — Chapter 9 |
-| `Sync` | bidirectional | `UNIMPLEMENTED` — Chapter 9 |
+| `ReportPositions` | client-streaming | `UNIMPLEMENTED` (Chapter 9) |
+| `Sync` | bidirectional | `UNIMPLEMENTED` (Chapter 9) |
 
 On Quarkus, the generated Mutiny `TrackingService` interface declares all
 three RPCs as abstract methods, so `TrackingServiceImpl` implements all
-three explicitly — the two unimplemented ones return
+three explicitly; the two unimplemented ones return
 `Status.UNIMPLEMENTED.asRuntimeException()` without touching the client (or
 bidirectional) stream they're handed. On Python, the generated
 `TrackingServiceServicer` base class already sets `UNIMPLEMENTED` and raises
 for any method a subclass doesn't override, so the Python side only defines
-`WatchShipment` — the rest fall through to that generated default.
+`WatchShipment`; the rest fall through to that generated default.
 
 ## Proto code generation: `contracts/` is the only source of truth
 
 Neither module commits generated or copied `.proto`/stub files. Each
 `Containerfile` builds with the **repo root** as its Docker build context
 (see `compose.yaml`) specifically so it can `COPY` the two proto files this
-service needs straight from `contracts/proto/` at build time — the same
+service needs straight from `contracts/proto/` at build time, with the same
 mechanics Chapter 5's `05-contract-first` example established:
 
 - **Quarkus**: the Containerfile copies `types.proto` and `tracking.proto`
@@ -136,7 +136,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/generated/`,
-`python/proto/`) are gitignored (see `./.gitignore`) — they are
+`python/proto/`) are gitignored (see `./.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -169,12 +169,12 @@ grpcurl -plaintext localhost:9080 describe shipping.tracking.v1.TrackingService
 | `ReportPositions`, `Sync` | gRPC status `UNIMPLEMENTED` |
 
 grpcurl prints response field names using the proto's own snake_case names
-(`booking_id`, `un_locode`) by default — not the lowerCamelCase JSON name
+(`booking_id`, `un_locode`) by default, not the lowerCamelCase JSON name
 used on the way *in* for the request above (`bookingId`). Both spellings are
 the same field; protojson accepts either on unmarshal but this grpcurl
 build's marshaler emits the proto name on the way out.
 
-for both `localhost:9080` and `localhost:9081` — same stream, same field
+for both `localhost:9080` and `localhost:9081`: same stream, same field
 values, same order, from two independently generated implementations.
 
 ## Diagram
@@ -182,6 +182,6 @@ values, same order, from two independently generated implementations.
 `architecture.svg` / `architecture.excalidraw` (generated with
 `scripts/generate_diagram.py`) show the request/response topology for this
 example: a client calling `WatchShipment` on each stack over its own port,
-and the opt-in `otel-lgtm` sink. For the RPC's wire mechanics — one HTTP/2
-stream, four ordered `TrackingEvent` frames, the server's half-close — see
+and the opt-in `otel-lgtm` sink. For the RPC's wire mechanics (one HTTP/2
+stream, four ordered `TrackingEvent` frames, the server's half-close), see
 Figure 8.1 in `_docs/08-server-streaming.md`.

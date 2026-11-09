@@ -66,7 +66,7 @@ run_stack_tests "quarkus" "localhost:9090"
 run_stack_tests "python" "localhost:9091"
 
 echo
-echo "PASS — Ch9 client-and-bidi-streaming: Quarkus and Python both fold 3" \
+echo "PASS: Ch9 client-and-bidi-streaming: Quarkus and Python both fold 3" \
      "ReportPositions requests into one accepted_count=3 ack, and both echo" \
      "2 Sync requests into 2 Sync responses in order — same proto, same" \
      "both-stack behavior."

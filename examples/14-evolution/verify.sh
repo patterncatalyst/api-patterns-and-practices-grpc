@@ -67,7 +67,7 @@ ensure_buf() {
   echo "verify.sh: downloading buf ${BUF_VERSION} (${os}/${arch}) ..." >&2
   mkdir -p "$BIN_DIR"
   if ! curl -fsSL "$url" -o "$BIN_DIR/buf"; then
-    echo "verify.sh: FAIL — could not download buf from $url" >&2
+    echo "verify.sh: FAIL, could not download buf from $url" >&2
     return 1
   fi
   chmod +x "$BIN_DIR/buf"
@@ -87,7 +87,7 @@ echo
 echo "=== Step 1: buf lint + buf build (baseline/) ==="
 buf lint
 buf build -o /dev/null
-echo "buf lint + buf build: ok — baseline/ passes STANDARD lint and compiles"
+echo "buf lint + buf build: ok, baseline/ passes STANDARD lint and compiles"
 
 # ---------------------------------------------------------------------------
 # Step 2: the SAFE candidate must pass
@@ -100,11 +100,11 @@ safe_rc=0
 safe_out="$(buf breaking candidate-safe --against baseline 2>&1)" || safe_rc=$?
 
 if [[ $safe_rc -ne 0 ]]; then
-  echo "verify.sh: FAIL — expected the safe candidate to pass buf breaking (exit 0), got exit $safe_rc" >&2
+  echo "verify.sh: FAIL, expected the safe candidate to pass buf breaking (exit 0), got exit $safe_rc" >&2
   echo "$safe_out" >&2
   exit 1
 fi
-echo "ok — buf breaking candidate-safe --against baseline: exit 0 (no breaking changes)"
+echo "ok, buf breaking candidate-safe --against baseline: exit 0 (no breaking changes)"
 
 # ---------------------------------------------------------------------------
 # Step 3: the BREAKING candidate must fail, and fail for the right reasons
@@ -117,10 +117,10 @@ breaking_rc=0
 breaking_out="$(buf breaking candidate-breaking --against baseline 2>&1)" || breaking_rc=$?
 
 if [[ $breaking_rc -eq 0 ]]; then
-  echo "verify.sh: FAIL — expected the breaking candidate to fail buf breaking, but it passed" >&2
+  echo "verify.sh: FAIL, expected the breaking candidate to fail buf breaking, but it passed" >&2
   exit 1
 fi
-echo "ok — buf breaking candidate-breaking --against baseline: exit $breaking_rc (breaking changes found)"
+echo "ok, buf breaking candidate-breaking --against baseline: exit $breaking_rc (breaking changes found)"
 echo "$breaking_out"
 
 # Confirm the failure is the SEEDED breaking changes, not some unrelated
@@ -131,10 +131,10 @@ for needle in \
   'name "legacy_notes" on message "GetQuoteRequest" was deleted' \
   'changed type from "double" to "int32"'; do
   if [[ "$breaking_out" != *"$needle"* ]]; then
-    echo "verify.sh: FAIL — expected breaking-change text not found: $needle" >&2
+    echo "verify.sh: FAIL, expected breaking-change text not found: $needle" >&2
     exit 1
   fi
-  echo "ok — found expected violation: $needle"
+  echo "ok, found expected violation: $needle"
 done
 
 # ---------------------------------------------------------------------------
@@ -149,18 +149,18 @@ reserved_rc=0
 reserved_out="$(buf breaking candidate-breaking-reserved --against baseline 2>&1)" || reserved_rc=$?
 
 if [[ $reserved_rc -eq 0 ]]; then
-  echo "verify.sh: FAIL — expected the breaking-and-reserved candidate to fail buf breaking (reserved does not excuse a deletion under FILE), but it passed" >&2
+  echo "verify.sh: FAIL, expected the breaking-and-reserved candidate to fail buf breaking (reserved does not excuse a deletion under FILE), but it passed" >&2
   exit 1
 fi
-echo "ok — buf breaking candidate-breaking-reserved --against baseline: exit $reserved_rc (reserved field 4 still can't be deleted)"
+echo "ok, buf breaking candidate-breaking-reserved --against baseline: exit $reserved_rc (reserved field 4 still can't be deleted)"
 echo "$reserved_out"
 
 reserved_needle='name "legacy_notes" on message "GetQuoteRequest" was deleted'
 if [[ "$reserved_out" != *"$reserved_needle"* ]]; then
-  echo "verify.sh: FAIL — expected breaking-change text not found: $reserved_needle" >&2
+  echo "verify.sh: FAIL, expected breaking-change text not found: $reserved_needle" >&2
   exit 1
 fi
-echo "ok — found expected violation: $reserved_needle"
+echo "ok, found expected violation: $reserved_needle"
 
 # ---------------------------------------------------------------------------
 # Step 5 (bonus): the package-version escape hatch
@@ -173,14 +173,14 @@ v2_rc=0
 v2_out="$(buf breaking v2-migration --against baseline 2>&1)" || v2_rc=$?
 
 if [[ $v2_rc -ne 0 ]]; then
-  echo "verify.sh: FAIL — expected v2-migration to pass buf breaking (new file path, nothing to diff), got exit $v2_rc" >&2
+  echo "verify.sh: FAIL, expected v2-migration to pass buf breaking (new file path, nothing to diff), got exit $v2_rc" >&2
   echo "$v2_out" >&2
   exit 1
 fi
-echo "ok — buf breaking v2-migration --against baseline: exit 0 (shipping.routing.v2 is a new file; v1 is untouched)"
+echo "ok, buf breaking v2-migration --against baseline: exit 0 (shipping.routing.v2 is a new file; v1 is untouched)"
 
 echo
-echo "PASS — buf breaking caught every seeded breaking change (deleted fields," \
+echo "PASS: buf breaking caught every seeded breaking change (deleted fields," \
      "changed field type) in the breaking candidate, caught the same deletion" \
      "again even with the field's number and name reserved, passed the safe" \
      "candidate (added field, added RPC, defensive reserved) clean, and" \

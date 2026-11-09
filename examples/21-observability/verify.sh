@@ -47,7 +47,7 @@ wait_for_lgtm() {
     sleep "$interval"
     waited=$(( waited + interval ))
   done
-  echo "verify.sh: FAIL — lgtm did not become healthy within ${timeout}s" >&2
+  echo "verify.sh: FAIL, lgtm did not become healthy within ${timeout}s" >&2
   return 1
 }
 
@@ -65,7 +65,7 @@ wait_for_http() {
     sleep "$interval"
     waited=$(( waited + interval ))
   done
-  echo "verify.sh: FAIL — HTTP $url did not respond within ${timeout}s" >&2
+  echo "verify.sh: FAIL, HTTP $url did not respond within ${timeout}s" >&2
   return 1
 }
 
@@ -99,14 +99,14 @@ print(total if found else "NOTFOUND")
 ' "$metrics_text" "$metric_name")"
 
   if [[ "$total" == "NOTFOUND" ]]; then
-    echo "lib.sh: FAIL — ${context}: metric '$metric_name' not found" >&2
+    echo "lib.sh: FAIL, ${context}: metric '$metric_name' not found" >&2
     return 1
   fi
   if ! python3 -I -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0 else 1)" "$total"; then
-    echo "lib.sh: FAIL — ${context}: metric '$metric_name' total is $total, expected > 0" >&2
+    echo "lib.sh: FAIL, ${context}: metric '$metric_name' total is $total, expected > 0" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: metric '$metric_name' total=$total" >&2
+  echo "lib.sh: ok, ${context}: metric '$metric_name' total=$total" >&2
 }
 
 # assert_trace_id_in_logs <project> <compose-file> <service> <trace-id> <routing-pattern> <quote-pattern>
@@ -123,20 +123,20 @@ assert_trace_id_in_logs() {
   logs="$(docker compose -p "$project" -f "$compose_file" logs "$service" 2>&1)"
 
   if ! grep -F "$routing_pattern$trace_id" <<<"$logs" >/dev/null; then
-    echo "lib.sh: FAIL — $service: no Routing handler log line carrying trace_id=$trace_id" >&2
+    echo "lib.sh: FAIL, $service: no Routing handler log line carrying trace_id=$trace_id" >&2
     echo "--- $service logs ---" >&2
     echo "$logs" >&2
     return 1
   fi
-  echo "lib.sh: ok — $service: Routing handler logged trace_id=$trace_id" >&2
+  echo "lib.sh: ok, $service: Routing handler logged trace_id=$trace_id" >&2
 
   if ! grep -F "$quote_pattern$trace_id" <<<"$logs" >/dev/null; then
-    echo "lib.sh: FAIL — $service: no Quote handler log line carrying trace_id=$trace_id" >&2
+    echo "lib.sh: FAIL, $service: no Quote handler log line carrying trace_id=$trace_id" >&2
     echo "--- $service logs ---" >&2
     echo "$logs" >&2
     return 1
   fi
-  echo "lib.sh: ok — $service: Quote handler logged trace_id=$trace_id (SAME id — traceparent crossed the loopback hop)" >&2
+  echo "lib.sh: ok, $service: Quote handler logged trace_id=$trace_id (SAME id — traceparent crossed the loopback hop)" >&2
 }
 
 # check_tempo_trace <trace-id> — SOFT, bounded-retry poll of Tempo's query
@@ -183,7 +183,7 @@ walk(doc)
 print(len(names))
 ' "$resp" 2>/dev/null || echo 0)"
       if [[ "$svc_count" =~ ^[0-9]+$ ]] && (( svc_count >= 2 )); then
-        echo "verify.sh: ok (soft) — Tempo has trace $trace_id with $svc_count distinct service names" >&2
+        echo "verify.sh: ok (soft), Tempo has trace $trace_id with $svc_count distinct service names" >&2
         return 0
       fi
     fi
@@ -221,10 +221,10 @@ run_stack_tests() {
   local trace_id
   trace_id="$(json_field '.traceId' <<<"$resp")"
   if [[ -z "$trace_id" || "$trace_id" == "00000000000000000000000000000000" ]]; then
-    echo "lib.sh: FAIL — $stack: booking_quote response carried no usable traceId" >&2
+    echo "lib.sh: FAIL, $stack: booking_quote response carried no usable traceId" >&2
     exit 1
   fi
-  echo "lib.sh: ok — $stack booking_quote traceId=$trace_id" >&2
+  echo "lib.sh: ok, $stack booking_quote traceId=$trace_id" >&2
 
   # --- 2. HARD: the SAME trace id logged by BOTH handlers in this container ---
   assert_trace_id_in_logs "$PROJECT" "$COMPOSE_FILE" "$stack" "$trace_id" \
@@ -264,7 +264,7 @@ run_stack_tests "python" "localhost:9211" "http://localhost:8211" "http://localh
   "RoutingServiceServicer.GetQuote trace_id=" "QuoteServiceServicer.GetQuote trace_id="
 
 echo
-echo "PASS — Ch21 observability anchor: on BOTH the Quarkus and the Python" \
+echo "PASS: Ch21 observability anchor: on BOTH the Quarkus and the Python" \
      "stack, POST /booking/quote returns the correct quote (USD 2500.00," \
      "rte_USNYC-NLRTM, MAERSK) AND a trace id that RoutingService and" \
      "QuoteService EACH logged while handling the request — proving the W3C" \

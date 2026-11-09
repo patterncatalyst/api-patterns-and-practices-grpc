@@ -62,7 +62,7 @@ wait_for_booking() {
     sleep "$interval"
     waited=$(( waited + interval ))
   done
-  echo "verify.sh: FAIL — REST shim $rest_base did not respond within ${timeout}s" >&2
+  echo "verify.sh: FAIL, REST shim $rest_base did not respond within ${timeout}s" >&2
   return 1
 }
 
@@ -83,7 +83,7 @@ wait_for_envoy() {
     sleep "$interval"
     waited=$(( waited + interval ))
   done
-  echo "verify.sh: FAIL — Envoy $target did not respond within ${timeout}s" >&2
+  echo "verify.sh: FAIL, Envoy $target did not respond within ${timeout}s" >&2
   return 1
 }
 
@@ -110,7 +110,7 @@ check_transcoder_malformed_json() {
     -X POST "http://$envoy_target/shipping.routing.v1.RoutingService/GetQuote" \
     -H 'content-type: application/json' -d '{"origin": not-json')"
   if [[ "$http_code" =~ ^4[0-9][0-9]$ ]]; then
-    echo "verify.sh: ok (soft) — $envoy_target malformed JSON -> HTTP $http_code (convert_grpc_status)" >&2
+    echo "verify.sh: ok (soft), $envoy_target malformed JSON -> HTTP $http_code (convert_grpc_status)" >&2
   else
     echo "verify.sh: WARN (soft, non-fatal) — $envoy_target malformed JSON -> HTTP $http_code," \
          "expected 4xx; not failing the build" >&2
@@ -178,7 +178,7 @@ run_stack_tests "quarkus" "localhost:9230" "http://localhost:8230" "localhost:10
 run_stack_tests "python" "localhost:9231" "http://localhost:8231" "localhost:10231" "envoy-python:10000"
 
 echo
-echo "PASS — Ch23 grpc-web & JSON/HTTP transcoding: on BOTH the Quarkus and" \
+echo "PASS: Ch23 grpc-web & JSON/HTTP transcoding: on BOTH the Quarkus and" \
      "the Python stack, RoutingService.GetQuote returns the identical quote" \
      "(USD 2500.00, rte_USNYC-NLRTM, MAERSK) over native gRPC, the" \
      "hand-written REST shim, Envoy's JSON/HTTP transcoder, AND Envoy's" \

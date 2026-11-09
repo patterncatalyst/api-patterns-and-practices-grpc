@@ -68,10 +68,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a < b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not < ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not < ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} < ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} < ${bound}" >&2
 }
 
 assert_gt_num() {
@@ -81,10 +81,10 @@ import sys
 a, b = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if a > b else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual} is not > ${bound}" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual} is not > ${bound}" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual} > ${bound}" >&2
+  echo "lib.sh: ok, ${context}: ${actual} > ${bound}" >&2
 }
 
 run_stack_correctness_and_reflection() {
@@ -125,7 +125,7 @@ run_test_suite_reruns() {
   local quarkus_out
   if ! quarkus_out="$(docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --build quarkus-tests 2>&1)"; then
     echo "$quarkus_out" >&2
-    echo "lib.sh: FAIL — quarkus-tests: mvn test re-run exited non-zero" >&2
+    echo "lib.sh: FAIL, quarkus-tests: mvn test re-run exited non-zero" >&2
     exit 1
   fi
   echo "$quarkus_out"
@@ -137,7 +137,7 @@ run_test_suite_reruns() {
   local python_out
   if ! python_out="$(docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --build python-tests 2>&1)"; then
     echo "$python_out" >&2
-    echo "lib.sh: FAIL — python-tests: pytest re-run exited non-zero" >&2
+    echo "lib.sh: FAIL, python-tests: pytest re-run exited non-zero" >&2
     exit 1
   fi
   echo "$python_out"
@@ -171,7 +171,7 @@ print(p99 / 1e9)
 ' "$out_file")"
   rm -f "$out_file"
 
-  echo "lib.sh: info — $stack ghz: errors=$errors rps=$rps p99=${p99_s}s" >&2
+  echo "lib.sh: info, $stack ghz: errors=$errors rps=$rps p99=${p99_s}s" >&2
   assert_eq "0" "$errors" "$stack ghz error count"
   assert_lt_num "$p99_s" "$GHZ_P99_CEILING_S" "$stack ghz p99 latency vs generous ceiling"
   assert_gt_num "$rps" "$GHZ_RPS_FLOOR" "$stack ghz throughput vs low floor"
@@ -195,7 +195,7 @@ run_ghz "quarkus" "quarkus:9000"
 run_ghz "python" "python:9000"
 
 echo
-echo "PASS — Ch25 testing-and-cli: Quarkus and Python both serve GetQuote" \
+echo "PASS: Ch25 testing-and-cli: Quarkus and Python both serve GetQuote" \
      "correctly; grpcurl's reflection-driven list/describe (the" \
      "grpcui/Insomnia/Yaak stand-in) names RoutingService and GetQuote on" \
      "both; the @QuarkusTest+@GrpcClient suite and the pytest in-process" \

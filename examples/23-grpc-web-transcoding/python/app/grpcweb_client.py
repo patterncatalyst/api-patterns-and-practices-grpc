@@ -61,7 +61,7 @@ def _unframe_all(body: bytes) -> list[tuple[int, bytes]]:
     response normally carries exactly one DATA frame (the message) followed
     by exactly one TRAILER frame (the final grpc-status/grpc-message, encoded
     as HTTP/1.1-style `key: value\\r\\n` text instead of real HTTP/2
-    trailers — the whole reason grpc-web needs its own framing instead of
+    trailers, which is the whole reason grpc-web needs its own framing instead of
     riding on native gRPC's)."""
     frames: list[tuple[int, bytes]] = []
     offset = 0

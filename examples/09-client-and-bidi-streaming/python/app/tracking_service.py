@@ -28,8 +28,8 @@ class TrackingServiceServicer(tracking_pb2_grpc.TrackingServiceServicer):
         context: grpc.aio.ServicerContext,
     ) -> tracking_pb2.ReportPositionsResponse:
         # Client streaming: the server reads the inbound stream to
-        # exhaustion — `async for` only ends when the client half-closes
-        # (signals "done sending") — folding every ReportPositionsRequest
+        # exhaustion (`async for` only ends when the client half-closes
+        # (signals "done sending")), folding every ReportPositionsRequest
         # into a single count, then returns ONE response. Nothing is sent
         # back to the client until the stream is fully consumed.
         accepted_count = 0
@@ -47,7 +47,7 @@ class TrackingServiceServicer(tracking_pb2_grpc.TrackingServiceServicer):
         # Bidirectional: read and write are independent directions on the
         # same stream. This handler happens to respond to each request as
         # it arrives (`yield` inside the loop), so one SyncResponse goes out
-        # per SyncRequest that comes in, in arrival order — but the two
+        # per SyncRequest that comes in, in arrival order, but the two
         # directions aren't lockstepped by the protocol itself, only by
         # this handler's choice to answer immediately.
         async for request in request_iterator:

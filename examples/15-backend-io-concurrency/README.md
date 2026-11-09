@@ -1,38 +1,38 @@
-# Ch15 — Backend I/O concurrency ANCHOR: `RoutingService.FindOptimalRoute`, offloaded vs starving
+# Chapter 15: backend I/O concurrency anchor, `RoutingService.FindOptimalRoute`, offloaded vs starving
 
 The reference both-stack implementation of `shipping.routing.v1.RoutingService.FindOptimalRoute`
-behind ~400ms of simulated blocking DB+file I/O — the chapter's proof that
+behind ~400ms of simulated blocking DB+file I/O, the chapter's proof that
 *where* a blocking call runs, not merely whether it eventually returns, is
-what decides whether a server scales under concurrent load. The contract —
-not either codebase — is the source of truth:
+what decides whether a server scales under concurrent load. The contract,
+not either codebase, is the source of truth:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — the `RoutingService`
+- `contracts/proto/shipping/routing/v1/routing.proto`: the `RoutingService`
   and its eight RPCs (only `FindOptimalRoute` is implemented here; the rest
   return `UNIMPLEMENTED`, same discipline as every prior chapter's example).
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `Route`,
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `Route`,
   `Leg`, `Location`, `Money` messages `FindOptimalRoute` returns.
 
 Quarkus (`quarkus/`, host port 9150) and Python (`python/`, host port 9151)
 independently implement the identical RPC, generated from the **same**
 `.proto` files, each performing the identical simulated blocking I/O step
-(`PricingCache.lookup` / `app.blocking_lookup.blocking_lookup`) — a
+(`PricingCache.lookup` / `app.blocking_lookup.blocking_lookup`): a
 ~200ms sleep standing in for a database round trip, a real blocking read of
 a bundled cache file, then a second ~200ms sleep standing in for a slow,
 network-attached store. `verify.sh` calls `FindOptimalRoute` on **both**
 stacks via `grpcurl`, fires eight of those calls concurrently, and times the
-batch — not just checks that each call eventually returns `OK`.
+batch, not just checks that each call eventually returns `OK`.
 
 ## The execution models this chapter compares
 
 | Mode | Quarkus | Python |
 |---|---|---|
 | **Correct (default)** | `@Blocking` dispatches the call onto the Vert.x worker pool before the method body runs; the ~400ms lookup runs there. | `asyncio.to_thread` hands the lookup to the default thread-pool executor and awaits the result. |
-| **Starving** | The same lookup runs directly on one fixed Vert.x event-loop context (`RoutingServiceImpl.onEventLoop`), occupying it for the full ~400ms. | The same lookup is called in-line inside the `async def` handler, with no `await` point until it returns — it runs on grpc.aio's one event-loop thread. |
-| **Virtual thread (Quarkus only, illustrative)** | The lookup runs on a fresh virtual thread per call (`RoutingServiceImpl.onVirtualThread`), reproducing what `@RunOnVirtualThread` does automatically when it is a method's sole execution-model annotation. |  — |
+| **Starving** | The same lookup runs directly on one fixed Vert.x event-loop context (`RoutingServiceImpl.onEventLoop`), occupying it for the full ~400ms. | The same lookup is called in-line inside the `async def` handler, with no `await` point until it returns, so it runs on grpc.aio's one event-loop thread. |
+| **Virtual thread (Quarkus only, illustrative)** | The lookup runs on a fresh virtual thread per call (`RoutingServiceImpl.onVirtualThread`), reproducing what `@RunOnVirtualThread` does automatically when it is a method's sole execution-model annotation. | Not applicable |
 
 A single request flag selects the mode on both stacks: `FindOptimalRouteRequest.origin.name`.
-This field carries no routing meaning anywhere else in this example — matching
-a route is done purely by `origin`/`destination` UN/LOCODEs — so this demo
+This field carries no routing meaning anywhere else in this example (matching
+a route is done purely by `origin`/`destination` UN/LOCODEs), so this demo
 repurposes it as an execution-mode selector rather than changing the frozen
 contract:
 
@@ -58,21 +58,21 @@ server to answer reflection's `list`, then against **each** of
 `localhost:9150` (Quarkus) and `localhost:9151` (Python):
 
 1. Calls `FindOptimalRoute` once (default mode) and asserts the exact
-   `route.id`/`route.price` fields — an `OK` status with a wrong-shaped or
+   `route.id`/`route.price` fields. An `OK` status with a wrong-shaped or
    wrong-valued message fails this check, not just a transport error.
 2. Fires 8 **concurrent** default-mode calls (`grpc_call ... &` in a loop,
    then `wait`), asserts every one of the 8 responses has the identical
    correct fields, and times the whole batch with `date +%s.%N`.
-3. Asserts that batch finished in well under 2.5 seconds — a loose bound,
+3. Asserts that batch finished in well under 2.5 seconds, a loose bound
    chosen to sit comfortably below the ~3.2 seconds 8 serial 400ms calls
    would take, without pinning the assertion to a specific millisecond
    figure that would be flaky across machines.
 4. Fires 8 concurrent **starving**-mode calls, times that batch the same
-   way, and asserts `correct_total * 2 < starving_total` — a loose 2x
+   way, and asserts `correct_total * 2 < starving_total`, a loose 2x
    margin, not an exact ratio, so the check stays robust to scheduler jitter
    while still catching a server that fails to tell the two models apart.
 
-A bonus (non-required) check repeats step 2–3 for Quarkus's illustrative
+A bonus (non-required) check repeats steps 2 and 3 for Quarkus's illustrative
 `"virtual"` mode. Prints `PASS` only if every assertion holds for **both**
 stacks.
 
@@ -107,9 +107,9 @@ docker compose --profile observability up --build
 ## The pricing cache
 
 Both stacks read the identical bundled cache file (`quarkus/src/main/resources/pricing-cache.txt`,
-`python/app/pricing_cache.txt`) — the same five routes as the Ch13
+`python/app/pricing_cache.txt`): the same five routes as the Chapter 13
 schema-design catalog, copied rather than shared (this example has no code
-dependency on Ch13) so the expected values line up with a shape this book's
+dependency on Chapter 13) so the expected values line up with a shape this book's
 readers have already seen:
 
 | `origin.un_locode` | `destination.un_locode` | `route.id` | carrier | `route.price` |
@@ -120,7 +120,7 @@ readers have already seen:
 | NLRTM | USNYC | `rte_004` | MAERSK | `1150.75 USD` |
 | CNSHA | USLAX | `rte_005` | COSCO | `2600.25 USD` |
 
-A pair with no exact match falls back to the cache's first row (`rte_001`) —
+A pair with no exact match falls back to the cache's first row (`rte_001`):
 a simplification documented in both `PricingCache.lookup` and
 `blocking_lookup`: this demo's subject is *where* the blocking work runs,
 not route-matching logic. `verify.sh` only ever calls with the first pair.
@@ -129,14 +129,14 @@ not route-matching logic. `verify.sh` only ever calls with the first pair.
 
 Vert.x's default event-loop pool size is 2x the host's CPU count. Left at
 that default, 8 concurrent starving-mode calls would likely land on 8
-*different* event loops on any machine with 4+ cores — each call would get
+*different* event loops on any machine with 4+ cores. Each call would get
 its own thread and nothing would starve, which would make this chapter's
 central claim untestable on exactly the machines readers are most likely to
 run it on. `RoutingServiceImpl` instead lazily captures ONE
 `io.vertx.core.Context` on the first starving call
 (`RoutingServiceImpl.starvingContext()`) and reuses it for every later one,
 so every starving call shares the same underlying thread regardless of host
-core count — without shrinking the whole application down to one event loop
+core count, without shrinking the whole application down to one event loop
 (which would also delay every *other* call's response write, including the
 correct-model and virtual-thread ones, as an earlier draft of this example
 discovered the hard way: globally setting
@@ -148,16 +148,16 @@ runs every coroutine on a single asyncio event-loop thread by construction.
 ## The other seven RPCs
 
 Only `FindOptimalRoute` has a real implementation; the rest return
-`UNIMPLEMENTED`, same as every prior chapter — see `RoutingServiceImpl.java`
+`UNIMPLEMENTED`, same as every prior chapter: see `RoutingServiceImpl.java`
 (each of `GetQuote`, `ListRoutes`, `NegotiateRoute`, `RecomputeRoutes`,
 `GetOperation`, `WatchOperation`, `CancelOperation` is overridden explicitly)
 and the generated `RoutingServiceServicer` base class's default behavior in
-`app/routing_service.py` (none of the seven are overridden there — the base
+`app/routing_service.py` (none of the seven are overridden there; the base
 class already returns `UNIMPLEMENTED` for anything a subclass skips).
 
 ## Proto code generation: `contracts/` is the only source of truth
 
-Neither module commits generated or copied `.proto`/stub files — same
+Neither module commits generated or copied `.proto`/stub files: the same
 discipline as every prior anchor. Each `Containerfile` builds with the
 **repo root** as its Docker build context (see `compose.yaml`) so it can
 `COPY` the two proto files this service needs straight from
@@ -179,7 +179,7 @@ cd python && uv sync --group dev && \
     proto/shipping/type/v1/types.proto proto/shipping/routing/v1/routing.proto
 ```
 
-Both copy destinations are gitignored (see `.gitignore`) — build-time-only,
+Both copy destinations are gitignored (see `.gitignore`): build-time-only,
 never committed.
 
 ## On the wire
@@ -205,9 +205,9 @@ grpcurl -plaintext localhost:9150 list
 | (Quarkus bonus) 8 concurrent virtual-thread calls, elapsed | `< 2.5s` |
 
 A real run's numbers (22-core dev host): correct-model batch ≈0.44s,
-starving batch ≈3.24–3.26s (close to the 8×0.4s = 3.2s serial figure the
+starving batch ≈3.24 to 3.26s (close to the 8×0.4s = 3.2s serial figure the
 model predicts), virtual-thread batch ≈0.45s. These are illustrative, not
-asserted exactly — only the loose bounds above are checked, so the test
+asserted exactly; only the loose bounds above are checked, so the test
 stays robust on slower or more contended hardware.
 
 ## Diagrams

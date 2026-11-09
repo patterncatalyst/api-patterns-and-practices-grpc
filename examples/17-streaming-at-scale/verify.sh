@@ -70,10 +70,10 @@ import sys
 actual, bound = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if actual >= bound else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual}s is not >= ${bound}s" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual}s is not >= ${bound}s" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual}s >= ${bound}s" >&2
+  echo "lib.sh: ok, ${context}: ${actual}s >= ${bound}s" >&2
 }
 
 # assert_scaled_lt <a> <factor> <b> <context> — float-aware "a * factor < b",
@@ -85,10 +85,10 @@ import sys
 a, factor, b = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
 sys.exit(0 if a * factor < b else 1)
 ' "$a" "$factor" "$b"; then
-    echo "lib.sh: FAIL — ${context}: ${a}s * ${factor} is not < ${b}s" >&2
+    echo "lib.sh: FAIL, ${context}: ${a}s * ${factor} is not < ${b}s" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${a}s * ${factor} < ${b}s" >&2
+  echo "lib.sh: ok, ${context}: ${a}s * ${factor} < ${b}s" >&2
 }
 
 # at_metrics — reads NDJSON lines on stdin (each with an "at" RFC3339
@@ -201,7 +201,7 @@ run_stack_tests() {
   assert_eq "seq=5" \
     "$(printf '%s' "$demo_out" | json_stream_field 5 .event.note)" "$stack bkg_demo event[5].note"
 
-  echo "lib.sh: info — $stack: bkg_demo whole-stream wall-clock = ${demo_elapsed}s" >&2
+  echo "lib.sh: info, $stack: bkg_demo whole-stream wall-clock = ${demo_elapsed}s" >&2
   assert_ge "$demo_elapsed" "$INCREMENTAL_FLOOR_S" \
     "$stack bkg_demo incremental delivery (whole stream >= ${INCREMENTAL_FLOOR_S}s, not buffered-and-dumped)"
 
@@ -211,7 +211,7 @@ run_stack_tests() {
   assert_eq "6" "$(printf '%s\n' "$demo_consumer_out" | json_stream_count)" \
     "$stack slow_consumer vs bkg_demo event count"
   read -r demo_min_delta demo_spread <<<"$(printf '%s\n' "$demo_consumer_out" | at_metrics)"
-  echo "lib.sh: info — $stack: slow_consumer vs bkg_demo: min_delta=${demo_min_delta}s spread=${demo_spread}s" >&2
+  echo "lib.sh: info, $stack: slow_consumer vs bkg_demo: min_delta=${demo_min_delta}s spread=${demo_spread}s" >&2
   assert_ge "$demo_min_delta" "$BACKPRESSURE_FLOOR_S" \
     "$stack slow_consumer vs bkg_demo consecutive server-stamped at deltas (producer paced, not raced ahead)"
 
@@ -220,7 +220,7 @@ run_stack_tests() {
   assert_eq "6" "$(printf '%s\n' "$eager_consumer_out" | json_stream_count)" \
     "$stack slow_consumer vs bkg_eager event count"
   read -r eager_min_delta eager_spread <<<"$(printf '%s\n' "$eager_consumer_out" | at_metrics)"
-  echo "lib.sh: info — $stack: slow_consumer vs bkg_eager: min_delta=${eager_min_delta}s spread=${eager_spread}s" >&2
+  echo "lib.sh: info, $stack: slow_consumer vs bkg_eager: min_delta=${eager_min_delta}s spread=${eager_spread}s" >&2
 
   assert_scaled_lt "$eager_spread" "$SPREAD_FACTOR" "$demo_spread" \
     "$stack backpressure relative gate (eager_spread * ${SPREAD_FACTOR} < backpressure_spread)"
@@ -237,7 +237,7 @@ run_stack_tests() {
     "$(printf '%s' "$quiet_out" | json_stream_field 0 .event.state)" "$stack bkg_quiet event[0].state"
   assert_eq "BOOKING_STATE_DELIVERED" \
     "$(printf '%s' "$quiet_out" | json_stream_field 1 .event.state)" "$stack bkg_quiet event[1].state (post-gap, stream not dropped)"
-  echo "lib.sh: info — $stack: bkg_quiet whole-call wall-clock = ${quiet_elapsed}s" >&2
+  echo "lib.sh: info, $stack: bkg_quiet whole-call wall-clock = ${quiet_elapsed}s" >&2
   assert_ge "$quiet_elapsed" "$QUIET_FLOOR_S" \
     "$stack bkg_quiet total elapsed (the quiet gap is real, not skipped)"
 
@@ -259,7 +259,7 @@ run_stack_tests "quarkus" "localhost:9170"
 run_stack_tests "python" "localhost:9171"
 
 echo
-echo "PASS — Ch17 streaming-at-scale: on BOTH the Quarkus and the Python" \
+echo "PASS: Ch17 streaming-at-scale: on BOTH the Quarkus and the Python" \
      "stack, WatchShipment's demand-driven bkg_demo feed delivers its 6" \
      "ordered events incrementally (whole stream >= ${INCREMENTAL_FLOOR_S}s)" \
      "and paces production to stay well ahead of a ~300ms-per-read slow" \

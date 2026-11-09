@@ -23,7 +23,7 @@ title: Home
     <div class="stats">
       <div class="stat"><span class="stat__value">📐</span><span class="stat__label">One Protobuf contract, enforced by Buf, as the single source of truth</span></div>
       <div class="stat"><span class="stat__value">🔗</span><span class="stat__label">Every example in both Quarkus and Python</span></div>
-      <div class="stat"><span class="stat__value">✅</span><span class="stat__label">CI asserts response semantics against the proto — a wrong field fails the build</span></div>
+      <div class="stat"><span class="stat__value">✅</span><span class="stat__label">CI asserts response semantics against the proto; a wrong field fails the build</span></div>
       <div class="stat"><span class="stat__value">📊</span><span class="stat__label">Traced end to end through the Grafana LGTM stack</span></div>
     </div>
   </div>
@@ -34,14 +34,14 @@ title: Home
     <h2 class="section-heading">What this site is</h2>
     <p class="section-sub">
       A chapter-based, hands-on path to designing gRPC APIs well, built around a
-      single <a href="https://protobuf.dev">Protocol Buffers</a> contract — linted
-      and breaking-change-gated by <a href="https://buf.build">Buf</a> — for a
+      single <a href="https://protobuf.dev">Protocol Buffers</a> contract, linted
+      and breaking-change-gated by <a href="https://buf.build">Buf</a>, for a
       shipping and cargo domain. gRPC here is the internal, latency-sensitive
       routing and tracking service that the sibling
       <a href="https://github.com/patterncatalyst/api-patterns-and-practices-rest">REST</a>
       booking service calls. Every hands-on chapter ships the same example in
       <strong>both</strong> Quarkus and Python, generated from that one proto, and
-      CI asserts each response against it — an <code>OK</code> that carries a
+      CI asserts each response against it; an <code>OK</code> that carries a
       contract-violating message fails the build. You work through the four RPC
       types, deadlines and the rich error model, schema evolution, backend
       concurrency, streaming and backpressure, performance tuning, security,

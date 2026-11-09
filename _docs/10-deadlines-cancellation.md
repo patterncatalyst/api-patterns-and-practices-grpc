@@ -2,115 +2,142 @@
 title: "Deadlines, timeouts and cancellation"
 order: 10
 part: "Reliability: Deadlines, Errors & Interceptors"
-description: "A deadline as an absolute budget that travels with a call, propagated down a chain, and the cancellation that follows when it runs out."
-duration: "21 min read"
+description: "A deadline as an absolute budget that travels with a call, carved into a downstream slice, and the cancellation that follows when it runs out."
+duration: "18 min read"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Distinguish a deadline (an absolute point in time) from a timeout (a relative duration) and explain why only a deadline survives multi-hop propagation correctly.
-- Carve a downstream deadline from an inbound one (`Context.current().getDeadline()` on Quarkus, `context.time_remaining()` on Python) minus a margin, and fail fast when the remaining budget is zero or negative.
-- Explain how each stack propagates cancellation to in-flight work: a Mutiny `Uni` subscriber going away versus an `asyncio.CancelledError`, and why a blocked thread can't honor either.
-- Apply the retryability rule for `DEADLINE_EXCEEDED`: safe to retry only when the call is idempotent and the caller still has budget left.
+- Distinguish a deadline (a point in time) from a timeout (a duration), and say why only a deadline survives multiple hops.
+- Carve a downstream deadline from the inbound one minus a margin (`Context.current().getDeadline()` on Quarkus, `context.time_remaining()` on Python), and fail fast when nothing is left.
+- Explain how each stack propagates cancellation to in-flight work, and why a blocked thread can't honor it.
+- Retry `DEADLINE_EXCEEDED` only when the call is idempotent and the caller still has budget.
 
 ## Why this matters
 
-Every `RoutingService.GetQuote` call this site has shown so far ran to completion in milliseconds, so nothing about timing has mattered yet. The decision framework named "deadline and budget" as one of the five axes a call's shape has to answer, and flagged this exact call as the one with the tightest version of that answer: a slice of the booking service's own REST budget, carved off before a downstream hop. This chapter makes that carving real. `RoutingService.GetQuote` now calls a second service, `QuoteService.GetQuote`, over its own gRPC hop, and that downstream service is slow enough (an artificial two-second delay) that the caller's deadline decides the outcome. A generous deadline gets a quote. A tight one gets `DEADLINE_EXCEEDED`, in well under two seconds, because the server on the other end of that hop finds out its answer no longer matters and stops producing it.
+`RoutingService.GetQuote` now calls a second service, `QuoteService.GetQuote`, over its own gRPC hop, and that service takes two seconds to answer. The caller's deadline decides the outcome. A generous deadline gets a quote. A tight one gets `DEADLINE_EXCEEDED` in well under two seconds, because the server on the far side learns its answer no longer matters and stops producing it. The booking service's REST budget has to be split across every hop behind it, and each hop needs to know how much is left.
 
-## Deadline, not timeout
+## Pattern: Deadline propagation
 
-A timeout is a duration: "wait three seconds." A deadline is a point in time: "answer by 14:32:07.500." The distinction looks pedantic until a call crosses more than one hop, which is exactly what `GetQuote` does in this chapter. A timeout measured independently at each hop resets the clock every time a new duration starts counting down, so a chain of three three-second timeouts can legally take nine seconds end to end, even though the caller who started the chain only ever had three seconds of patience. A deadline fixes a moment on the wall clock once, at the top of the chain, and every hop downstream inherits the same moment, asking not "how long may I run" but "how much of the time I was already given is left."
+### The problem
 
-gRPC's wire representation makes this concrete. A client that sets a deadline sends a `grpc-timeout` header carrying a relative duration from the moment the call leaves the client (relative because clocks across machines don't agree closely enough to send an absolute timestamp), and the server converts it immediately into an absolute `Deadline` on the call's own context. From that point forward, inside the server handling the call, "how much time is left" is a well-defined question with one answer, not something each layer of the handler has to re-derive from a duration it was separately configured with.
+A timeout is a duration: "wait three seconds." A deadline is a point in time: "answer by 14:32:07.500." The difference shows once a call crosses more than one hop. A timeout restarts at each hop, so a chain of three three-second timeouts can take nine seconds although the caller only had three seconds of patience.
 
-The rule this site holds every call to, set a deadline on every call, follows directly from what happens without one. gRPC permits a client to send no deadline at all, and a server that calls a dependency the same way has no way to bound how long it waits for an answer that may never come: a downstream service wedged on a lock, a connection that's technically open but has stopped making progress, a network partition that never resolves cleanly. Nothing in gRPC's framing forces that call to give up on its own: the request stays open and the resources backing it (a thread, a coroutine, a connection slot) stay allocated as long as the other end stays silent. One hung call costs one slot; a service that leaks slots this way under load eventually has none left, and the failure mode is not "this request is slow" but "nothing can serve a new request." A deadline bounds that wait on a schedule the caller chose.
+Without any deadline the problem is worse. gRPC lets a client send none, and a server calling a dependency the same way has no bound on the wait for a downstream service wedged on a lock, a connection open but making no progress, or a partition that never resolves. The request keeps a thread, coroutine or connection slot for as long as the other end is silent. One hung call costs one slot. Under load, the service runs out of slots and the failure is no longer "this request is slow" but "nothing can serve a new request."
 
-## Propagating a deadline down a chain
+### The solution
 
-The REST→gRPC seam is where a deadline usually starts its life in this system. A customer's `POST /bookings/{id}/confirmation` lands on the booking service's REST handler with a budget that handler owns outright, call it two seconds, after which its own HTTP response is itself judged too slow by whatever's waiting on it. That budget has to cover everything the handler does before it can answer: its own processing, the call to `RoutingService.GetQuote`, and whatever `GetQuote` spends on its own downstream call to `QuoteService.GetQuote`. The REST handler converts its remaining HTTP budget into a gRPC deadline on the `GetQuote` call rather than inventing a fresh one: a budget crossing a protocol boundary, carried as data rather than re-decided twice.
+**A deadline fixes one moment on the clock at the top of the call chain, and every hop derives its own deadline from the time that remains.**
 
-`RoutingService.GetQuote` receives that deadline as a `Deadline` attached to its own call context, the one grpc-java (and its Python equivalent) populated from the inbound `grpc-timeout` header. What happens next is this chapter's subject: `GetQuote` has its own downstream call to make, and the deadline it hands that call can't be the one it received unchanged. Some budget is already spent reaching this point, and more belongs to the work of building the downstream request and assembling a response once one returns. The correct downstream deadline is the remaining budget minus a margin for this method's own overhead; reusing the inbound deadline directly leaves no room on either side of the downstream call.
+On the wire, the client sends a `grpc-timeout` header with a relative duration, because clocks across machines disagree. The server converts it at once into an absolute deadline on the call's context. From then on, "how much time is left" has one answer inside the handler, with no per-layer duration to re-derive. Set a deadline on every call.
 
-{% include excalidraw.html file="10-deadline-propagation" alt="Two lanes showing the same three-hop chain (booking service, RoutingService.GetQuote, QuoteService.GetQuote) once with a 10-second client deadline and once with a 1-second one. In the generous lane, RoutingService carves a downstream slice of about 9.9 seconds, QuoteService's 2-second artificial delay completes inside it, and OK responses flow back up both hops. In the tight lane, RoutingService carves a downstream slice of about 0.9 seconds, QuoteService's call is cancelled partway through its 2-second delay before it can finish, and DEADLINE_EXCEEDED flows back up both hops instead." caption="Figure 10.1: The same downstream delay, two different outcomes, decided entirely by how much budget the client handed over up front." %}
+A customer's `POST /bookings/{id}/confirmation` reaches the booking service's REST handler with a budget it owns outright, say two seconds. That budget covers the handler's own work, the call to `RoutingService.GetQuote`, and whatever `GetQuote` spends on `QuoteService.GetQuote`. The handler converts its remaining HTTP budget into the gRPC deadline on `GetQuote` instead of inventing a fresh one. `GetQuote` then can't pass the inbound deadline downstream unchanged, because some of it is spent and more belongs to building the request and the response. The downstream deadline is the remaining budget minus a margin for this method's own work.
 
-Carving the slice correctly pays off when the remaining budget is too small to be worth spending. If `GetQuote` has only a few milliseconds left by the time it would call `QuoteService`, starting that call means paying for a round trip whose answer arrives after the deadline it needed to beat. Failing with `DEADLINE_EXCEEDED` immediately when the budget is exhausted or negative costs nothing: the call was going to fail either way, and failing without a round trip frees the slot sooner. This chapter's example implements that check on both stacks.
+{% include excalidraw.html file="10-deadline-propagation" alt="Two lanes showing the same chain (booking service, RoutingService.GetQuote, QuoteService.GetQuote) with a 10-second client deadline and with a 1-second one. With 10 seconds, RoutingService carves a downstream slice of about 9.9 seconds, QuoteService's 2-second delay completes inside it, and OK flows back. With 1 second, the slice is about 0.9 seconds, the QuoteService call is cancelled partway through its delay, and DEADLINE_EXCEEDED flows back up both hops." caption="Figure 10.1: The same downstream delay, two outcomes, decided by how much budget the client handed over." %}
 
-## Carving the downstream slice: RoutingService.GetQuote calls QuoteService.GetQuote
+### How Quarkus and Python model it
 
-Neither stack reaches for a fixed, per-client timeout to size the downstream call, because a static duration can't distinguish a caller with nine seconds left from one with ninety milliseconds left. Quarkus does offer `quarkus.grpc.clients."service-name".deadline`, a duration applied to every call a stub makes, but the Quarkus documentation calls out that it isn't meant as a request-scoped timeout: a fixed ceiling, not a propagated budget. Both stacks read the remaining time instead and derive the downstream deadline from it.
+A fixed per-client duration can't tell a caller with nine seconds left from one with ninety milliseconds left. Quarkus has `quarkus.grpc.clients."service-name".deadline`, but it is a ceiling applied to every call a stub makes, not a request-scoped budget. Both stacks read the remaining time instead.
 
-On Quarkus, `Context.current().getDeadline()` returns the `Deadline` grpc-java attached to the inbound call: the same mechanism that makes a deadline "ambient" to a call's handling code rather than something that has to be threaded through every method signature by hand. `RoutingServiceImpl` reads that deadline's remaining time, subtracts a small margin for its own overhead, and passes what's left to the injected `@GrpcClient` stub's `withDeadlineAfter` method before invoking `QuoteService.GetQuote`:
+On Quarkus, grpc-java attaches the inbound `Deadline` to the call's context, so `Context.current().getDeadline()` reaches it without threading it through method signatures. On Python, `context.time_remaining()` returns seconds, or `None` when the caller set no deadline.
 
 {% include codetabs.html langs="Quarkus|Python" %}
 
 ```java
-Deadline inbound = Context.current().getDeadline();
-long downstreamBudgetMs = inbound != null
-        ? inbound.timeRemaining(TimeUnit.MILLISECONDS) - DOWNSTREAM_MARGIN_MS
-        : DEFAULT_DOWNSTREAM_BUDGET_MS;
+        Deadline inbound = Context.current().getDeadline();
+        long downstreamBudgetMs = inbound != null
+                ? inbound.timeRemaining(TimeUnit.MILLISECONDS) - DOWNSTREAM_MARGIN_MS
+                : DEFAULT_DOWNSTREAM_BUDGET_MS;
 
-if (downstreamBudgetMs <= 0) {
-    return Uni.createFrom().failure(Status.DEADLINE_EXCEEDED
-            .withDescription("no budget remaining to call QuoteService.GetQuote")
-            .asRuntimeException());
-}
-
-return quoteClient.withDeadlineAfter(downstreamBudgetMs, TimeUnit.MILLISECONDS)
-        .getQuote(downstreamRequest)
-        .onItem().transform(quoteResponse -> buildResponse(origin, destination, quoteResponse.getQuote()));
+        if (downstreamBudgetMs <= 0) {
+            // The budget was already gone before this method could even start the
+            // downstream call. Failing fast here, with no network round trip at
+            // all, is cheaper than letting grpc-java discover the same thing a few
+            // milliseconds later over the wire.
+            LOG.infof("GetQuote: %s -> %s, no budget left to call QuoteService (inbound deadline already expired)",
+                    origin.getUnLocode(), destination.getUnLocode());
+            return Uni.createFrom().failure(Status.DEADLINE_EXCEEDED
+                    .withDescription("no budget remaining to call QuoteService.GetQuote")
+                    .asRuntimeException());
+        }
 ```
+
 ```python
-remaining = context.time_remaining()
-if remaining is None:
-    downstream_timeout = _DEFAULT_DOWNSTREAM_TIMEOUT_S
-else:
-    downstream_timeout = remaining - _DOWNSTREAM_MARGIN_S
-    if downstream_timeout <= 0:
-        await context.abort(
-            grpc.StatusCode.DEADLINE_EXCEEDED,
-            "no budget remaining to call QuoteService.GetQuote",
-        )
-
-quote_response = await self._quote_stub.GetQuote(downstream_request, timeout=downstream_timeout)
+        remaining = context.time_remaining()
+        if remaining is None:
+            downstream_timeout = _DEFAULT_DOWNSTREAM_TIMEOUT_S
+        else:
+            downstream_timeout = remaining - _DOWNSTREAM_MARGIN_S
+            if downstream_timeout <= 0:
+                # The budget was already gone before this method could even start
+                # the downstream call. Failing fast here, with no network round
+                # trip at all, is cheaper than letting grpc.aio discover the same
+                # thing a few milliseconds later over the wire.
+                logger.info(
+                    "GetQuote: %s -> %s, no budget left to call QuoteService "
+                    "(inbound deadline already expired)",
+                    origin.un_locode,
+                    destination.un_locode,
+                )
+                await context.abort(
+                    grpc.StatusCode.DEADLINE_EXCEEDED,
+                    "no budget remaining to call QuoteService.GetQuote",
+                )
 ```
 
-Python's `grpc.aio.ServicerContext.time_remaining()` answers the same question in seconds rather than a `Deadline` object, including the same `None` case for a caller that set no deadline at all. gRPC never requires one, and a handler that assumes it always has a number to subtract from will crash on exactly the caller least likely to notice anything is wrong. Both snippets fall back to a fixed default only in that no-deadline case, never as the general path: a caller who sent a deadline always gets a downstream slice derived from it.
+The handler then passes what is left to the downstream stub: `withDeadlineAfter(downstreamBudgetMs, TimeUnit.MILLISECONDS)` on Quarkus, `timeout=downstream_timeout` on Python.
 
-Both handlers also show the fail-fast case from the previous section directly: when the computed downstream budget is zero or negative, neither stack dials `QuoteService` at all. Quarkus returns an already-failed `Uni` carrying `Status.DEADLINE_EXCEEDED`; Python calls `context.abort` with the same code. Both answers reach the original caller immediately, without a wasted round trip to a call that had no chance of finishing in time.
+Two rules sit in that code:
+
+- **Fail fast.** When the slice is zero or negative, neither stack dials `QuoteService`. A round trip whose answer would arrive after the deadline costs a slot and gains nothing. Quarkus returns an already-failed `Uni` with `DEADLINE_EXCEEDED`; Python calls `context.abort` with the same code.
+- **Handle no deadline.** A handler that assumes a number will crash on exactly the caller least likely to notice. Both stacks fall back to a fixed default only when no deadline arrived, so a caller who sent one always gets a slice derived from it.
+
+The REST handler's budget is therefore split by arithmetic. A deadline that is too generous lets `QuoteService` run long. One that is too tight starves `GetQuote` before it reaches its downstream call.
 
 ## Cancellation: when the clock runs out, the work stops
 
-Setting the downstream deadline correctly is half the story; the other half is what `QuoteService` does once that deadline actually expires mid-call. An expired gRPC deadline cancels the call rather than silently abandoning it from the caller's side alone, and a well-behaved server treats that cancellation as an instruction to stop working, not a fact it can ignore because no one is listening for the answer anymore. A server that keeps computing an answer nobody will receive wastes exactly the resources a deadline exists to protect.
+An expired deadline cancels the call, and a well-behaved server treats that as an instruction to stop. A server that keeps computing an answer nobody will receive wastes what the deadline exists to protect.
 
-Each stack observes that cancellation through its own idiom, because each represents "a unit of in-flight asynchronous work" differently. On Quarkus, `QuoteServiceImpl`'s artificial two-second delay is a Mutiny `Uni` pipeline (`Uni.createFrom().item(...).onItem().delayIt().by(Duration.ofSeconds(2))`) rather than a blocked thread sleeping on a timer it can't wake early from. When the downstream deadline expires, grpc-java cancels the client call; that propagates server-side as the subscriber on this `Uni` going away, and Mutiny tears down the delay's underlying timer the moment nothing is listening for its result, instead of letting it run out its full two seconds into the void. `RoutingServiceImpl` can also check `Context.current().isCancelled()` directly, which it does when logging a failed downstream call.
+Each stack sees cancellation through its own idiom:
 
-Python's equivalent is `asyncio`'s own cancellation model. `QuoteServiceServicer`'s delay is `await asyncio.sleep(2.0)` inside a coroutine running as an `asyncio.Task`. When `grpc.aio` cancels that task in response to the expired deadline, `asyncio.sleep` raises `asyncio.CancelledError` at the point of cancellation rather than running out its remaining duration, immediately unwinding the coroutine's `await`. A handler that wraps the sleep in `try`/`except asyncio.CancelledError` sees that exception the moment it happens, can log the early exit, and re-raises it to let the cancellation keep propagating, the pattern `QuoteServiceServicer` uses. `RoutingServiceServicer`, the caller of that coroutine, observes the same event as a `grpc.aio.AioRpcError` with code `DEADLINE_EXCEEDED` raised from the awaited downstream call, and can check `context.cancelled()` to confirm whether its own inbound call triggered the chain.
+- **Quarkus.** `QuoteServiceImpl` models its two-second delay as a Mutiny pipeline, `Uni.createFrom().item(...).onItem().delayIt().by(Duration.ofSeconds(2))`. When the downstream deadline expires, grpc-java cancels the client call, the subscriber on this `Uni` goes away, and Mutiny tears down the timer immediately. `RoutingServiceImpl` can also check `Context.current().isCancelled()`, which it does when logging a failed downstream call.
+- **Python.** `QuoteServiceServicer` awaits `asyncio.sleep(2.0)` inside a task. When `grpc.aio` cancels the task, `asyncio.sleep` raises `asyncio.CancelledError` at once instead of finishing. A handler can catch it to log the early exit, then re-raise so the cancellation keeps propagating. The caller, `RoutingServiceServicer`, sees an `AioRpcError` with `DEADLINE_EXCEEDED` from the awaited downstream call, and `context.cancelled()` tells it whether its own inbound call triggered the chain.
 
-What both mechanisms share is the shape of the fix, not the API: a server that models in-flight work as a cancellable abstraction (a reactive pipeline, an awaitable coroutine) has the runtime deliver a cancelled-downstream-call signal as an event the handler can act on directly. A server that instead blocks a thread on `Thread.sleep` or an equivalent synchronous wait has no way to interrupt that wait early, no matter how aggressively the caller above it cancels. Backend I/O concurrency returns to this distinction later; this chapter's version of it is narrower and more concrete: the two-second delay in this example is abandoned mid-flight under a tight deadline, confirmed by the log line each stack emits when it happens, not merely declared abandoned in the client's error message while the server quietly finishes the work regardless.
+The shared lesson is the abstraction, not the API. In-flight work modeled as a reactive pipeline or an awaitable lets the runtime deliver cancellation as an event the handler can act on. A thread blocked in `Thread.sleep` or any synchronous wait can't be interrupted early, however aggressively the caller cancels.
 
-{% include excalidraw.html file="10-cancellation-propagation" alt="Two stacked lanes showing the same event, a client's deadline expiring and cancelling the call, with two different server outcomes. In the top, green-tinted lane, QuoteServiceImpl models its two-second delay as a Mutiny Uni pipeline or an asyncio Task; the cancellation arrives as an event, the subscriber or task goes away, and the work is torn down mid-flight at about 0.9 seconds, shown as a dashed, faded box. In the bottom, red-tinted lane, a naive QuoteServiceImpl blocks a thread on Thread.sleep(2000); the same cancellation signal arrives but there is no hook to interrupt the wait, so the sleep keeps running for its full two seconds, shown as a solid dark box, and the result it eventually computes is discarded because nobody is still listening for it." caption="Figure 10.2: a cancelled call either tears down the server's in-flight work immediately or lets a blocked thread run to completion for no one." %}
+{% include excalidraw.html file="10-cancellation-propagation" alt="Two lanes showing a client's deadline expiring. In the top lane, QuoteServiceImpl models its two-second delay as a Mutiny Uni or an asyncio task; the cancellation arrives as an event and the work is torn down at about 0.9 seconds. In the bottom lane, a naive implementation blocks a thread on Thread.sleep(2000); the cancellation has no hook to interrupt the wait, so the sleep runs its full two seconds and the result is discarded because nobody is listening." caption="Figure 10.2: A cancelled call either tears down in-flight work at once or lets a blocked thread run to completion for no one." %}
 
-## Retryability and DEADLINE_EXCEEDED
+## Retrying DEADLINE_EXCEEDED
 
-`DEADLINE_EXCEEDED` sits in an odd spot in gRPC's retry taxonomy, because whether it's worth retrying depends on information the error code alone doesn't carry. The decision framework named the rule in passing, and the full retryable/non-retryable framework builds on top of it later; this chapter is where the rule has a concrete call to test it against. Retrying it only makes sense when two conditions both hold: the call is idempotent, so running it again doesn't double an effect that already happened, and there's budget remaining to retry with, since a second attempt against the same exhausted clock fails identically for the same reason the first one did.
+The code alone doesn't say whether a retry is worth it. Retry only when both conditions hold:
 
-`GetQuote` satisfies the first condition cleanly: it's a pure read with no side effect to duplicate, so retrying it is never unsafe in the way retrying `RecomputeRoutes` or a payment confirmation would be. It doesn't automatically satisfy the second: a caller whose own deadline has already elapsed by the time `GetQuote` returns `DEADLINE_EXCEEDED` has no budget left to spend on a retry, no matter how safe that retry would otherwise be. A `DEADLINE_EXCEEDED` worth retrying is one where the caller's own clock still has room (a transient slowdown that ate into the first attempt's budget without exhausting the caller's), which is why a retry policy keyed on this code has to check the caller's remaining time, not just the code on the failed response, before deciding to try again.
+| Condition | Why |
+| --- | --- |
+| The call is idempotent | The deadline says no answer arrived in time, not that the call didn't run. Repeating a write may do it twice. |
+| The caller has budget left | A second attempt against an exhausted clock fails for the same reason as the first. |
 
-## The REST→gRPC seam, revisited
+`GetQuote` is a pure read, so the first condition holds. The second doesn't automatically: a caller whose own deadline has elapsed has no budget to spend, however safe the retry would be. A retry policy keyed on this code has to check the caller's remaining time as well as the code.
 
-The decision framework described this seam before anything ran; contract-first work made `GetQuote` itself run; this chapter is where the seam's deadline half becomes a claim worth checking rather than a diagram. The booking service's REST handler still converts its own remaining HTTP budget into the gRPC deadline it sets on `GetQuote`; nothing about that conversion changed. What's new is that the conversion now has a second hop depending on it: `GetQuote`'s own downstream call inherits a slice of whatever deadline crossed that REST boundary, so a REST handler that sets too generous a deadline hands `QuoteService` enough room to also run long, and one that sets too tight a deadline starves `GetQuote` of enough budget to ever reach its own downstream call. The REST→gRPC seam was always the point where one budget becomes another; this chapter shows what happens two hops past that seam when the arithmetic doesn't leave enough for the second hop.
+<div class="callout callout--safe"><p class="callout__title">Decision</p><p>RPC shape and sync vs. stream are unchanged: <code>GetQuote</code> is one unary question and one unary answer on both legs of the chain. Deadline and budget: the inbound deadline on <code>RoutingService.GetQuote</code> is never reused as is on the call to <code>QuoteService.GetQuote</code>; it is reduced by a margin for the method's own work and checked against zero before the downstream call starts. Failure class: <code>DEADLINE_EXCEEDED</code> from this idempotent read is retryable only while the caller's own budget covers another attempt. Concurrency model: the two-second delay is a Mutiny pipeline or an <code>asyncio</code> coroutine, never a blocked thread, so a downstream deadline's expiry stops the work instead of only the wait.</p></div>
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Run this chapter's downstream call through the five axes. RPC shape and sync vs. stream are unchanged: <code>GetQuote</code> is still a single unary question with a single unary answer, called synchronously, on both legs of this chain. Deadline and budget is where this chapter does its work: the inbound deadline on <code>RoutingService.GetQuote</code> is not reused unmodified on the call to <code>QuoteService.GetQuote</code>; it's reduced by a margin covering this method's own overhead, and checked against zero before the downstream call is attempted at all, so a budget too small to be worth spending fails immediately rather than after a doomed round trip. Failure class and retryability follow the rule this chapter named concretely: <code>DEADLINE_EXCEEDED</code> from this idempotent read is safe to retry only when the caller's own remaining budget can still cover another attempt, never on the strength of the code alone. Concurrency model is why both stacks implement the two-second delay as a cancellable abstraction (a Mutiny pipeline, an <code>asyncio</code> coroutine) rather than a blocked thread: only a cancellable representation of in-flight work lets a downstream deadline's expiry stop that work, instead of merely stopping the caller from waiting on it.</p></div>
+> **🤖 Explore with your agent**
+>
+> "In examples/10-deadlines-cancellation, change `DOWNSTREAM_MARGIN_MS` in `RoutingServiceImpl.java` and `_DOWNSTREAM_MARGIN_S` in `app/routing_service.py` from 100 ms to 500 ms. Keep deriving the downstream deadline from the inbound one, never from a fixed per-client duration, and keep the fail-fast branch when the slice is zero or negative."
+>
+> Check: `grpcurl -plaintext -max-time 1 ... localhost:9100 shipping.routing.v1.RoutingService/GetQuote` still ends in `DeadlineExceeded` in about a second, and the Routing log shows a downstream deadline near 500 ms instead of 900 ms.
 
-## Where this goes next
+## Build, run, observe
 
-The downstream call this chapter adds, `RoutingService.GetQuote` to `QuoteService.GetQuote`, stays in place for the reliability chapters that follow to build on. The rich error model returns to this exact call to show what a `google.rpc.Status` looks like when `QuoteService` itself rejects a request, rather than merely running out of time to answer one. A client interceptor later wraps the downstream call this chapter hand-wrote inline, so the deadline-carving logic here becomes something every outbound call gets automatically rather than something every handler repeats. The artificial two-second delay comes back under load, once a slow downstream dependency isn't a single call away from timing out but one of many competing for a shared pool of concurrent calls. And a service mesh adds a second way to bound a slow call (a mesh-level timeout enforced outside either service's own code), which this chapter's application-level deadline continues to complement rather than replace.
+`RoutingService.GetQuote` and `QuoteService.GetQuote` run in one process per stack, joined by a loopback gRPC channel, so the hop is real. Quarkus listens on host port 9100 and Python on 9101.
 
-## On the wire
+```bash
+cd examples/10-deadlines-cancellation
+./verify.sh
+```
 
-`verify.sh` runs the identical `GetQuote` request against both stacks twice, once with a tight client deadline and once with a generous one, using `grpcurl`'s `-max-time` flag to set it:
+`verify.sh` runs the same request on both stacks twice, once with a tight deadline and once with a generous one, and prints `PASS` when the tight call fails with `DEADLINE_EXCEEDED` and the generous call returns the quote. To run it by hand, start the stacks with `docker compose up --build`, then:
 
 ```bash
 # Tight: 1s deadline, QuoteService needs ~2s -> fails fast, not after 2s.
@@ -130,11 +157,14 @@ grpcurl -plaintext -max-time 10 -d '{
 # { "quote": { "currency": "USD", "amount": "2500.00" }, "route": { "id": "rte_USNYC-NLRTM", ... } }
 ```
 
-Swap port `9100` for `9101` and the Python stack answers identically: the same tight deadline fails with the same code, the same generous one returns the same quote: `1000kg × 2.50 = "2500.00"`, the same formula every earlier chapter's `GetQuote` has used. `verify.sh` asserts both outcomes against both stacks before it prints `PASS`: `DEADLINE_EXCEEDED` for the 1-second call, and `quote.currency`, `quote.amount`, `route.id`, `route.legs[0].carrier`, and `route.price.amount` for the 10-second one. `QuoteService`'s own two-second delay never changes between these two calls. The only thing that changes is how much of it the caller's deadline can afford, which is the whole chapter in one assertion.
+Port 9101 answers identically: the same code for the tight call, and for the generous call the same quote, 1000 kg at 2.50, `"2500.00"`. `QuoteService`'s delay never changes between the two calls. Only the budget the caller can afford does.
+
+- **Use a 1-second deadline and read the `QuoteService` log.** The service logs that the downstream deadline expired and it abandoned the delay early, instead of finishing the two seconds.
+- **Use a 10-second deadline.** The downstream slice is about 9.9 seconds and the call returns `OK` with the quote.
 
 ## For deeper coverage
 
-- Sam Newman, *Building Resilient Distributed Systems: Patterns and Practices for Stable Software* (O'Reilly, 2026): budgets, timeouts, and the deadline-propagation discipline this chapter applies to a two-hop gRPC chain.
-- *Cloud Native Design Patterns*, "Failure Modes" chapter: timeout and cancellation as failure-handling patterns, the broader frame this chapter's `DEADLINE_EXCEEDED` case fits into.
-- [grpc.io: Deadlines guide](https://grpc.io/docs/guides/deadlines/): the `grpc-timeout` header and per-stack deadline APIs (`Deadline`, `time_remaining()`) this chapter reads from.
-- [Quarkus gRPC: client configuration](https://quarkus.io/guides/grpc-service-consumption): `quarkus.grpc.clients."service-name".deadline` and why it's a fixed ceiling rather than a propagated budget.
+- Sam Newman, *Building Resilient Distributed Systems: Patterns and Practices for Stable Software* (O'Reilly, 2026): budgets, timeouts, and deadline propagation.
+- *Cloud Native Design Patterns*, "Failure Modes" chapter: timeout and cancellation as failure-handling patterns.
+- [grpc.io: Deadlines guide](https://grpc.io/docs/guides/deadlines/): the `grpc-timeout` header and per-stack deadline APIs.
+- [Quarkus gRPC: client configuration](https://quarkus.io/guides/grpc-service-consumption): `quarkus.grpc.clients."service-name".deadline` and why it is a fixed ceiling, not a propagated budget.

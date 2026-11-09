@@ -2,154 +2,141 @@
 title: "Server-streaming"
 order: 8
 part: "HTTP/2 & the Four RPC Types"
-description: "WatchShipment as the live-tracking hot path: one request opening a stream of ordered TrackingEvents, the half-close that ends it, and the generated Multi/async-generator shapes on each stack."
-duration: "20 min read"
+description: "WatchShipment as the live-tracking hot path: one request opening a stream of ordered TrackingEvents, the half-close that ends it, and the Multi and async-generator shapes on each stack."
+duration: "15 min read"
 ---
 
 ## Learning objectives
 
 By the end of this chapter you can:
 
-- Explain why `WatchShipment` server-streaming beats polling `GetShipmentStatus` on a timer for a live-tracking feed.
-- Trace a server-streaming call's HTTP/2 mechanics: one stream, one `DATA` frame per event, guaranteed ordering, and a half-close instead of a sentinel value.
-- Implement a server-streaming handler with Quarkus's `Multi<T>` and Python's async-generator (`yield`) shapes.
-- Identify what this chapter's fixed four-event example leaves open: flow-control backpressure and keepalive on a long-lived stream.
+- Choose a server-streaming RPC over polling a unary call on a timer.
+- Trace a server-streaming call on HTTP/2: one stream, one `DATA` frame per event, guaranteed order, and a half-close instead of a sentinel value.
+- Implement a server-streaming handler with Quarkus's `Multi<T>` and Python's async generator.
+- Name what a short, fixed stream leaves open: flow control and keepalive on a long-lived stream.
 
 ## Why this matters
 
-The unary path traced `GetQuote` from a typed call on one stub, through a reused channel, to a typed call on the other side: one request, one response, one HTTP/2 stream that opens and closes before the caller's code moves past the call. `TrackingService.WatchShipment` keeps the channel and the same stub-to-stub shape, but changes what rides the stream: instead of one response closing the exchange, the server sends a sequence of `TrackingEvent`s over the life of a voyage, and the caller reads them as they arrive. This is server-streaming, the second of the four RPC shapes and the first one this site implements. `WatchShipment` is the shipping domain's live-tracking hot path: the call the booking UI makes once to watch a shipment move from booked to delivered, instead of asking "has anything changed?" on a timer.
+A unary call opens one HTTP/2 stream, carries one request and one response, and closes. `TrackingService.WatchShipment` keeps the channel and the stub but changes what rides the stream: the server sends a sequence of `TrackingEvent`s over the life of a voyage, and the caller reads them as they arrive. This is the second of the four RPC shapes. It is the booking UI's live-tracking call, made once to watch a shipment move from booked to delivered.
 
 ## When one response isn't the shape
 
-A sequence of facts arriving over time is a bad fit for a unary call repeated on a schedule. Picture the alternative: the booking UI polls `GetShipmentStatus` every few seconds for a voyage that can run two weeks. Most of those calls return the same answer the previous call did, because nothing changed between an export customs clearance and a vessel's mid-ocean position report three days later: the UI paid a full round trip, a connection's worth of HTTP/2 overhead, and a server-side lookup for information that hadn't moved. Worse, polling trades accuracy for simplicity: an event that happens three seconds after a poll waits up to one full interval before the UI sees it, and tightening the interval to catch events sooner multiplies the wasted calls that found nothing new. `WatchShipment` inverts that relationship. The caller opens the stream once and the server pushes an event the moment it has one: no polling interval to tune, no wasted calls, no lag between an event happening and the caller seeing it bounded by anything but network latency.
+Picture the alternative: the UI polls `GetShipmentStatus` every few seconds for a voyage that can run two weeks. Most polls return the answer the previous poll did. Each one costs a round trip and a server-side lookup. An event that happens three seconds after a poll waits up to a full interval before the UI sees it, and shortening the interval to catch events sooner multiplies the polls that find nothing.
 
-{% include excalidraw.html file="08-polling-vs-streaming" alt="Side-by-side comparison of polling versus server-streaming. On the left, a client repeats a unary GetShipmentStatus call on a timer; three of four polls return the same unchanged answer, a wasted round trip each time, and the fourth poll only catches an event up to one interval after it posted. On the right, the same client opens a single WatchShipment server-stream once; the server pushes each TrackingEvent (CONFIRMED, IN_TRANSIT, DELIVERED) the instant it posts, with no polling interval, no wasted calls, and no lag beyond network latency." caption="Figure 8.1: polling wastes calls and adds staleness; one server-stream pushes each event as it posts." %}
+`WatchShipment` inverts that. The caller opens the stream once and the server pushes each event the moment it has one. There is no interval to tune, no wasted call, and the only lag is network latency.
 
-Server-streaming earns its cost here for the same reason the decision framework names: the interaction is a sequence of facts the caller wants as they happen, not a single question with a single answer. A live feed, a progress indicator on a long-running job, a changelog a caller tails rather than re-fetches, a result set too large to buffer into one response and send at once: all of these share the property that drives the shape choice, which is that the number of things to send isn't known up front and the caller benefits from seeing each one as soon as it exists. `WatchShipment` is squarely that case: the number of tracking events a voyage produces isn't fixed when the watch starts, and a booking UI showing a shipment's progress bar wants each state transition the moment it posts, not batched into a later unary response.
+{% include excalidraw.html file="08-polling-vs-streaming" alt="Side-by-side comparison of polling and server-streaming. On the left, a client repeats a unary GetShipmentStatus call on a timer; three of four polls return the same unchanged answer, and the fourth catches an event up to one interval after it posted. On the right, the same client opens one WatchShipment stream and the server pushes each TrackingEvent (CONFIRMED, IN_TRANSIT, DELIVERED) the instant it posts." caption="Figure 8.1: Polling wastes calls and adds staleness; one server-stream pushes each event as it posts." %}
 
-## The mechanics: one stream, many frames, one half-close
+Use server-streaming when the caller wants a sequence of facts as they happen and the number of items isn't known up front:
 
-Every gRPC call maps to exactly one HTTP/2 stream, and a server-streaming call doesn't change that mapping; it changes how long the stream stays open and how many `DATA` frames cross it. `WatchShipment` opens a stream the same way `GetQuote` does: the client sends a `HEADERS` frame naming the method and a `DATA` frame carrying the serialized `WatchShipmentRequest`. From there the two calls diverge. A unary call's server sends one `HEADERS`/`DATA` pair back and the stream closes. `WatchShipment`'s server instead sends a `DATA` frame every time it has a `TrackingEvent` to report (one frame per event, as many frames as the voyage produces), all on the *same* stream identifier the request opened, with no new connection, no new handshake, and no new stream per event. The four events a booking moves through in this chapter's example (`PENDING`, `CONFIRMED`, `IN_TRANSIT`, `DELIVERED`) are four `DATA` frames on one stream, not four separate calls.
+| Interaction | Why it streams |
+| --- | --- |
+| Live feed (`WatchShipment`) | Events arrive over days; the caller wants each at once |
+| Progress of a long-running job | Each update is a message; completion ends the stream |
+| Changelog the caller tails | Re-fetching the whole log repeats work |
+| Result set too large for one response | The caller starts on the first rows while the rest are produced |
 
-Two guarantees make that stream usable without extra bookkeeping on the caller's side. First, ordering: HTTP/2 frames on one stream arrive in the order they were sent, so a caller that receives `CONFIRMED` before `PENDING` has a different bug somewhere, not a protocol race to defend against. The server doesn't have to timestamp-sort events for the caller or attach a sequence number for the caller to reorder by: the stream's own frame order *is* the event order, which is why this chapter's example fixes bookingId as the only input and treats the rest of each event as a deterministic, ordered sequence the server just plays back. Second, completion: the server signals "no more events" by closing its end of the stream (a **half-close**) rather than sending a sentinel value the caller has to recognize as meaningful. The client's read loop simply stops getting frames and sees the stream end; a trailer carries the final gRPC status (`OK` if the voyage's tracking finished cleanly, an error code if something went wrong mid-stream), the same status mechanism unary calls use. Nothing about streaming invents a new failure vocabulary; it reuses the one already named, just attached to a stream's end instead of a single response.
+## One stream, many frames, one half-close
 
-What a half-close does *not* do is tell the caller how many events to expect. `WatchShipment` doesn't return a count up front the way a paginated unary response might return a total; the caller reads until the stream ends and treats that as "done," whether that's four events or four hundred. That's a deliberate trade: a count-first design would need the server to know the total before sending the first event, which defeats the entire reason to stream rather than buffer a shipment's whole history into one response.
+Every gRPC call maps to one HTTP/2 stream. A server-streaming call changes how long the stream stays open and how many `DATA` frames cross it. The client sends a `HEADERS` frame naming the method and a `DATA` frame carrying `WatchShipmentRequest`. The server then sends one `DATA` frame per `TrackingEvent` on the same stream, with no new connection, handshake or stream per event. `PENDING`, `CONFIRMED`, `IN_TRANSIT` and `DELIVERED` are four frames on one stream.
+
+Two guarantees keep the caller simple:
+
+- **Order.** Frames on one stream arrive in the order they were sent, so the server needs no sequence number and the caller no reordering. The frame order is the event order.
+- **Completion.** The server ends the stream by closing its end, a **half-close**, instead of sending a sentinel value. The client's read loop sees the stream end. A trailer carries the final gRPC status: `OK` when tracking finished, an error code if something failed mid-stream. Streaming reuses the status vocabulary unary calls use.
+
+A half-close doesn't announce a count. The caller reads until the stream ends, whether that is four events or four hundred. A count-first design would force the server to know the total before sending the first event, which defeats streaming over buffering a whole history into one response.
+
+{% include excalidraw.html file="08-server-streaming" alt="A client sends one WatchShipmentRequest, opening a single HTTP/2 stream. Four ordered TrackingEvent DATA frames flow from server to client (PENDING at USNYC, CONFIRMED at USNYC, IN_TRANSIT at NLRTM, DELIVERED at NLRTM), followed by the server's half-close. The client reads to completion with no trailing error." caption="Figure 8.2: WatchShipment: one request, one stream, four ordered TrackingEvent frames, one half-close." %}
 
 ## The generated shapes
 
-A gRPC client is built from two objects, a channel and a stub, and server-streaming doesn't add a third. What changes is the *type* the generated method returns, on both stacks, because "a sequence of values arriving over time" needs a different container than "one value."
+A client is still a channel and a stub. What changes is the type the generated method returns, because a sequence of values over time needs a different container than one value.
 
-On Quarkus, the `quarkus-grpc` extension's Mutiny code generation turns `rpc WatchShipment(WatchShipmentRequest) returns (stream WatchShipmentResponse)` into a method returning `Multi<WatchShipmentResponse>` rather than `Uni<WatchShipmentResponse>`: Mutiny's type for "zero or more items, then completion or failure," the same `Multi` used for `NegotiateRoute`'s bidirectional stream. A `@GrpcService` implementing `TrackingService` returns a `Multi` built from this chapter's fixed event list; Mutiny treats every item the `Multi` emits as one `DATA` frame and treats the `Multi` completing as the signal to half-close the gRPC stream; there's no separate "now end the stream" call to make, because completion of the reactive type *is* the end of the response stream.
-
-On Python, `grpc.aio` expresses the same shape with a language feature rather than a library type: a server-streaming handler is declared `async def WatchShipment(self, request, context)` and implemented as an **async generator**: a function whose body `yield`s each response message instead of `return`ing one. Every `yield tracking_pb2.WatchShipmentResponse(...)` sends one `DATA` frame; the generator function returning (falling off the end, same as any Python generator finishing) is what triggers `grpc.aio`'s half-close. Nothing about the servicer's method signature changes between a unary and a server-streaming handler on Python beyond this: `async def` plus `return` for one value, `async def` plus `yield` (possibly in a loop) for a stream of them.
+- **Quarkus.** `quarkus-grpc` generates a method returning `Multi<WatchShipmentResponse>`, Mutiny's type for zero or more items followed by completion or failure. Each item the `Multi` emits is one `DATA` frame. The `Multi` completing is the half-close, so there is no separate end-of-stream call.
+- **Python.** `grpc.aio` uses a language feature: the handler is an `async def` that **yields** each response. Each `yield` sends one frame, and the generator returning sends the half-close.
 
 {% include codetabs.html langs="Quarkus|Python" %}
 
 ```java
-@GrpcService
-public class TrackingServiceImpl implements TrackingService {
-
     @Override
     public Multi<Tracking.WatchShipmentResponse> watchShipment(Tracking.WatchShipmentRequest request) {
         String bookingId = request.getBookingId();
+        LOG.infof("WatchShipment: opening stream for bookingId=%s", bookingId);
 
         // Multi.createFrom().items(...) emits the four TrackingEvents, in
-        // order, as DATA frames on the one HTTP/2 stream this call opened;
-        // the Multi completing is what sends the server's half-close — no
-        // explicit "end of stream" call needed.
+        // the exact order supplied, as DATA frames on the one HTTP/2 stream
+        // this call opened; the Multi completing is what sends the server's
+        // half-close, so no explicit "end of stream" call is needed.
         return Multi.createFrom().items(TrackingEvents.sequence(bookingId).stream())
                 .map(event -> Tracking.WatchShipmentResponse.newBuilder().setEvent(event).build());
     }
-}
 ```
 
 ```python
-class TrackingServiceServicer(tracking_pb2_grpc.TrackingServiceServicer):
     async def WatchShipment(
         self,
         request: tracking_pb2.WatchShipmentRequest,
         context: grpc.aio.ServicerContext,
     ) -> AsyncIterator[tracking_pb2.WatchShipmentResponse]:
-        # Each `yield` sends one WatchShipmentResponse as a DATA frame, in
-        # the order yielded; the async generator returning is what sends
-        # grpc.aio's half-close — no explicit "end of stream" call needed.
+        logger.info("WatchShipment: opening stream for bookingId=%s", request.booking_id)
+
+        # Each `yield` sends one WatchShipmentResponse as a DATA frame on the
+        # one HTTP/2 stream this call opened, in the order yielded; the
+        # async generator returning is what sends grpc.aio's half-close,
+        # so no explicit "end of stream" call is needed.
         for event in sequence(request.booking_id):
             yield tracking_pb2.WatchShipmentResponse(event=event)
 ```
 
-Both shapes carry the same contract: a sequence of responses the runtime drains in order, with completion standing in for an explicit end-of-stream signal. `Multi` and an async generator are different vocabularies for the identical idea: the type system (Quarkus) or the language's own generator protocol (Python) enforces that a server-streaming handler can only produce a sequence, never a single bare value, the same way `Uni`/`async def ... return` enforces exactly one.
+The type system on Quarkus and the generator protocol on Python both force a streaming handler to produce a sequence. A unary handler returns exactly one value: a `Uni`, or `async def` with `return`.
 
-## What this preview skips: flow control and long-lived connections
+## What a short stream skips
 
-Two questions stay open after this chapter and belong to later ones, because they only bite under conditions this chapter's four-event example never reaches. The first is backpressure: what happens when the server produces events faster than the client consumes them? HTTP/2 answers this at the protocol level with a per-stream flow-control window: the receiver advertises how many bytes of unacknowledged `DATA` it's willing to buffer, and a sender that fills that window stalls until the receiver acknowledges and frees space, rather than the server's output silently piling up in memory somewhere. `WatchShipment`'s four-event stream never approaches that window's limits; a high-volume tracking feed, or a later example that produces events faster than a slow consumer reads them, is where that window's size and what a server does when a client can't keep up become decisions rather than background facts. That tuning gets covered in depth later: per-stream window sizing, what a server does when a consumer falls behind, the cases where an unbounded `Multi` or generator is the wrong choice.
+Two concerns appear only when a stream is large or long-lived.
 
-The second is keepalive. A stream this chapter's example completes in milliseconds never needs to prove it's still alive; a stream a client holds open for the days or weeks a voyage takes does, because network infrastructure between a client and server (load balancers, NAT devices, firewalls) often closes a TCP connection it hasn't seen traffic on recently, with no error delivered to either endpoint until the next attempted write fails. gRPC's keepalive pings exist to generate that traffic on an otherwise-idle long-lived stream, holding the connection open against middleboxes that would otherwise reap it silently. Keepalive configuration gets covered on both stacks, including the ping interval and timeout values that trade connection liveness against keepalive traffic's own overhead. Both omissions follow the same pattern: this chapter proves the mechanism works correctly for a short, deterministic stream, and later chapters prove it keeps working at the durations and message volumes a production tracking feed actually reaches.
+**Backpressure.** If the server produces events faster than the client reads them, HTTP/2's per-stream flow-control window stops the sender once the receiver's buffer is full, and resumes it when the receiver acknowledges. The output doesn't pile up unbounded in server memory. A four-event stream never reaches that window. A high-volume feed does, and then window size, a slow consumer and an unbounded `Multi` or generator become decisions.
 
-{% include excalidraw.html file="08-server-streaming" alt="A client sends one WatchShipmentRequest, opening a single HTTP/2 stream. On that one stream, four ordered TrackingEvent DATA frames flow from server to client in sequence (PENDING at USNYC, CONFIRMED at USNYC, IN_TRANSIT at NLRTM, DELIVERED at NLRTM), followed by the server's half-close, after which the client reads to completion with no trailing error. A labeled arrow from a server box shows it yielding the four events in order onto the stream." caption="Figure 8.2: WatchShipment: one request, one stream, four ordered TrackingEvent frames, one half-close." %}
+**Keepalive.** A stream that finishes in milliseconds never has to prove it's alive. A stream held open for the days of a voyage does: load balancers, NAT devices and firewalls often close a TCP connection they have seen no traffic on, and neither endpoint learns of it until the next write fails. gRPC keepalive pings generate traffic on an idle stream to hold the connection open, at the cost of the pings' own overhead.
 
-## The REST→gRPC seam
+## Deadline, retry and threads for a stream
 
-The booking UI's own reason to prefer `WatchShipment` over polling applies the same axes the quote lookup closed with. RPC shape says a voyage's events are a sequence the caller wants as they happen, ruling out a single response. Sync vs. stream says the caller holds a connection open and consumes values as they arrive rather than blocking for one value or firing requests on a timer. The decision framework named this exact seam already: the booking service's REST-facing UI watches a shipment's progress through this stream instead of issuing a `GetShipmentStatus` poll every few seconds, trading a steady trickle of mostly-wasted unary calls for one connection that produces exactly as many messages as the voyage does. That's the same shape of decision as the booking service's gRPC call to `RoutingService.GetQuote`: a protocol choice downstream of what the interaction actually needs, not a default reached for out of habit.
+| Question | Answer for `WatchShipment` |
+| --- | --- |
+| Deadline | It bounds how long the stream may stay open, not one round trip. Set it generously or omit it for a long watch, and rely on keepalive. |
+| Retry | An `UNAVAILABLE` that closes the stream mid-voyage is safe to retry by reopening with the same `bookingId`, because the call is a pure read. `INVALID_ARGUMENT` for a malformed `bookingId` never is. |
+| Threads | `Multi` and the async generator let the runtime schedule other work between events instead of pinning a thread for the stream's whole life, which matters when a stream lasts days. |
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Run <code>WatchShipment</code> through the five axes. RPC shape is server-streaming, because a shipment's state transitions are a sequence of facts produced over the life of a voyage, not a single question with a single answer; the same reasoning that rules out a sequence of repeated unary polls, since the caller wants each event as it posts, not re-asked for on an interval that's always either too eager (wasted calls) or too slow (stale state). Sync vs. stream follows: the caller holds one connection open and consumes events as they arrive, paying the cost of a long-lived stream because the alternative, polling a tracking endpoint for a voyage lasting weeks, wastes far more connections and still delivers events late. Deadline and budget look different here than on a unary call: a deadline on <code>WatchShipment</code> bounds how long the stream may stay open, not one round trip, and a caller watching a voyage for its duration sets that bound generously or omits it, deferring to the keepalive story rather than a short per-call timeout. Failure class and retryability split on where a failure lands: an <code>UNAVAILABLE</code> that closes the stream mid-voyage is safe to retry by reopening <code>WatchShipment</code> with the same <code>bookingId</code>, since the call is a pure read with no side effect to duplicate, while an <code>INVALID_ARGUMENT</code> for a malformed <code>bookingId</code> never is. Concurrency model favors whichever style holds a stream open without pinning a scarce thread for its entire lifetime: Mutiny's <code>Multi</code> on Quarkus and <code>grpc.aio</code>'s async generator on Python both let the runtime schedule other work between events rather than blocking a thread for the stream's whole duration, which matters more here than on a short unary call precisely because a tracking stream's duration is measured in days, not milliseconds.</p></div>
+> **🤖 Explore with your agent**
+>
+> "In examples/08-server-streaming, add a `limit` field to `WatchShipmentRequest` and make `WatchShipment` on both stacks (the `Multi` in `TrackingServiceImpl.java` and the async generator in `app/tracking_service.py`) stop after that many `TrackingEvent`s by completing the stream, never by sending a sentinel event. Keep the event order unchanged and keep `ReportPositions` and `Sync` returning `UNIMPLEMENTED`."
+>
+> Check: `grpcurl -plaintext -d '{"bookingId":"bkg_demo","limit":2}' localhost:9080 shipping.tracking.v1.TrackingService/WatchShipment` prints exactly the first two events, and port 9081 prints the same two.
 
-## Where this goes next
+## Build, run, observe
 
-The streaming picture then completes: client-streaming, where `TrackingService.ReportPositions` takes a stream of requests and folds them into one acknowledgment, and bidirectional streaming, where `Sync` lets both sides send at a time of their own choosing. Both RPCs are already declared on `TrackingService` and return `UNIMPLEMENTED` in this chapter's example for exactly that reason. A real deadline-and-cancellation story later lands on a stream this chapter left open-ended: what it means to cancel a `WatchShipment` call partway through, and how that cancellation propagates to the server mid-stream rather than before or after a single exchange. The flow-control preview above returns with the numbers: per-stream window sizing, what a server does when a consumer falls behind, and where an unbounded `Multi` or generator stops being the right default. And the keepalive mention becomes a configured, measured property of a long-lived connection, on both stacks.
+Both stacks implement the same RPC from the same `.proto` file and stream the same four-event sequence for any `bookingId`. Quarkus listens on host port 9080 and Python on 9081.
 
-## On the wire
+```bash
+cd examples/08-server-streaming
+./verify.sh
+```
 
-`verify.sh` brings both services up, waits for each to answer reflection's `list`, and calls `WatchShipment` with the identical request on both: `grpcurl` prints one JSON object per streamed message and keeps printing until the server's half-close ends the call:
+`verify.sh` starts both services, calls `WatchShipment` on each, and prints `PASS` when both stacks return four events in order and answer `UNIMPLEMENTED` for `ReportPositions` and `Sync`. To call it by hand, run `docker compose up --build` and then:
 
 ```bash
 grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
   localhost:9080 shipping.tracking.v1.TrackingService/WatchShipment
 ```
 
-```
-{
-  "event": {
-    "booking_id": "bkg_demo",
-    "location": { "un_locode": "USNYC", "name": "New York" },
-    "state": "BOOKING_STATE_PENDING",
-    "at": "2026-01-02T08:00:00Z",
-    "note": "Booking accepted; container released to terminal"
-  }
-}
-{
-  "event": {
-    "booking_id": "bkg_demo",
-    "location": { "un_locode": "USNYC", "name": "New York" },
-    "state": "BOOKING_STATE_CONFIRMED",
-    "at": "2026-01-02T14:00:00Z",
-    "note": "Export customs cleared; loaded onboard MAERSK vessel"
-  }
-}
-{
-  "event": {
-    "booking_id": "bkg_demo",
-    "location": { "un_locode": "NLRTM", "name": "Rotterdam" },
-    "state": "BOOKING_STATE_IN_TRANSIT",
-    "at": "2026-01-15T09:30:00Z",
-    "note": "Vessel arrived at Rotterdam; awaiting discharge"
-  }
-}
-{
-  "event": {
-    "booking_id": "bkg_demo",
-    "location": { "un_locode": "NLRTM", "name": "Rotterdam" },
-    "state": "BOOKING_STATE_DELIVERED",
-    "at": "2026-01-16T11:00:00Z",
-    "note": "Container discharged and delivered to consignee"
-  }
-}
-```
+`grpcurl` prints one JSON object per message and keeps printing until the server's half-close ends the call. The reply is four events (`BOOKING_STATE_PENDING` and `BOOKING_STATE_CONFIRMED` at USNYC, then `BOOKING_STATE_IN_TRANSIT` and `BOOKING_STATE_DELIVERED` at NLRTM), then the stream ends with no fifth message and no trailing error. Port 9081 returns the same four events in the same order.
 
-Four events, in this exact order, then the stream ends: no fifth message, no trailing error. Swap `9080` for `9081` and the same request against the Python stack produces the identical four events in the identical order, proving the same claim the running contract made for `GetQuote`: two independently generated implementations, built from the same `.proto` file, produce byte-for-byte comparable wire output, this time across an entire stream instead of a single response.
+- **Change the `bookingId`.** Only `event.booking_id` changes; the states, locations and order are fixed.
+- **Call `ReportPositions` or `Sync`.** Both return `UNIMPLEMENTED` until the client-streaming and bidirectional RPCs are implemented.
 
 ## For deeper coverage
 
-- Hüseyin Babal, *gRPC Microservices in Go* (Packt): worked server-streaming service patterns, including the live-feed case `WatchShipment` implements here.
-- [grpc.io: Core concepts, server-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/): the half-close and ordering guarantees this chapter names.
-- [Quarkus gRPC: writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation): `Multi<T>`-returning handlers on the Mutiny code generation this chapter's Quarkus example uses.
-- *Cloud Native Design Patterns*, "Event-Driven" chapter: decoupled facts pushed as they happen, the same push-over-poll argument this chapter makes for `WatchShipment` over `GetShipmentStatus` polling.
+- Hüseyin Babal, *gRPC Microservices in Go* (Packt): worked server-streaming service patterns, including the live-feed case `WatchShipment` implements.
+- [grpc.io: Core concepts, server-streaming RPC](https://grpc.io/docs/what-is-grpc/core-concepts/): the half-close and ordering guarantees.
+- [Quarkus gRPC: writing a gRPC service](https://quarkus.io/guides/grpc-service-implementation): `Multi<T>`-returning handlers on the Mutiny code generation.
+- *Cloud Native Design Patterns*, "Event-Driven" chapter: decoupled facts pushed as they happen, the same push-over-poll argument.

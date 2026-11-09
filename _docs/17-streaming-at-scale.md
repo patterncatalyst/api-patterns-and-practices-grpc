@@ -2,7 +2,7 @@
 title: "Streaming deep-dive"
 order: 17
 part: "Streaming at Scale & Performance"
-description: "Flow control and backpressure, HTTP/2 window dynamics, reactive backpressure (Mutiny Multi demand) vs async-generator pull, slow-consumer handling, and keepalive on long-lived streams."
+description: "HTTP/2 flow control, demand-driven production with Mutiny and async generators, and keepalive for streams that sit quiet."
 duration: "26 min read"
 ---
 
@@ -10,65 +10,94 @@ duration: "26 min read"
 
 By the end of this chapter you can:
 
-- Explain HTTP/2 flow control (per-stream and per-connection windows, `WINDOW_UPDATE` frames) as the transport-level root of backpressure.
-- Contrast demand-driven backpressure mechanisms: Mutiny's `Multi`/`MultiEmitter.onRequest` versus Python's pull-based async generator (`yield`).
-- Diagnose the quarkus-grpc bridge's prefetch-timing subtlety (`request(256)` landing before `onRequest` is registered) and apply the `maybeStart` fix.
-- Configure gRPC keepalive (ping interval, permitted-ping floor, idle-ping toggle) on both Quarkus (`quarkus.grpc.server.netty.*`) and Python (`grpc.aio.server(options=...)`).
-- Build and drive a slow-consumer client to observe backpressure pacing on a live stream.
+- Explain HTTP/2 flow control (per-stream and per-connection windows, `WINDOW_UPDATE` frames) as the transport root of backpressure.
+- Contrast Mutiny's `Multi` and `MultiEmitter.onRequest` with Python's pull-based async generator.
+- Handle the quarkus-grpc bridge's prefetch timing, where `request(256)` lands before `onRequest` is registered.
+- Configure keepalive (ping interval, permitted-ping floor, idle-ping toggle) on Quarkus (`quarkus.grpc.server.netty.*`) and Python (`grpc.aio.server(options=...)`).
+- Drive a slow consumer against a live stream and read the pacing off the timestamps.
 
 ## Why this matters
 
-Server-streaming built `WatchShipment` as a four-event, millisecond-long demonstration and closed by naming two questions it left open: what happens when a server produces events faster than a client can read them, and what keeps a stream alive across the minutes or days a real voyage's tracking feed might sit quiet. Both questions only bite once a stream outlives the toy case: a fixed, four-item list a server can build and send before the reader has even started paying attention. This chapter puts a real answer on each one, on the same RPC, by changing *how* `WatchShipment` produces its events rather than changing the contract: a demand-driven feed on both stacks, a slow reader to pace against, and a keepalive configuration that survives a quiet stretch.
-
-The code is in `examples/17-streaming-at-scale/`. The `verify.sh` script there builds and runs both stacks, drives a bundled slow-reading client against each, and asserts the timing claims this chapter makes; its `README.md` covers the full mode table and a real run's numbers.
-
-## What a consumer that stops reading actually does
-
-HTTP/2 answers the first open question at the transport layer, below anything a service's code decides: every stream carries its own **flow-control window**, a byte budget the *receiver* advertises for how much unacknowledged `DATA` it is willing to buffer for that one stream. A sender that has filled a receiver's advertised window stops sending `DATA` frames on that stream (not an error, not a dropped frame, just silence) until a `WINDOW_UPDATE` frame from the receiver says more room has opened up. A second window operates one level up, scoped to the whole connection rather than one stream, so a single slow stream can't starve every other call multiplexed over the same connection; the transport covered that multiplexing, and this is the mechanism that keeps one misbehaving stream from blocking the rest. Both windows default to a modest size (64 KiB is the HTTP/2 spec's own starting point, which grpc-java and grpc.aio both begin from and can grow dynamically from there), small enough that a consumer which stops reading mid-stream can exhaust it inside a few hundred kilobytes of unacknowledged payload.
+A four-event `WatchShipment` hides two problems. A server can produce events faster than a client reads them, and a stream can sit quiet for minutes or days while a voyage progresses. Both only bite once a stream outlives the toy case. The contract doesn't change; what changes is how `WatchShipment` produces its events: on demand, with keepalive configured for the quiet stretches.
 
 {% include excalidraw.html file="17-http2-flow-control-window" alt="Two moments on the same HTTP/2 connection. At t0, a server sends DATA frames into a 64 KiB stream window while a client reads normally and returns WINDOW_UPDATE frames that replenish the credit. At t1, the same client has stopped draining its receive buffer; the window shrinks toward zero, WINDOW_UPDATE frames stop arriving, and the server's sender blocks with no credit left to write, shown as a note under the stalled connection." caption="Figure 17.1: the same connection, two moments apart. A reading consumer keeps the window replenished; a stalled one lets it run out." %}
 
-This is backpressure at its most literal: a slow reader doesn't cause errors or dropped messages; it causes the sender to stop sending until the reader catches up or the call's deadline expires first. The number of bytes a server can get away with producing before that happens is small enough that any RPC meant to run for more than a handful of messages has to decide how its own code behaves once the transport applies this pressure. That is exactly the decision `WatchShipment`'s implementation makes in this chapter, on both stacks, by never producing an event the application hasn't been asked for yet.
+## When a consumer stops reading
 
-## Reactive backpressure: Mutiny demand vs. async-generator pull
+HTTP/2 answers the first problem below anything the service code decides. Every stream has its own **flow-control window**, a byte budget the receiver advertises for unacknowledged `DATA` it will buffer on that stream. A sender that fills the window stops sending until the receiver returns a `WINDOW_UPDATE` frame. Nothing errors and nothing is dropped; the sender goes silent. A second window covers the whole connection, so one slow stream can't starve the others multiplexed on it. Both start at 64 KiB, the HTTP/2 default, and can grow dynamically. A consumer that stops reading exhausts that within a few hundred kilobytes.
 
-A gRPC server library has to turn "the transport won't accept more bytes right now" into something the *application's* code can react to, because the alternative, buffering an unbounded queue of already-built responses in server memory while the transport blocks, just moves the problem from the network into the heap. Both stacks solve this the same way in spirit, with different vocabulary.
+So a slow reader makes the sender wait until the reader catches up or the call's deadline expires. A server has to decide how its own code behaves under that pressure. Buffering an unbounded queue of built responses just moves the problem from the network into the heap. `WatchShipment` instead never builds an event nobody has asked for.
 
-On Quarkus, `Multi<T>` is `smallrye-mutiny`'s type for "zero or more items, then completion or failure," and it is a full Reactive Streams `Publisher`: a Multi only produces as many items as its subscriber has *requested*, never ahead of that number. Mutiny's own guide says as much: "emissions are constrained by the request emitted from downstream subscribers." The generated gRPC server bridge (`io.quarkus.grpc.stubs.ServerCalls`) is wired to exactly that contract: it wraps the outbound `ServerCallStreamObserver` with `setOnReadyHandler`, so the moment the HTTP/2 stream becomes ready to accept more bytes, the bridge asks the `Multi` for more items; the moment it isn't ready (Figure 17.1's stalled case), it simply doesn't ask, and nothing downstream of that ask is forced to run. A `Multi` built from `Multi.createFrom().items(aList)`, the shape used for its four fixed events, satisfies that contract by handing over items from an already-built list on request; nothing stops the *list itself* from having been built eagerly, all at once, long before the first item was ever requested. This chapter's `bkg_eager` mode exists to make that contrast visible: a `Multi` can be backpressure-safe on the way *out* while still having done all of its production work up front, with no connection to when the consumer actually wanted it.
+## Demand-driven production
 
-On Python, `grpc.aio` expresses the identical idea with a language feature instead of a library type: a server-streaming handler written as `async def ... yield ...` is a native **async generator**, and an async generator is pull-based by construction: nothing in its body past the current `yield` executes until something calls `__anext__()` on it again. `grpc.aio`'s internal plumbing drives that call only when the stream has room to send another message, the same signal Quarkus's bridge reacts to via `setOnReadyHandler`. No separate demand API is needed on the Python side; the generator protocol *is* the pull contract, which is why Python's shape could already be described as "naturally pull-based" without this chapter's machinery.
+Both stacks turn "the transport won't take more bytes" into something application code can react to, with different vocabulary.
+
+**Quarkus.** `Multi<T>` is a Reactive Streams `Publisher`: it produces only what its subscriber has requested. The generated bridge (`io.quarkus.grpc.stubs.ServerCalls`) wraps the outbound `ServerCallStreamObserver` with `setOnReadyHandler`. When the HTTP/2 stream is ready for more bytes, the bridge requests more items; when it isn't (the stalled case in the figure above), it doesn't. `Multi.createFrom().items(list)` honors that contract, but the list may have been built eagerly, all at once, long before the first request. A `Multi` can be backpressure-safe on the way out and still have done all its work up front.
+
+**Python.** A handler written as `async def ... yield ...` is an async generator, which is pull-based by construction: nothing past the current `yield` runs until something calls `__anext__()` again. `grpc.aio` does that only when the stream has room, the same signal the Quarkus bridge reads through `setOnReadyHandler`. The generator protocol is the pull contract, so no demand API is needed.
+
+`WatchShipment` dispatches on `booking_id`, a demo-only mode selector with no domain meaning:
+
+| `booking_id` | Feed |
+|---|---|
+| `bkg_demo` | Six events, `[0, 260, 260, 260, 260, 260]` ms apart, produced on demand |
+| `bkg_eager` | The same six events built in one tight loop, then handed to `Multi.createFrom().items(...)` or a plain `for` loop |
+| `bkg_quiet` | Two events, `[0, 2000]` ms apart, to carry a multi-second gap |
+
+Each event is stamped with the instant it is built and a `seq=<index>` note, so production order and time can be read off the wire. The Python demand-driven path is an async generator:
+
+```python
+    for i in range(len(waypoints)):
+        if delays_s[i] > 0:
+            await asyncio.sleep(delays_s[i])
+        event = build_event(booking_id, i, waypoints)
+        yield tracking_pb2.WatchShipmentResponse(event=event)
+```
+
+It uses `asyncio.sleep`; a blocking `time.sleep` would stall the whole event loop, not just this call.
+
+Quarkus has to build that guarantee. `Multi.createFrom().emitter(...)` hands over a raw `MultiEmitter` with no scheduling, so `scheduleStep` schedules each event with `Vertx.setTimer` (no thread parked for the delay). After emitting, it checks `emitter.requested()`: with demand outstanding it schedules the next step, and without it a `producing` flag goes back to `false` and the chain idles until something restarts it. It checks `emitter.isCancelled()` on every step, so a dropped connection stops the timers. `onRequest(LongConsumer)` does the restarting.
+
+Registering `onRequest` alone isn't enough. The bridge's subscriber calls `request(256)`, its fixed prefetch, inside `onSubscribe`, before the emitter lambda runs and registers the callback. That demand is counted in `emitter.requested()` but fires no callback. A producer that starts only from `onRequest` would sit silent on a six-event feed, waiting for a signal that already came and went. The fix is to also check `requested() > 0` immediately, so one check catches the prefetch and the callback catches later grants:
+
+```java
+            Runnable maybeStart = () -> {
+                if (emitter.requested() > 0 && producing.compareAndSet(false, true)) {
+                    scheduleStep(emitter, bookingId, waypoints, delaysMs, index, producing);
+                }
+            };
+```
+
+The Reactive Streams contract says you will be asked before you produce. It doesn't say when the first ask arrives relative to when you start listening, so a correct implementation handles both orders.
 
 {% include excalidraw.html file="17-slow-consumer-backpressure" alt="Two producers side by side. On the left, a demand-driven Multi or async generator for bkg_demo produces three events spread across 0, 260, and 520 milliseconds, one in flight at a time, pulled by onRequest or a yield; a consumer box pulls each one as it is ready. On the right, an eager Multi.createFrom().items(list) or a pre-built Python list for bkg_eager shows three events all stamped at approximately zero milliseconds, already built before the first byte leaves the server; a consumer box reads a buffer the producer never waited on." caption="Figure 17.2: demand-paced production spreads event timestamps across real time; eager pre-materialization clusters them at the instant the call started." %}
 
-The two shapes express the same reactive-pull idea in two different syntaxes, which is the whole reason both could already be previewed without this chapter's code: Mutiny's `onRequest` callback and Python's generator-resume are the identical signal, "the consumer is ready for one more," arriving through whichever mechanism each ecosystem already had.
-
-## How the code works
-
-`examples/17-streaming-at-scale/quarkus/.../TrackingEvents.java` and `python/app/events.py` each define two waypoint tables and one builder function, kept separate from how the events get *scheduled*, because scheduling is this chapter's subject and the event content isn't. `DEMO_WAYPOINTS` is six `(Location, BookingState)` pairs extending the `PENDING → CONFIRMED → IN_TRANSIT → DELIVERED` progression with two extra `IN_TRANSIT` waypoints (a second port call at Rotterdam, then a transshipment leg through Hamburg before the Singapore delivery) so there's enough length in the feed to show a measurable production cadence; `QUIET_WAYPOINTS` is two pairs, `PENDING` then `DELIVERED` with no intermediate state, built only to carry a multi-second gap between them. `buildEvent(bookingId, index, waypoints)` (Java) and `build_event(booking_id, index, waypoints)` (Python) do the one thing both modes need identically: stamp `event.at` with the wall-clock instant *this call* runs, and set `event.note` to a bare `"seq=<index>"` marker rather than narrative prose, so `verify.sh` can read production order and production time straight off the wire instead of parsing sentences.
-
-`TrackingServiceImpl.watchShipment` (Java) and `TrackingServiceServicer.WatchShipment` (Python) dispatch on `request.booking_id`: a demo-only mode selector carrying no domain meaning beyond picking a feed shape, the same trick the `origin.name` flag used to switch `FindOptimalRoute`'s execution model without touching the frozen contract. `"bkg_eager"` is the simplest branch: build the whole six-event list in one tight loop (stamping every `at` field within microseconds of the others, since nothing yields control between iterations), *then* hand that finished list to `Multi.createFrom().items(...)` (Java) or a plain `for event in events: yield ...` loop (Python). Everything else falls through to the demand-driven path, which both stacks give a `delaysMs`/`delays_s` array: `[0, 260, 260, 260, 260, 260]` milliseconds for `bkg_demo`'s six events, `[0, 2000]` for `bkg_quiet`'s two. The first entry is always zero so the opening event is immediate, matching the feel of an instant first response.
-
-The Python side's demand-driven path is the shorter of the two precisely because the language already does the work: `_demand_driven_sequence` is an `async def` generator that, for each waypoint, `await`s `asyncio.sleep(delays_s[i])` (never a blocking `time.sleep`, which would stall the whole event loop, not just this call) and then `yield`s the freshly built event. Nothing about this loop checks for permission to proceed beyond the `await` itself: the generator protocol already guarantees nothing past a `yield` runs until the consumer resumes it, which is what makes "pull-based by construction" a precise description rather than a slogan.
-
-The Quarkus side has to build that same guarantee explicitly, because `Multi.createFrom().emitter(...)` hands you a raw `MultiEmitter` with no scheduling of its own; `demandDrivenMulti` and `scheduleStep` are the code that turns "an item every `delaysMs[i]` milliseconds" into "an item every `delaysMs[i]` milliseconds, but only while a subscriber has asked for one." `scheduleStep` reads the current index, and if there are waypoints left, schedules a `produce` block (via `Vertx.setTimer`, never `Thread.sleep`, so the pacing costs no thread on an event-loop-based server) that builds and emits one event, advances the index, and then checks `emitter.requested()`: if the subscriber still has outstanding demand, it calls itself again immediately for the next waypoint; if not, it stops and flips a `producing` flag back to `false`, so the chain sits idle until something restarts it. `emitter.isCancelled()` is checked on every `produce` invocation too, so a caller that drops the connection mid-feed (the cancellation story) stops this loop from doing any more work rather than continuing to schedule timers for a reader that is no longer there.
-
-What restarts the chain is `MultiEmitter.onRequest(LongConsumer)`, registered once per call. Running the demo build against the actual `quarkus-grpc` bridge surfaced a real timing subtlety: the generated bridge's subscriber calls `Subscription.request(256)` (its fixed prefetch batch) as part of `onSubscribe`, which happens *before* the `Multi.createFrom().emitter(...)` consumer lambda (the block where `onRequest` gets registered) ever runs. That first `request(256)` still lands in `emitter.requested()`, because the emitter's own counter is updated regardless of whether a callback is attached to observe it, but no callback fires for it, since none was registered yet at the moment it happened. A `demandDrivenMulti` that only started production from inside `onRequest` would stay silent forever on a six-event feed, waiting for a demand signal that already came and went. The fix is the `maybeStart` check both call sites in `demandDrivenMulti` share: check `emitter.requested() > 0` and try to start producing *immediately*, in addition to on every later `onRequest` call: the first catches the prefetch demand that already landed before registration, the second catches any demand granted afterward (the replenish-after-exhaustion case a longer feed would actually exercise). This is the kind of detail that only shows up by running the real generated bridge rather than reasoning about the `Multi` contract in isolation, and it's exactly the "write the code yourself" level this chapter is aiming for: the Reactive Streams *contract* ("you'll be asked before you may produce") doesn't specify *when* the first ask happens relative to when your code starts listening for it, and a correct implementation has to handle both orders.
-
-The bundled `python/app/slow_consumer.py` is this chapter's slow reader: it opens a `WatchShipment` call, reads one event, prints it as a JSON line (including the server-stamped `event.at`), awaits `asyncio.sleep(0.3)`, and reads the next: a consumer that takes roughly three times as long to process an event as `bkg_demo`'s producer takes to make one. It ships inside the Python image, reusing the same generated stubs the server uses, and runs as a one-off container on the compose network: `docker compose -p ch17-streaming run --rm python python -m app.slow_consumer quarkus:9000 bkg_demo` reaches the Quarkus service by its compose service name and container port, not the host-mapped `9170`, which is what lets the identical command target either stack by swapping one word.
-
 ## Keepalive on a long-lived stream
 
-The second open question was about time, not bytes: a stream that sits quiet for seconds, minutes, or (for a real voyage) days has to survive network infrastructure between client and server (load balancers, NAT devices, stateful firewalls) that often closes a TCP connection it hasn't seen traffic on recently, silently, with no error delivered to either endpoint until the next write fails. gRPC's answer is a keepalive **PING** frame: a side channel on the same connection, invisible to application code, that either endpoint can send on a schedule to prove the connection is still alive, answered by the peer with an **ACK**. A connection with keepalive configured generates its own traffic across an idle stretch precisely so a middlebox never sees it go quiet long enough to reap; a connection without it depends entirely on how long the quietest link in the path tolerates silence, which no application can observe or control from either end.
+A quiet stream has to survive the load balancers, NAT devices and stateful firewalls between client and server, which often close idle TCP connections silently, with no error until the next write fails. A keepalive **PING** frame, answered by an **ACK**, is traffic on the same connection that application code never sees. It keeps a middlebox from seeing the connection go quiet long enough to reap it. Without it, survival depends on the quietest link in the path, which neither endpoint can observe.
 
-{% include excalidraw.html file="17-keepalive-quiet-stream" alt="Two outcomes for the same quiet gap on a WatchShipment stream. On top, with server keepalive configured, the server sends a PING roughly every thirty seconds and the client answers with an ACK, holding the connection open across the gap until the next real event arrives. On the bottom, without keepalive, the connection sits idle after the last DATA frame with no PING traffic, and a middlebox reaps it before the final event can be delivered." caption="Figure 17.3: the same quiet gap survives with a keepalive PING/ACK cycle and is at risk without one; this figure is illustrative, since the actual reaping behavior depends on middlebox configuration this chapter's example never exercises." %}
+{% include excalidraw.html file="17-keepalive-quiet-stream" alt="Two outcomes for the same quiet gap on a WatchShipment stream. On top, with server keepalive configured, the server sends a PING roughly every thirty seconds and the client answers with an ACK, holding the connection open across the gap until the next real event arrives. On the bottom, without keepalive, the connection sits idle after the last DATA frame with no PING traffic, and a middlebox reaps it before the final event can be delivered." caption="Figure 17.3: the same quiet gap survives with a keepalive PING/ACK cycle and is at risk without one; illustrative, since reaping depends on middlebox configuration." %}
 
-Quarkus's gRPC server runs, by default, on grpc-java's own Netty server rather than the shared Vert.x HTTP server (`quarkus.grpc.server.use-separate-server` defaults to `true`), and that server's keepalive knobs sit one level deeper in the configuration tree than a first guess might expect: not `quarkus.grpc.server.keep-alive-time` directly, but `quarkus.grpc.server.netty.keep-alive-time`, alongside `netty.permit-keep-alive-time` and `netty.permit-keep-alive-without-calls`: three properties that map straight onto `NettyServerBuilder`'s `keepAliveTime`, `permitKeepAliveTime`, and `permitKeepAliveWithoutCalls` calls. `keep-alive-time` is how often *this* server pings an otherwise-silent client; `permit-keep-alive-time` is the shortest ping interval this server tolerates from a client's own keepalive pings before treating them as abusive and tearing down the connection with a `GOAWAY`; `permit-keep-alive-without-calls`, set to `true` here, lets a client keep a connection warm even between calls, with no RPC actively in flight. This example sets all three (`30s` / `10s` / `true`) in `application.properties`.
+Quarkus runs gRPC on grpc-java's Netty server by default (`quarkus.grpc.server.use-separate-server` is `true`). Its keepalive properties sit under `netty`, not directly under `quarkus.grpc.server`, and map to `NettyServerBuilder` calls:
 
-Python's `grpc.aio.server` takes the equivalent settings as channel-argument tuples rather than a config file, documented in grpc's own keepalive guide: `grpc.keepalive_time_ms`, `grpc.keepalive_timeout_ms`, `grpc.keepalive_permit_without_calls`, and `grpc.http2.min_ping_interval_without_data_ms`: the same four concerns (how often this server pings, how long it waits for an ACK, whether it pings with no call active, and the floor on how often it tolerates a client's own pings) expressed as the options list `app/main.py` passes to `grpc.aio.server(options=...)`.
+| Setting | Quarkus | Python `grpc.aio.server` option | Meaning |
+|---|---|---|---|
+| Server ping interval | `quarkus.grpc.server.netty.keep-alive-time` | `grpc.keepalive_time_ms` | How often this server pings a silent client |
+| Ping ACK wait | not set here | `grpc.keepalive_timeout_ms` | How long the server waits for the ACK |
+| Permitted floor | `quarkus.grpc.server.netty.permit-keep-alive-time` | `grpc.http2.min_ping_interval_without_data_ms` | Shortest client ping interval tolerated before the server sends `GOAWAY` |
+| Pings with no call | `quarkus.grpc.server.netty.permit-keep-alive-without-calls` | `grpc.keepalive_permit_without_calls` | Lets a client keep a channel warm between calls |
 
-Neither the HTTP/2 window sizes from Figure 17.1 nor keepalive's survival against a real middlebox's reaping policy is something `verify.sh` can assert deterministically: a loopback container network never naturally exhausts a 64 KiB window on a handful of small messages, and there is no middlebox in this stack's compose topology to reap anything. Both are illustrative, covered by this prose, the figures, and the "On the wire" box below, not by a numeric gate.
+The Quarkus example sets `30s`, `10s` and `true`. The Python options are the channel arguments from the grpc keepalive guide, passed to `grpc.aio.server(options=...)` in `app/main.py`.
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Reach for a demand-driven producer (<code>Multi.createFrom().emitter(...)</code> gated on real demand, or a plain async generator) the moment a stream's length isn't bounded to a handful of items known in advance, or its production work is expensive enough that doing it all up front would waste work a cancelled or short-lived call never needed. <code>Multi.createFrom().items(list)</code> (or building a Python list before the first <code>yield</code>) stays the right default for a short, fixed, cheap-to-build sequence where "pre-materialized" and "demand-driven" produce identical wire behavior and the simpler code wins. Configure keepalive on every stream a caller might hold open longer than the shortest idle timeout anywhere in its network path, which in practice means every long-lived stream, since that timeout is rarely visible to either endpoint. The three numbers worth setting explicitly rather than leaving at a library default are the server's own ping interval (how fast it notices or masks a silently dead peer), the floor it enforces on a client's pings (protection against a misconfigured or hostile client turning keepalive into a denial-of-service vector), and whether pings are permitted with no call in flight (needed for a client that holds a channel open between bursts of calls, unneeded and wasteful for one that reconnects per call).</p></div>
+A loopback container network never exhausts a 64 KiB window on a few small messages and has no middlebox to reap anything, so neither window behavior nor keepalive survival is asserted automatically. Seeing `WINDOW_UPDATE` traffic needs a frame-level trace, for example `GODEBUG=http2debug=2` against a Go HTTP/2 client.
+
+<div class="callout callout--safe"><p class="callout__title">Decision</p><p>Use a demand-driven producer (<code>Multi.createFrom().emitter(...)</code> gated on demand, or an async generator) once a stream's length isn't bounded to a few known items, or production is expensive enough that doing it up front wastes work a cancelled call never needed. A pre-built <code>Multi.createFrom().items(list)</code>, or a list built before the first <code>yield</code>, stays right for a short, fixed, cheap sequence: the wire behavior is identical and the code is simpler. Configure keepalive on any stream a caller may hold open longer than the shortest idle timeout on its path, which in practice means every long-lived stream. Set three numbers explicitly: the server's ping interval (how fast it notices a dead peer), the floor on client pings (protection against a client that turns keepalive into a denial-of-service vector), and whether pings are allowed with no call in flight (needed for channels held open between bursts, wasteful for clients that reconnect per call).</p></div>
+
+> **🤖 Explore with your agent**
+>
+> "In examples/17-streaming-at-scale, find where TrackingService.WatchShipment builds its events for bkg_demo on the Quarkus and Python stacks. Confirm no event is built before it is requested, then add a bkg_slow mode with 500 ms between six events on the same demand-driven path, without copying the bkg_eager list-building loop."
+>
+> Check: run `docker compose -p ch17-streaming run --rm python python -m app.slow_consumer quarkus:9000 bkg_slow` and confirm the server-stamped `at` values are about 500 ms apart; bkg_eager shows deltas under a millisecond.
 
 ## Build, run, observe
 
@@ -77,20 +106,20 @@ cd examples/17-streaming-at-scale
 ./verify.sh
 ```
 
-This brings both services up with `docker compose`, waits for each gRPC server to answer reflection's `list`, then against each of `localhost:9170` (Quarkus) and `localhost:9171` (Python): reads `bkg_demo`'s full six-event stream and checks its count, order, and fields; times that same call and confirms the whole stream took at least six-tenths of a second, proof the events arrived spread over time rather than buffered and dumped; runs the bundled slow consumer against both `bkg_demo` and `bkg_eager` and compares the server-stamped `event.at` deltas between them; reads `bkg_quiet` and confirms both its events arrive, including the one after the two-second gap, with the call's total elapsed time proving the gap was real; and confirms `ReportPositions` and `Sync` still answer `UNIMPLEMENTED`. A real run against both stacks measured `bkg_demo`'s consecutive deltas at roughly 260 milliseconds and `bkg_eager`'s at well under a millisecond: a three-order-of-magnitude gap between a producer that waits and one that doesn't, from the same event content on the same contract.
+`verify.sh` starts both stacks with `docker compose`. Quarkus listens on `localhost:9170` and Python on `localhost:9171`. It passes when `bkg_demo` delivers six events in order and takes at least 0.6 seconds, the slow consumer sees `at` deltas near 260 ms for `bkg_demo` and near zero for `bkg_eager`, `bkg_quiet` delivers both events across its two-second gap, and `ReportPositions` and `Sync` still answer `UNIMPLEMENTED`. In a recorded run the `bkg_demo` deltas were about 260 ms and the `bkg_eager` deltas well under a millisecond, three orders of magnitude apart from the same event content on the same contract.
 
-## What you learned
+The slow consumer (`python/app/slow_consumer.py`) reads one event, prints it as a JSON line with the server-stamped `event.at`, sleeps 0.3 seconds and reads the next, about three times slower than the producer. Run it on the compose network, where swapping `quarkus` for `python` targets the other stack:
 
-- HTTP/2 flow control is the transport-level root of backpressure: a per-stream and a per-connection byte window, replenished by `WINDOW_UPDATE` frames a reader only sends once it has drained what it already received: a consumer that stops reading makes a sender stop sending, not error or drop data.
-- `Multi` is a full Reactive Streams `Publisher`: it only produces what its subscriber has requested, which is what lets `Multi.createFrom().emitter(...)` paired with `MultiEmitter.onRequest` build a server-streaming RPC that never gets ahead of what the HTTP/2 stream is ready to carry, and what makes `Multi.createFrom().items(list)` safe on the way out even when the list behind it was built eagerly.
-- Python's `async def ... yield` server-streaming handler is pull-based by construction, with no separate demand API needed: the language's own generator-resume protocol is the signal Mutiny's `onRequest` callback exists to provide explicitly.
-- Keepalive PING/ACK traffic is what holds a long-lived, otherwise-quiet stream open against middleboxes that reap idle connections silently; Quarkus exposes it under `quarkus.grpc.server.netty.*`, one level deeper than the top-level `quarkus.grpc.server.*` properties this book has used elsewhere, and Python exposes the same four concerns as `grpc.aio.server(options=...)` channel arguments.
+```bash
+docker compose -p ch17-streaming run --rm python python -m app.slow_consumer quarkus:9000 bkg_demo
+```
 
-Performance tuning turns from correctness under load to speed under load: channel and stub reuse (the single most common gRPC performance mistake), keepalive revisited from a connection-pooling angle, message-size and compression trade-offs, and a real `ghz` benchmark run against `RoutingService.GetQuote` and `ListRoutes` rather than the loose, relative timing checks this chapter and backend I/O concurrency have both leaned on.
+Experiments:
 
-## On the wire
+- Run the slow consumer with `bkg_eager` instead of `bkg_demo`. The `at` deltas collapse to under a millisecond.
+- Read `bkg_quiet` and compare total elapsed time with the event stamps. The gap is real, about two seconds.
 
-Reading a demand-driven stream over `grpcurl` looks identical to the four-event read: `grpcurl` has no way to see that this server is pacing itself between messages rather than sending all six at once, because from the wire's perspective both look like `DATA` frames arriving when they arrive:
+A grpcurl read of `bkg_demo` looks the same as a four-event read, since pacing is invisible on the wire:
 
 ```bash
 grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
@@ -102,13 +131,11 @@ grpcurl -plaintext -d '{"bookingId":"bkg_demo"}' \
 {"event":{"bookingId":"bkg_demo","location":{"unLocode":"USNYC","name":"New York"},"state":"BOOKING_STATE_CONFIRMED","at":"2026-01-02T08:00:00.383512Z","note":"seq=1"}}
 ```
 
-Each `at` lands roughly 260 milliseconds after the one before it, continuing through all six events. The flow-control mechanics Figure 17.1 describes are real but invisible at this layer; seeing the actual `WINDOW_UPDATE` traffic (or its absence once a reader stalls) needs a frame-level trace, for example `GODEBUG=http2debug=2` against a Go HTTP/2 client, or `grpcurl -v` to see headers and trailers without full frame detail. This book doesn't ship a frame-trace capture as part of `verify.sh`; the window and keepalive numbers stay illustrative, exactly as the "Keepalive on a long-lived stream" section says, confirmed by this chapter's prose and figures rather than gated by an assertion.
-
----
+Each `at` lands about 260 ms after the one before it, through all six events.
 
 ## For deeper coverage
 
-- [grpc.io: Keepalive guide](https://grpc.io/docs/guides/keepalive/): the PING/ACK mechanics and the client/server configuration options this chapter's table maps onto both stacks.
-- Cloud Native Design Patterns, "Stream Processing" chapter: backpressure and flow-control concerns beyond one `WatchShipment`-shaped stream.
+- [grpc.io: Keepalive guide](https://grpc.io/docs/guides/keepalive/): the PING/ACK mechanics and the client and server options behind the table above.
+- Cloud Native Design Patterns, "Stream Processing" chapter: backpressure and flow control beyond one `WatchShipment`-shaped stream.
 - Martin Kleppmann & Chris Riccomini, *Designing Data-Intensive Applications*, 2nd ed. (O'Reilly, 2026): the general theory of backpressure and flow control in streaming systems.
-- Clément Jean, *gRPC Go for Professionals* (Packt, 2023): streaming and flow-control patterns from this project's own bibliography.
+- Clément Jean, *gRPC Go for Professionals* (Packt, 2023): streaming and flow-control patterns from this project's bibliography.

@@ -53,13 +53,13 @@ wait_for_certs() {
   local waited=0 timeout=30
   while (( waited < timeout )); do
     if [[ -s "$CA_CRT" && -s "$CLIENT_CRT" && -s "$CLIENT_KEY" ]]; then
-      echo "lib.sh: ok — certgen output present in $HOST_OUT_DIR" >&2
+      echo "lib.sh: ok, certgen output present in $HOST_OUT_DIR" >&2
       return 0
     fi
     sleep 1
     waited=$(( waited + 1 ))
   done
-  echo "lib.sh: FAIL — certgen output never appeared in $HOST_OUT_DIR after ${timeout}s" >&2
+  echo "lib.sh: FAIL, certgen output never appeared in $HOST_OUT_DIR after ${timeout}s" >&2
   return 1
 }
 
@@ -77,10 +77,10 @@ wait_for_certs() {
 assert_tls_rejected() {
   local out="$1" context="${2:-tls-rejected}"
   if ! grep -qiE 'failed to dial|tls|handshake|certificate|unavailable|eof|deadline exceeded' <<<"$out"; then
-    echo "lib.sh: FAIL — ${context}: error text doesn't name a transport/TLS failure: $out" >&2
+    echo "lib.sh: FAIL, ${context}: error text doesn't name a transport/TLS failure: $out" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: rejected at the transport/handshake layer" >&2
+  echo "lib.sh: ok, ${context}: rejected at the transport/handshake layer" >&2
 }
 
 # run_plaintext_refused <host:port> <context>
@@ -90,7 +90,7 @@ run_plaintext_refused() {
   local out rc=0
   out="$(grpcurl -plaintext -d "$REQUEST" "$target" "$METHOD" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "lib.sh: FAIL — ${context}: plaintext call succeeded against a TLS-only server" >&2
+    echo "lib.sh: FAIL, ${context}: plaintext call succeeded against a TLS-only server" >&2
     return 1
   fi
   assert_tls_rejected "$out" "$context"
@@ -103,7 +103,7 @@ run_no_client_cert_rejected() {
   local out rc=0
   out="$(grpcurl -cacert "$CA_CRT" -servername "$servername" -d "$REQUEST" "$target" "$METHOD" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "lib.sh: FAIL — ${context}: call without a client cert succeeded against an mTLS-required server" >&2
+    echo "lib.sh: FAIL, ${context}: call without a client cert succeeded against an mTLS-required server" >&2
     return 1
   fi
   assert_tls_rejected "$out" "$context"
@@ -173,7 +173,7 @@ run_phase_b "quarkus" "localhost:9190" "quarkus"
 run_phase_b "python" "localhost:9191" "python"
 
 echo
-echo "PASS — Ch19 tls-mtls: Quarkus and Python both serve GetQuote over" \
+echo "PASS: Ch19 tls-mtls: Quarkus and Python both serve GetQuote over" \
      "TLS with correct field values; a plaintext call against either is" \
      "refused at the handshake layer; switching both servers to" \
      "client-auth=REQUIRED makes the identical CA-only call that succeeded" \

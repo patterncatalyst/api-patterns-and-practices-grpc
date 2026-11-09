@@ -64,10 +64,10 @@ FIND_OPTIMAL_REQUEST='{"origin":{"unLocode":"USNYC"},"destination":{"unLocode":"
 assert_tls_rejected() {
   local out="$1" context="${2:-tls-rejected}"
   if ! grep -qiE 'failed to dial|tls|handshake|certificate|unavailable|eof|deadline exceeded' <<<"$out"; then
-    echo "lib.sh: FAIL — ${context}: error text doesn't name a transport/TLS failure: $out" >&2
+    echo "lib.sh: FAIL, ${context}: error text doesn't name a transport/TLS failure: $out" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: rejected at the transport/handshake layer" >&2
+  echo "lib.sh: ok, ${context}: rejected at the transport/handshake layer" >&2
 }
 
 # assert_nonempty <value> <context> — for the GRPC_TRACE/GRPC_VERBOSITY
@@ -76,12 +76,12 @@ assert_tls_rejected() {
 assert_nonempty() {
   local value="$1" context="${2:-non-empty}"
   if [[ -z "$value" ]]; then
-    echo "lib.sh: FAIL — ${context}: expected non-empty output, got none" >&2
+    echo "lib.sh: FAIL, ${context}: expected non-empty output, got none" >&2
     return 1
   fi
   local lines
   lines="$(wc -l <<<"$value" | tr -d '[:space:]')"
-  echo "lib.sh: ok — ${context}: ${lines} line(s) of output" >&2
+  echo "lib.sh: ok, ${context}: ${lines} line(s) of output" >&2
 }
 
 # assert_quote <response-json> <stack> <phase>
@@ -131,7 +131,7 @@ run_unavailable() {
   echo "=== $stack: 3. UNAVAILABLE on a cold/closed channel ($in_network_closed_target) ==="
   if ! docker compose -p "$PROJECT" -f "$COMPOSE_FILE" run --rm --no-deps \
         --entrypoint python python -m app.unavailable_probe "$in_network_closed_target"; then
-    echo "lib.sh: FAIL — $stack unavailable_probe.py against $in_network_closed_target" >&2
+    echo "lib.sh: FAIL, $stack unavailable_probe.py against $in_network_closed_target" >&2
     exit 1
   fi
 }
@@ -145,7 +145,7 @@ run_tls_handshake_failure() {
   local out rc=0
   out="$(grpcurl -d "$REQUEST" "$target" "$METHOD" 2>&1)" || rc=$?
   if (( rc == 0 )); then
-    echo "lib.sh: FAIL — $stack: TLS-defaulting grpcurl call unexpectedly succeeded against a plaintext server" >&2
+    echo "lib.sh: FAIL, $stack: TLS-defaulting grpcurl call unexpectedly succeeded against a plaintext server" >&2
     exit 1
   fi
   assert_tls_rejected "$out" "$stack TLS-handshake-failure (grpcurl defaults to TLS; server is plaintext)"
@@ -183,10 +183,10 @@ run_channelz_diagnosis() {
   local servers
   servers="$(json_field '.server' <<<"$resp")"
   if [[ -z "$servers" || "$servers" == "[]" ]]; then
-    echo "lib.sh: FAIL — python channelz GetServers returned no server data: $resp" >&2
+    echo "lib.sh: FAIL, python channelz GetServers returned no server data: $resp" >&2
     exit 1
   fi
-  echo "lib.sh: ok — python channelz GetServers returned server data: $servers" >&2
+  echo "lib.sh: ok, python channelz GetServers returned server data: $servers" >&2
 }
 
 run_trace_diagnosis() {
@@ -234,7 +234,7 @@ run_trace_diagnosis "quarkus" "quarkus:9000"
 run_trace_diagnosis "python" "python:9000"
 
 echo
-echo "PASS — Ch26 debugging: on BOTH the Quarkus and the Python stack," \
+echo "PASS: Ch26 debugging: on BOTH the Quarkus and the Python stack," \
      "FindOptimalRoute fails UNIMPLEMENTED, a 1s deadline against the" \
      "artificially-delayed GetQuote fails DEADLINE_EXCEEDED, a call against" \
      "each stack's own closed port 9999 fails grpc.StatusCode.UNAVAILABLE," \

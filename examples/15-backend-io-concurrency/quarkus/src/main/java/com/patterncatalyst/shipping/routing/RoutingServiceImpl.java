@@ -122,7 +122,7 @@ public class RoutingServiceImpl implements RoutingService {
      * schedules the given block onto {@link #starvingContext()}'s one fixed
      * event loop; running the blocking lookup INSIDE that block, rather
      * than just a cheap completion signal, is what makes this the starving
-     * path — the event loop thread is occupied for the whole ~400ms, not
+     * path: the event loop thread is occupied for the whole ~400ms, not
      * handed back immediately. This is the same primitive the Quarkus
      * "duplicated context" reference guide uses to hop code onto an event
      * loop from a worker thread ({@code context.runOnContext(runnable)});

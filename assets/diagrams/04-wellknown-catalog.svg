@@ -32,7 +32,7 @@
 <text x="690.0" y="120.5" font-size="11.5" fill="#555555" text-anchor="middle">same instant, any time zone</text>
 <rect x="520" y="142" width="340" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
 <text x="690.0" y="160.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">a deadline budget</text>
-<text x="690.0" y="177.5" font-size="11.5" fill="#555555" text-anchor="middle">Chapter 10</text>
+<text x="690.0" y="177.5" font-size="11.5" fill="#555555" text-anchor="middle">a per-call timeout</text>
 <text x="690.0" y="192.5" font-size="11.5" fill="#555555" text-anchor="middle">not in this contract yet</text>
 <rect x="520" y="214" width="340" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
 <text x="690.0" y="232.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">ListRoutesRequest</text>
@@ -40,7 +40,7 @@
 <text x="690.0" y="264.5" font-size="11.5" fill="#555555" text-anchor="middle">route.id, route.price</text>
 <rect x="520" y="286" width="340" height="56" rx="9" fill="#ffffff" stroke="#1a1a1a" stroke-width="2"/>
 <text x="690.0" y="304.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">google.rpc.Status.details</text>
-<text x="690.0" y="321.5" font-size="11.5" fill="#555555" text-anchor="middle">Chapter 11</text>
+<text x="690.0" y="321.5" font-size="11.5" fill="#555555" text-anchor="middle">used for error details</text>
 <text x="690.0" y="336.5" font-size="11.5" fill="#555555" text-anchor="middle">BadRequest and friends</text>
 <rect x="520" y="358" width="340" height="56" rx="9" fill="#ffffff" stroke="#8a8d91" stroke-width="1.5" stroke-dasharray="6 4"/>
 <text x="690.0" y="376.5" font-size="13.5" font-weight="700" fill="#1a1a1a" text-anchor="middle">not in shipping.* today</text>

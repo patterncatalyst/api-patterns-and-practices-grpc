@@ -1,7 +1,7 @@
-// deck.js — "API Patterns & Practices: Protobuf & gRPC — 100 (Concepts)".
+// deck.js, "API Patterns & Practices: Protobuf & gRPC, 100 (Concepts)".
 // Stack-agnostic: the WHAT and WHY of Protobuf and gRPC, shipping/cargo domain.
-// Snippets are WIRE-LEVEL ONLY — .proto, buf CLI, grpcurl, protobuf wire bytes,
-// proto3<->JSON, google.rpc.Status — never Java or Python. The Quarkus and
+// Snippets are WIRE-LEVEL ONLY, .proto, buf CLI, grpcurl, protobuf wire bytes,
+// proto3<->JSON, google.rpc.Status, never Java or Python. The Quarkus and
 // Python companion decks (../api-patterns-grpc-quarkus, ../api-patterns-grpc-python)
 // carry the implementations.
 //
@@ -22,8 +22,8 @@ const {
   addSectionDivider, addNotes,
 } = H;
 
-const OUT = path.resolve(__dirname, "api-patterns-grpc-100-r1.1.pptx");
-const REV = "r1.1";
+const OUT = path.resolve(__dirname, "api-patterns-grpc-100-r1.2.pptx");
+const REV = "r1.2";
 
 const pres = newDeck();
 pres.title = "API Patterns & Practices: Protobuf & gRPC: 100 (Concepts)";
@@ -84,7 +84,7 @@ function divider(code, title, subtitle, notes) {
 /* ======================= DIVIDER 01 ======================= */
 divider("01", "Why gRPC, and the decision lens",
   "What gRPC is, where it fits next to REST and GraphQL, and a five-axis framework for choosing it with intent.",
-  "Before any design work, two foundations. First, a precise statement of what gRPC is: a typed method call compiled from a single .proto contract into both a client stub and a server skeleton, with no textual form on the wire. Second, a decision framework: RPC shape, sync call versus stream, deadline and budget, failure class and retryability, and concurrency model. This gives us the vocabulary every later section reuses, the same way the book closes every chapter with a Decision callout that runs its topic through these five axes.");
+  "Before any design work, two foundations. First, a precise statement of what gRPC is: a typed method call compiled from a single .proto contract into both a client stub and a server skeleton, with no textual form on the wire. Second, a decision framework: RPC shape, sync call versus stream, deadline and budget, failure class and retryability, and concurrency model. This gives us the vocabulary every later section reuses, the same way each topic closes with a Decision box that runs its topic through these five axes.");
 
 /* --- three paradigms --- */
 {
@@ -152,7 +152,7 @@ divider("02", "Protobuf, the contract language",
       "  string name = 2;",
       "}",
       "",
-      "// A customer's request to ship cargo — the aggregate root.",
+      "// A customer's request to ship cargo; the aggregate root.",
       "message Booking {",
       "  string id = 1;              // \"bkg_\" prefix, ULID-shaped",
       "  Location origin = 2;",
@@ -186,7 +186,7 @@ divider("02", "Protobuf, the contract language",
       "    \"destination\":{\"unLocode\":\"NLRTM\"}}' \\",
       "    localhost:9007 shipping.routing.v1.RoutingService/FindOptimalRoute",
       "",
-      "# Response — grpcurl prints snake_case field names, even though the",
+      "# Response, grpcurl prints snake_case field names, even though the",
       "# request above was written in proto3 JSON's default camelCase:",
       "route.legs[0].carrier      = \"MAERSK\"",
       "route.legs[0].departs_at   = \"2026-02-01T10:00:00Z\"   // Timestamp -> RFC 3339",
@@ -249,7 +249,7 @@ divider("03", "Contract-first with Buf",
       "    localhost:9005 shipping.routing.v1.RoutingService/GetQuote",
       "",
       "# quote.amount == \"3001.25\"   (1200.5 * 2.50, rounded half-up, as a string)",
-      "# Swap port 9005 for 9006 — the Python stack answers identically.",
+      "# Swap port 9005 for 9006, the Python stack answers identically.",
     ],
     "Server reflection means grpcurl needs zero local .proto copies: the server itself describes its own services and messages over the wire.");
   addNotes(s, "Once a proto passes all three Buf gates and both stacks generate stubs from it, grpcurl is how you poke at the running system without writing a client. The list command uses gRPC server reflection, a well-known service every server in this book enables, to discover what RoutingService even offers, with zero local copies of the .proto file required. The GetQuote call that follows is the exact request from the chapter's own worked example: one cargo item at 1200.5 kilograms, and the quote comes back as the string '3001.25': 1200.5 times 2.50, rounded half-up, rendered as a decimal string per the Money convention we just covered. The real payoff of contract-first shows up in the last line: the identical request against the Python stack on a different port produces the identical answer, because both servers were generated from, and are asserted against, the same proto file, not because anyone hand-synchronized two implementations.");
@@ -275,15 +275,15 @@ divider("04", "HTTP/2 & why gRPC is fast",
   const s = S();
   addCodeSlide(s, "HTTP/2", "Wire bytes: protobuf vs. the equivalent JSON", "hex",
     [
-      "// Money { currency = \"USD\"; amount = \"1250.00\"; } — 14 bytes, no field names:",
+      "// Money { currency = \"USD\"; amount = \"1250.00\"; }, 14 bytes, no field names:",
       "0x0A 0x03  55 53 44                   // field 1 (currency), LEN, len 3, \"USD\"",
       "0x12 0x07  31 32 35 30 2E 30 30        // field 2 (amount),   LEN, len 7, \"1250.00\"",
       "",
-      "// A nested message costs one extra key + length byte per level — no depth",
+      "// A nested message costs one extra key + length byte per level; no depth",
       "// tracking required, since every key only encodes the CURRENT field's number:",
       "0x0A 0x0E  <14 bytes of Money>  0x12 ...   // GetQuoteResponse.quote, then .route",
       "",
-      "// The same value as JSON — self-describing, and larger:",
+      "// The same value as JSON, self-describing, and larger:",
       "{\"currency\":\"USD\",\"amount\":\"1250.00\"}      // 37 bytes",
     ],
     "14 bytes vs. 37 for one Money value, and the gap widens with every nested message, since JSON repeats field names at every level.");
@@ -320,15 +320,15 @@ divider("05", "The four RPC shapes, called",
   const s = S();
   addCodeSlide(s, "ALL FOUR SHAPES", "Driving each shape with grpcurl", "grpcurl",
     [
-      "# Unary — one request, one response:",
+      "# Unary; one request, one response:",
       "$ grpcurl -plaintext -d '{\"origin\":{\"unLocode\":\"USNYC\"},\"destination\":{\"unLocode\":\"NLRTM\"},",
       "    \"cargo\":[{\"weightKg\":1200.5}]}' localhost:9005 shipping.routing.v1.RoutingService/GetQuote",
       "",
-      "# Server-streaming — grpcurl prints one JSON object per frame, until half-close:",
+      "# Server-streaming, grpcurl prints one JSON object per frame, until half-close:",
       "$ grpcurl -plaintext -d '{\"bookingId\":\"bkg_demo\"}' \\",
       "    localhost:9080 shipping.tracking.v1.TrackingService/WatchShipment",
       "",
-      "# Client-streaming — 3 requests folded into ONE response:",
+      "# Client-streaming, 3 requests folded into ONE response:",
       "$ printf '%s\\n' '{\"event\":{\"bookingId\":\"bkg_demo\",\"note\":\"p1\"}}' \\",
       "    '{\"event\":{\"bookingId\":\"bkg_demo\",\"note\":\"p2\"}}' '{\"...\":\"p3\"}' \\",
       "  | grpcurl -plaintext -d @ localhost:9090 shipping.tracking.v1.TrackingService/ReportPositions",
@@ -422,7 +422,7 @@ divider("07", "Schema design & evolution",
   const s = S();
   addCodeSlide(s, "EVOLUTION", "reserved blocks reuse; a v2 package sidesteps the gate entirely", "proto3",
     [
-      "// candidate-safe/ — adding a field is safe; reserving retired numbers",
+      "// candidate-safe/, adding a field is safe; reserving retired numbers",
       "// pre-blocks a future accident:",
       "message GetQuoteRequest {",
       "  reserved 10, 11;",
@@ -432,7 +432,7 @@ divider("07", "Schema design & evolution",
       "  int32 cargo_count = 5;        // new",
       "}",
       "",
-      "// shipping/routing/v2/routing.proto — a NEW path, invisible to",
+      "// shipping/routing/v2/routing.proto; a NEW path, invisible to",
       "// `buf breaking --against v1`, which only diffs matching paths:",
       "message GetQuoteRequest {",
       "  reserved 4; reserved \"legacy_notes\";   // drops the v1 field",
@@ -462,10 +462,10 @@ divider("07", "Schema design & evolution",
       "$ buf breaking candidate-breaking-reserved --against baseline",
       "candidate-breaking-reserved/.../routing.proto: field \"4\" (legacy_notes) was deleted.",
       "$ echo $?",
-      "100   # identical failure — reserved blocks future reuse, not this deletion",
+      "100   # identical failure, reserved blocks future reuse, not this deletion",
     ],
     "Real output from the book's own seeded-failure proof: deleting a field, reserved or not, fails the FILE breaking category every time.");
-  addNotes(s, "This is real, captured output from the book's own seeded-failure proof, which exists specifically to show the gate actually bites rather than trusting that it would. The breaking candidate deletes two fields and retypes a third, and buf breaking names all three violations by field number and exits 100: not a vague 'something changed', but the precise field and the precise change. The second, more interesting case directly answers a question a careful reader would ask: would reserving the field number first have made the deletion safe? candidate-breaking-reserved deletes the identical legacy_notes field, field 4, except this time it's been marked reserved on the way out. The failure is identical: same field, same exit code. Marking a field reserved stops a future field from reusing that retired number or name; it does nothing to excuse deleting the field right now, under the stricter FILE breaking category this book's buf.yaml chooses. Buf does ship a looser rule that grants exactly that exception, but it lives in the WIRE_JSON category, not FILE, which is precisely why the choice of breaking category, back on the buf.yaml slide, isn't a default to accept without reading it.");
+  addNotes(s, "This is real, captured output from the repository's seeded-failure proof, which exists specifically to show the gate actually bites rather than trusting that it would. The breaking candidate deletes two fields and retypes a third, and buf breaking names all three violations by field number and exits 100: not a vague 'something changed', but the precise field and the precise change. The second, more interesting case directly answers a question a careful reader would ask: would reserving the field number first have made the deletion safe? candidate-breaking-reserved deletes the identical legacy_notes field, field 4, except this time it's been marked reserved on the way out. The failure is identical: same field, same exit code. Marking a field reserved stops a future field from reusing that retired number or name; it does nothing to excuse deleting the field right now, under the stricter FILE breaking category the repository's buf.yaml chooses. Buf does ship a looser rule that grants exactly that exception, but it lives in the WIRE_JSON category, not FILE, which is precisely why the choice of breaking category, back on the buf.yaml slide, isn't a default to accept without reading it.");
 }
 
 /* ======================= DIVIDER 08 ======================= */
@@ -634,7 +634,7 @@ divider("12", "Testing, debugging & the Final Project",
     "25-grpc-test-pyramid",
     "In-process unit tests, verify.sh integration assertions, and a pinned ghz load test are all CI-gated; GUI exploration (grpcui, Insomnia, Yaak) sits on top, illustrative only.",
     { x: 1.30, y: 1.70, w: 10.73, h: 4.55 });
-  addNotes(s, "Put the cheapest, fastest layer of the pyramid in the build gate, not the slowest. At the base, an in-process test, no network, no container, no external process, runs in milliseconds, which is exactly why it belongs where a red result has to block an artifact from being produced; a build-stage gate that took minutes per run would get skipped under deadline pressure, and a gate that gets skipped stops being a gate. Above that, integration assertions against a real running container over a real socket, grpcurl-driven, in this book's verify.sh convention, prove things only a real network call can prove: that reflection is actually reachable, that TLS actually negotiates, that a port is actually bound. A load test sits above that, proving the server doesn't silently degrade under concurrency, not making a performance claim. At the very top, GUI exploration tools, grpcui, Insomnia, Yaak, are explicitly illustrative only, for a human understanding an unfamiliar service's shape; they're not part of the asserted, repeatable gate, because a human clicking through a UI isn't a check anyone can rerun identically in CI.");
+  addNotes(s, "Put the cheapest, fastest layer of the pyramid in the build gate, not the slowest. At the base, an in-process test, no network, no container, no external process, runs in milliseconds, which is exactly why it belongs where a red result has to block an artifact from being produced; a build-stage gate that took minutes per run would get skipped under deadline pressure, and a gate that gets skipped stops being a gate. Above that, integration assertions against a real running container over a real socket, grpcurl-driven, in the verify.sh convention, prove things only a real network call can prove: that reflection is actually reachable, that TLS actually negotiates, that a port is actually bound. A load test sits above that, proving the server doesn't silently degrade under concurrency, not making a performance claim. At the very top, GUI exploration tools, grpcui, Insomnia, Yaak, are explicitly illustrative only, for a human understanding an unfamiliar service's shape; they're not part of the asserted, repeatable gate, because a human clicking through a UI isn't a check anyone can rerun identically in CI.");
 }
 
 /* --- debug failure modes diagram --- */
@@ -691,7 +691,7 @@ divider("12", "Testing, debugging & the Final Project",
     "Failure class: a transport rejection, UNAUTHENTICATED, and PERMISSION_DENIED are three independently-asserted outcomes, in the order a real call meets them, never one \"auth failed\" bucket.",
     "Concurrency model: every handler is non-blocking end to end, because a system layering mTLS, JWT, and tracing onto every call cannot afford even one of them to block a thread the runtime needed elsewhere.",
   ], { fontSize: 15 });
-  addNotes(s, "This is the same five-axis framework from the very first section of this deck, run one more time, against a complete system instead of a single worked example. RPC shape: nothing here is forced into unary the way a REST-only instinct would default to; each method keeps the shape its own communication pattern actually demands. Sync versus stream: the REST front door is a single synchronous request/response because a caller asking for one quote wants one answer, not a feed; the streaming RPCs stay streams for the mirror-image reason. Deadline and budget is where this system exposes a real limitation: the unary deadline-propagation chain from the reliability section carries over unchanged, but a long-lived bidirectional negotiation needs its own idle-timeout and overall-duration policy that this particular build does not set, a limitation this book names rather than quietly leaving implicit, because a slide that only shows what works teaches half the lesson. Failure class stays three distinct, ordered checks, never one bucket. And concurrency model closes the loop: every handler stays non-blocking end to end, because layering three cross-cutting concerns onto every single call cannot afford even one of them to pin a thread the runtime needed for other work. Read every Decision box in this deck in sequence, and you've reconstructed the book's entire argument without re-reading the prose that built it.");
+  addNotes(s, "This is the same five-axis framework from the very first section of this deck, run one more time, against a complete system instead of a single worked example. RPC shape: nothing here is forced into unary the way a REST-only instinct would default to; each method keeps the shape its own communication pattern actually demands. Sync versus stream: the REST front door is a single synchronous request/response because a caller asking for one quote wants one answer, not a feed; the streaming RPCs stay streams for the mirror-image reason. Deadline and budget is where this system exposes a real limitation: the unary deadline-propagation chain from the reliability section carries over unchanged, but a long-lived bidirectional negotiation needs its own idle-timeout and overall-duration policy that this particular build does not set, a limitation this book names rather than quietly leaving implicit, because a slide that only shows what works teaches half the lesson. Failure class stays three distinct, ordered checks, never one bucket. And concurrency model closes the loop: every handler stays non-blocking end to end, because layering three cross-cutting concerns onto every single call cannot afford even one of them to pin a thread the runtime needed for other work. Read every Decision box in this deck in sequence, and you've reconstructed the entire argument without re-reading the prose that built it.");
 }
 
 /* ======================= APPENDIX ======================= */
@@ -705,13 +705,13 @@ divider("12", "Testing, debugging & the Final Project",
 
 // ---- Appendix: secondary figures, one per slide, grouped by body section ----
 const APPENDIX_FIGURES = [
-  // Section 1 — Why gRPC
+  // Section 1, Why gRPC
   { eyebrow: "APPX · WHY GRPC", file: "01-stub-to-stub-path",
     title: "One .proto, a client stub, a server skeleton",
     caption: "One .proto compiles into a client stub and a server skeleton; every call travels typed call in, protobuf on the wire, typed call out: no textual form to curl.",
     notes: "There is no textual form of a gRPC request: curl -X POST routing:9000/GetQuote never works, because there's no request line to type. Only a compiled stub, producing compiled bytes, on both ends." },
 
-  // Section 2 — Protobuf
+  // Section 2, Protobuf
   { eyebrow: "APPX · PROTOBUF", file: "03-field-shapes",
     title: "repeated, map, and oneof: three composite shapes",
     caption: "repeated keeps order; map sugars repeated {key,value} pairs with none; oneof clears every other member the instant one is set: a generated-code guarantee, not a convention.",
@@ -721,19 +721,19 @@ const APPENDIX_FIGURES = [
     caption: "Timestamp, Duration, FieldMask, Any, Struct, and wrapper types, each paired with the real contract field that uses it (or doesn't).",
     notes: "google.protobuf gives you six well-known types for the shapes a bare scalar handles badly: an instant, a span, a set of field paths, a dynamically-typed envelope, untyped JSON, and present-vs-absent. The shipping contract uses four of the six; Struct and wrapper types are shown as non-examples." },
 
-  // Section 3 — Buf
+  // Section 3, Buf
   { eyebrow: "APPX · BUF", file: "05-buf-three-gates",
     title: "Three gates, in sequence, before either stack generates code",
     caption: "buf lint enforces STANDARD naming and style; buf build confirms every import resolves; buf breaking diffs against main. A change failing any gate never reaches stub generation.",
     notes: "The three Buf commands run in this order because each is cheaper than the next: lint is nearly instant, build catches structural errors, and breaking is the expensive, meaningful diff against history." },
 
-  // Section 4 — HTTP/2
+  // Section 4, HTTP/2
   { eyebrow: "APPX · HTTP/2", file: "06-nested-message-bytes",
     title: "Nesting costs one key + length prefix per level",
     caption: "A GetQuoteResponse embedding a Money message costs exactly one extra key byte and one length byte beyond Money's own bytes: a parser never tracks nesting depth.",
     notes: "Every key only ever encodes the current message's own field number and wire type, regardless of how deep that message is nested, which is why a protobuf parser needs no explicit depth-tracking state machine." },
 
-  // Section 5 — Four RPC shapes
+  // Section 5, Four RPC shapes
   { eyebrow: "APPX · RPC SHAPES", file: "07-channel-decides-call-style",
     title: "Blocking vs. async: a type-level split on one stack, a channel-level split on the other",
     caption: "Quarkus generates three distinct stub types from one proto (blocking, Mutiny, service interface); Python's one generated stub serves both styles, decided by which kind of channel it's built over.",
@@ -751,7 +751,7 @@ const APPENDIX_FIGURES = [
     caption: "The client's last DATA frame carries END_STREAM, closing only its write side; the server reads to completion, then closes its own half with the response.",
     notes: "There's no separate 'done sending' message in gRPC: only a flag on the last frame. The server keeps reading buffered frames after that flag arrives; the stream itself stays open until the server closes its own half too." },
 
-  // Section 6 — Reliability
+  // Section 6, Reliability
   { eyebrow: "APPX · RELIABILITY", file: "10-cancellation-propagation",
     title: "A cancelled call either tears down work immediately, or lets it run for no one",
     caption: "A cancellable pipeline (Mutiny Uni / asyncio Task) tears down in-flight work the instant a deadline expires; a thread blocked on a raw sleep has no hook to interrupt and runs to completion wastefully.",
@@ -769,7 +769,7 @@ const APPENDIX_FIGURES = [
     caption: "A header carries what the caller already knew; a trailer carries what the callee only learned by the end, status, counts, timing, sent at close(status, trailers).",
     notes: "Metadata is the one map an interceptor reads on the way in (headers) and writes on the way out (trailers): the same mechanism a JWT and a trace context both ride on, just populated with different keys." },
 
-  // Section 7 — Schema design & evolution
+  // Section 7, Schema design & evolution
   { eyebrow: "APPX · SCHEMA DESIGN", file: "13-message-granularity",
     title: "Nest when identity depends on the parent; reference by id when it doesn't",
     caption: "A Leg embedded in a Route has no identity outside it; a carrier_id references a Carrier with its own list, its own lifecycle, fetched via a separate service.",
@@ -785,17 +785,17 @@ const APPENDIX_FIGURES = [
   { eyebrow: "APPX · SCHEMA DESIGN", file: "14-buf-breaking-gate",
     title: "The buf breaking gate, as verify.sh actually runs it",
     caption: "Safe compared against baseline exits 0; breaking, reserved or not, exits 100, naming the exact violation by field.",
-    notes: "This is the structural shape behind the real captured buf breaking output shown in the main body: every candidate in the book's own seeded-failure proof against one baseline." },
+    notes: "This is the structural shape behind the real captured buf breaking output shown in the main body: every candidate in the repository's seeded-failure proof against one baseline." },
   { eyebrow: "APPX · SCHEMA DESIGN", file: "14-package-versioning-v2",
     title: "v1 and v2 coexist on disk and at runtime",
     caption: "A second implementation serves v2 clients while the first keeps serving v1 clients, unmodified, invisible to buf breaking by construction, since the tool only compares matching file paths.",
     notes: "The package-version escape hatch, drawn as a running system: both versions coexist during a rolling deploy, each served by its own implementation, generated from its own file." },
 
-  // Section 8 — Streaming at scale & performance
+  // Section 8, Streaming at scale & performance
   { eyebrow: "APPX · STREAMING AT SCALE", file: "17-slow-consumer-backpressure",
     title: "Demand-driven production spreads timestamps; eager pre-materialization clusters them",
     caption: "A demand-paced Multi/async generator produces events only when pulled; an eager, pre-built list stamps everything at the instant the call started, wasting work a short-lived call never needed.",
-    notes: "The producer-side lever that decides how much pressure ever reaches the HTTP/2 flow-control window: build events on demand for anything unbounded or expensive; pre-materializing stays fine only for Chapter 8's shape: short, fixed, cheap." },
+    notes: "The producer-side lever that decides how much pressure ever reaches the HTTP/2 flow-control window: build events on demand for anything unbounded or expensive; pre-materializing stays fine only for the short server-streaming shape: short, fixed, cheap." },
   { eyebrow: "APPX · STREAMING AT SCALE", file: "17-keepalive-quiet-stream",
     title: "A keepalive PING survives a quiet gap a middlebox would otherwise reap",
     caption: "With server keepalive, a PING/ACK cycle holds the connection open across a quiet gap; without it, an idle middlebox can reap the connection before the next real event arrives.",
@@ -809,7 +809,7 @@ const APPENDIX_FIGURES = [
     caption: "A 5MB, highly repetitive ListRoutes payload compresses dramatically; a 40-byte GetQuote payload sees overhead roughly equal to the savings: CPU spent for nothing.",
     notes: "Gate compression per call rather than forcing it server-wide where a service's calls split cleanly between large/repetitive and small/scalar payload shapes." },
 
-  // Section 9 — Security
+  // Section 9, Security
   { eyebrow: "APPX · SECURITY", file: "19-tls-handshake-cert-chain",
     title: "One-way TLS: the client verifies the server; the server never asks back",
     caption: "ClientHello, ServerHello plus the server certificate, the client verifies the chain against a trusted CA, then sends the encrypted call: the client never presents a certificate of its own.",
@@ -827,7 +827,7 @@ const APPENDIX_FIGURES = [
     caption: "The same authenticated token is allowed on GetQuote, denied on an admin-gated method, and reaches UNIMPLEMENTED on methods with no scope requirement at all.",
     notes: "Authorization is decided per method call, never once per connection, which is why a single long-lived channel can legitimately carry both successful and PERMISSION_DENIED calls over its lifetime." },
 
-  // Section 10 — Observability, mesh & LB
+  // Section 10, Observability, mesh & LB
   { eyebrow: "APPX · OBSERVABILITY", file: "21-observability-surfaces",
     title: "Three independent observability surfaces on one process",
     caption: "Traces pushed to Tempo, metrics pulled by Prometheus, and health answered synchronously over grpc.health.v1.Health: three separate mechanisms, none aware of the others.",
@@ -841,7 +841,7 @@ const APPENDIX_FIGURES = [
     caption: "An L4 load balancer commits to a backend when the connection opens; an L7 load balancer, a mesh sidecar, re-decides for every request multiplexed over that same connection.",
     notes: "This is the structural reason a plain Kubernetes Service mis-balances gRPC: it operates at L4, deciding once per TCP connection, while gRPC multiplexes many RPCs onto that one connection." },
 
-  // Section 11 — Browsers, transcoding & cross-protocol
+  // Section 11, Browsers, transcoding & cross-protocol
   { eyebrow: "APPX · CROSS-PROTOCOL", file: "23-grpc-web-framing",
     title: "grpc-web packs trailers into the response body a browser can read",
     caption: "Native gRPC/HTTP2 uses a trailing HEADERS frame for the final status; grpc-web/HTTP1.1 packs a DATA frame and a TRAILER frame into one ordinary response body instead.",
@@ -856,10 +856,10 @@ const APPENDIX_FIGURES = [
     notes: "This is a transport-layer property, not yet a gRPC-API property; see the next figure for exactly where gRPC-over-HTTP/3 actually stands." },
   { eyebrow: "APPX · CROSS-PROTOCOL", file: "24-h2-everywhere-h3-where-it-stands",
     title: "Where gRPC and HTTP/3 actually stand today",
-    caption: "Native gRPC over HTTP/2: available, this book's hard-gated default. HTTP/3 as a transport (not gRPC): available, capability-gated. gRPC directly over HTTP/3: not yet, on either reference implementation.",
-    notes: "Checked against upstream as of this book's writing, worth re-verifying before repeating this claim, since both reference gRPC implementations' HTTP/3 support is actively evolving." },
+    caption: "Native gRPC over HTTP/2: available, the hard-gated default. HTTP/3 as a transport (not gRPC): available, capability-gated. gRPC directly over HTTP/3: not yet, on either reference implementation.",
+    notes: "Checked against upstream as of this writing, worth re-verifying before repeating this claim, since both reference gRPC implementations' HTTP/3 support is actively evolving." },
 
-  // Section 12 — Testing, debugging & Final Project
+  // Section 12, Testing, debugging & Final Project
   { eyebrow: "APPX · TESTING", file: "25-reflection-probe-landscape",
     title: "One reflection service, four very different clients",
     caption: "grpcurl's list/describe path is CI-gated; grpcui, Insomnia, and Yaak are illustrative-only GUIs built on the identical reflection service.",
@@ -881,7 +881,7 @@ const APPENDIX_FIGURES = [
   { eyebrow: "APPX · LAB", file: "00-lab-topology",
     title: "The lab: one proto, two servers, reflection instead of a stub",
     caption: "A grpcurl or grpcui client calls GetQuote through server reflection against both a Quarkus and a Python container, generated from the same proto, with an opt-in LGTM stack.",
-    notes: "This is the Compose topology every chapter example in the book runs on: no host-installed JDK or Python interpreter assumed, and observability off by default." },
+    notes: "This is the Compose topology every example runs on: no host-installed JDK or Python interpreter assumed, and observability off by default." },
   { eyebrow: "APPX · DOMAIN", file: "00-shipping-domain-model",
     title: "The domain nouns every proto and diagram reuses",
     caption: "Booking, Route, Leg, Location, and Money: the entity-relationship shape behind every service in this book.",
@@ -889,7 +889,7 @@ const APPENDIX_FIGURES = [
   { eyebrow: "APPX · OPENSHIFT", file: "A-crc-incluster-build",
     title: "An in-cluster build: Maven runs on the host, the image builds inside OpenShift",
     caption: "A binary S2I BuildConfig based on ubi10-openjdk-25 produces an ImageStream the Helm-managed Deployment pulls: no container engine on the host at all.",
-    notes: "OpenShift Local's build path for this book's examples, with no Dockerfile and no local container engine: the image never exists outside the cluster." },
+    notes: "OpenShift Local's build path for these examples, with no Dockerfile and no local container engine: the image never exists outside the cluster." },
   { eyebrow: "APPX · OPENSHIFT", file: "A-crc-grpc-routes",
     title: "h2c, edge, and passthrough Routes: which hop actually carries HTTP/2",
     caption: "A live-cluster finding: an edge-terminated Route cannot carry a native gRPC client's TLS handshake at all; passthrough is the termination type that actually works.",
@@ -925,7 +925,7 @@ for (const fig of APPENDIX_FIGURES) {
     { code: "INTERNAL (13)", name: "last resort", purpose: "Never the default: collapsing to it erases the client's one actionable signal." },
   ], { colW: [3.10, 2.80, 6.19], rowH: 0.355, y: 1.55, fontSize: 13 });
   addCaption(s, "Full canonical gRPC status vocabulary: the retryable-vs-not table in the main body groups a subset of these by meaning, not the alphabet.", 6.15);
-  addNotes(s, "The complete list of canonical gRPC status codes this book's error-handling chapter relies on, for reference. The main body's retryable-vs-not table groups the ones that come up constantly in the shipping domain's own examples; this table is the fuller picture, including CANCELLED (the caller gave up, not the server) and ALREADY_EXISTS, which behaves like NOT_FOUND's mirror image, both describe a fact about the world rather than a glitch reaching it.");
+  addNotes(s, "The complete list of canonical gRPC status codes the error-handling example relies on, for reference. The main body's retryable-vs-not table groups the ones that come up constantly in the shipping domain's own examples; this table is the fuller picture, including CANCELLED (the caller gave up, not the server) and ALREADY_EXISTS, which behaves like NOT_FOUND's mirror image, both describe a fact about the world rather than a glitch reaching it.");
 }
 
 /* --- appendix: overflow proto listing --- */
@@ -942,7 +942,7 @@ for (const fig of APPENDIX_FIGURES) {
       "  rpc RecomputeRoutes(RecomputeRoutesRequest) returns (RecomputeRoutesResponse);",
       "}",
       "",
-      "// A server-owned long-running-operation lookup, kept on its OWN service —",
+      "// A server-owned long-running-operation lookup, kept on its OWN service,",
       "// adding these RPCs here would be wire-compatible but not source-compatible,",
       "// since generated service interfaces are fully abstract per service.",
       "service OperationsService {",

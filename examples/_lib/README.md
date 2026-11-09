@@ -1,9 +1,9 @@
-# examples/_lib — shared verification harness
+# examples/_lib: shared verification harness
 
 Every hands-on example's `verify.sh` sources `lib.sh`. The harness brings up the
 example's Docker Compose stack, waits for the gRPC server, calls methods via
 **grpcurl** (server reflection), and asserts **response field semantics against the
-proto contract** — not just an `OK` status. A gRPC `OK` carrying a wrong-valued
+proto contract**, not just an `OK` status. A gRPC `OK` carrying a wrong-valued
 message must fail the check (this is the "On the wire" box of each chapter, encoded).
 
 ## Functions

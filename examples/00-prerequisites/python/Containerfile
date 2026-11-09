@@ -37,7 +37,7 @@ RUN uv sync --group dev
 
 # Stage the two proto files this service needs, preserving the package path
 # routing.proto's import statement expects, then generate the stub packages
-# into /app/generated — a sibling of app/, added to PYTHONPATH below, so
+# into /app/generated, a sibling of app/, added to PYTHONPATH below, so
 # `from shipping.routing.v1 import routing_pb2` resolves the same way it
 # does after a local (non-container) `protoc` run.
 COPY contracts/proto/shipping/type/v1/types.proto ./proto/shipping/type/v1/types.proto

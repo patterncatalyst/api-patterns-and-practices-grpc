@@ -1,4 +1,4 @@
-// deck.js — "API Patterns & Practices: gRPC — Quarkus Implementation".
+// deck.js, "API Patterns & Practices: gRPC, Quarkus Implementation".
 // How the gRPC patterns are built in Quarkus (quarkus-grpc, Mutiny Uni/Multi),
 // shipping/cargo domain, against one Protobuf contract. Real code from
 // examples/*/quarkus/**.
@@ -20,8 +20,8 @@ const {
   addSectionDivider, addNotes,
 } = H;
 
-const OUT = path.resolve(__dirname, "api-patterns-grpc-quarkus-r1.1.pptx");
-const REV = "r1.1";
+const OUT = path.resolve(__dirname, "api-patterns-grpc-quarkus-r1.2.pptx");
+const REV = "r1.2";
 
 const pres = newDeck();
 pres.title = "API Patterns & Practices: gRPC, Quarkus Implementation";
@@ -92,10 +92,10 @@ function divider(code, title, subtitle, notes) {
   addNotes(s, "A quick orientation so the three decks compose rather than repeat. The concepts deck is where the patterns and the reasoning live: if a design question comes up today about why a shape looks the way it does, that deck answers it without committing to a language. This deck is the Quarkus how: it takes each of those patterns and shows the actual Quarkus code that implements it, against the same shipping and cargo contract. There's a sibling deck that walks the identical arc in Python with grpcio, and the point of having both is that the two implementations are generated from, and validated against, one shared .proto contract, so a client can't tell which stack answered. Everything I show is real, lifted from the runnable examples under examples slash star slash quarkus, and the versions are pinned, Quarkus 3.40.1 LTS on JDK 25, so what you see is what runs.");
 }
 
-/* ======================= DIVIDER 00 — SETUP & CODEGEN ======================= */
+/* ======================= DIVIDER 00, SETUP & CODEGEN ======================= */
 divider("00", "Setup, codegen & the stub",
   "quarkus-grpc generates the Mutiny service interface from the shared .proto at build time.",
-  "Every chapter in this deck starts from the same place: the quarkus-grpc extension reading the shared contract's .proto files during the Maven build and emitting a generated Mutiny service interface, with zero hand-written stub code. This section grounds that pipeline in the one anchor every other chapter in the book builds on: GetQuote.");
+  "Every chapter in this deck starts from the same place: the quarkus-grpc extension reading the shared contract's .proto files during the Maven build and emitting a generated Mutiny service interface, with zero hand-written stub code. This section grounds that pipeline in the one anchor every other example builds on: GetQuote.");
 
 /* --- codegen diagram --- */
 {
@@ -104,7 +104,7 @@ divider("00", "Setup, codegen & the stub",
     "05-contract-first-buf-flow",
     "The shared .proto under contracts/proto/ is copied into src/main/proto/ at image build time; quarkus-grpc generates the Mutiny stub from there.",
     { x: 1.10, y: 1.72, w: 11.13, h: 4.60 });
-  addNotes(s, "contracts/proto/ is the single source of truth for every example in the book: it is never duplicated into a Quarkus module's source tree by hand. Instead, the Containerfile for each example COPYs exactly the .proto files that module needs into src/main/proto/ as part of the image build, and the quarkus-maven-plugin's packaging type, quarkus, binds proto code generation to the generate-sources phase, before compile. No separate protoc invocation, no protobuf-maven-plugin configuration: the quarkus-grpc extension on the classpath is what triggers it. The output is a generated Mutiny service interface, RoutingService in this chapter's case, with one method per RPC, returning Uni for unary and client-streaming methods and Multi for server-streaming and bidirectional ones. A Quarkus bean implements that interface and is discovered automatically. For a local, non-container mvn package, the same copy has to happen by hand first; the buf CLI's buf lint and buf breaking gates, covered later in this deck, run against contracts/proto/ directly in CI, independent of any one stack's build.");
+  addNotes(s, "contracts/proto/ is the single source of truth for every example: it is never duplicated into a Quarkus module's source tree by hand. Instead, the Containerfile for each example COPYs exactly the .proto files that module needs into src/main/proto/ as part of the image build, and the quarkus-maven-plugin's packaging type, quarkus, binds proto code generation to the generate-sources phase, before compile. No separate protoc invocation, no protobuf-maven-plugin configuration: the quarkus-grpc extension on the classpath is what triggers it. The output is a generated Mutiny service interface, RoutingService in the example's case, with one method per RPC, returning Uni for unary and client-streaming methods and Multi for server-streaming and bidirectional ones. A Quarkus bean implements that interface and is discovered automatically. For a local, non-container mvn package, the same copy has to happen by hand first; the buf CLI's buf lint and buf breaking gates, covered later in this deck, run against contracts/proto/ directly in CI, independent of any one stack's build.");
 }
 
 /* --- pom.xml + application.properties --- */
@@ -131,7 +131,7 @@ divider("00", "Setup, codegen & the stub",
     ],
     "The quarkus-maven-plugin's build goal drives codegen: no extra plugin wiring beyond the quarkus-grpc dependency itself.",
     { fontSize: 13 });
-  addNotes(s, "Two things make this pom.xml different from an ordinary Java library module. First, packaging is quarkus, not jar: that custom lifecycle is what runs proto code generation before compilation, every time. Second, the only dependency this module needs for gRPC is quarkus-grpc itself; it pulls in grpc-java, the Mutiny bindings, and the build-time codegen step as one extension. quarkus-opentelemetry is added here too because every example in the book instruments its gRPC server automatically the moment that extension is on the classpath: quarkus.otel.instrument.grpc defaults to on, so GetQuote calls produce spans once an OTLP endpoint is reachable, with no code change. The dependencyManagement block imports the quarkus-bom at 3.40.1, the same pin every chapter in the book holds, so a version mismatch between chapters is never the reason an example behaves differently.");
+  addNotes(s, "Two things make this pom.xml different from an ordinary Java library module. First, packaging is quarkus, not jar: that custom lifecycle is what runs proto code generation before compilation, every time. Second, the only dependency this module needs for gRPC is quarkus-grpc itself; it pulls in grpc-java, the Mutiny bindings, and the build-time codegen step as one extension. quarkus-opentelemetry is added here too because every example instruments its gRPC server automatically the moment that extension is on the classpath: quarkus.otel.instrument.grpc defaults to on, so GetQuote calls produce spans once an OTLP endpoint is reachable, with no code change. The dependencyManagement block imports the quarkus-bom at 3.40.1, the same pin every example holds, so a version mismatch between examples is never the reason an example behaves differently.");
 }
 
 {
@@ -142,7 +142,7 @@ divider("00", "Setup, codegen & the stub",
       "quarkus.grpc.server.port=9000",
       "quarkus.grpc.server.host=0.0.0.0",
       "",
-      "# Server reflection is on by default in dev mode only — verify.sh drives",
+      "# Server reflection is on by default in dev mode only, verify.sh drives",
       "# grpcurl's reflection client in every mode, so it must be explicit here.",
       "quarkus.grpc.server.enable-reflection-service=true",
       "",
@@ -151,10 +151,10 @@ divider("00", "Setup, codegen & the stub",
     ],
     "The gRPC server listens on its own port, separate from the HTTP port: a quarkus-grpc default this whole book relies on.",
     { fontSize: 14 });
-  addNotes(s, "quarkus.grpc.server.port and .host configure the gRPC Java server, a separate Netty server from the Vert.x HTTP server Quarkus REST would use, which is why examples that combine a REST front door with gRPC, like the observability and Final Project chapters, run two independent listeners in one process with no port conflict. enable-reflection-service is explicit here because it defaults to on only in dev mode, and this book's verify.sh scripts drive grpcurl's reflection client against the packaged container in every mode, not just dev, so every chapter's properties file turns it on explicitly for the server it ships. The OTel lines are the same pattern across every chapter: they point at an OTLP endpoint that falls back to localhost:4317 and simply fail soft, logged but non-fatal, when nothing is listening, so turning on the opt-in observability profile is the only thing that changes, never whether the service starts.");
+  addNotes(s, "quarkus.grpc.server.port and .host configure the gRPC Java server, a separate Netty server from the Vert.x HTTP server Quarkus REST would use, which is why examples that combine a REST front door with gRPC, like the observability and Final Project chapters, run two independent listeners in one process with no port conflict. enable-reflection-service is explicit here because it defaults to on only in dev mode, and the verify.sh scripts drive grpcurl's reflection client against the packaged container in every mode, not just dev, so every chapter's properties file turns it on explicitly for the server it ships. The OTel lines are the same pattern across every chapter: they point at an OTLP endpoint that falls back to localhost:4317 and simply fail soft, logged but non-fatal, when nothing is listening, so turning on the opt-in observability profile is the only thing that changes, never whether the service starts.");
 }
 
-/* ======================= DIVIDER 01 — PROTOBUF & WKT ======================= */
+/* ======================= DIVIDER 01, PROTOBUF & WKT ======================= */
 divider("01", "Well-known types in Java",
   "google.protobuf.Timestamp and Money-as-decimal-string, generated into protobuf-java's own compiled classes.",
   "Every compiled Protobuf message in Java is a plain, immutable, builder-pattern class: no reflection, no proxies. The well-known types are no exception: com.google.protobuf.Timestamp ships inside protobuf-java itself, the same jar quarkus-grpc already pulls in to generate every message this contract defines.");
@@ -165,7 +165,7 @@ divider("01", "Well-known types in Java",
     "04-wellknown-catalog",
     "Timestamp, Duration, FieldMask, and the wrapper types are compiled classes inside protobuf-java, not custom types this contract invents.",
     { x: 1.10, y: 1.72, w: 11.13, h: 4.60 });
-  addNotes(s, "This figure is the catalog later slides draw from: Timestamp and Duration for points and spans of time, FieldMask for partial reads and writes (the ListRoutes anchor later in this deck), and the wrapper types for a scalar that needs to distinguish zero from unset. None of these are invented by this book's contract; they're part of the Protobuf standard library, shipped in every language's generated-code runtime, including protobuf-java. The next slide shows the Java side of the first two: a Route whose Leg carries real departs_at and arrives_at Timestamps, and a Money whose amount is a decimal string, never a binary float, the same convention the sibling REST site's JSON Schema enforces for the identical shape.");
+  addNotes(s, "This figure is the catalog later slides draw from: Timestamp and Duration for points and spans of time, FieldMask for partial reads and writes (the ListRoutes anchor later in this deck), and the wrapper types for a scalar that needs to distinguish zero from unset. None of these are invented by the shipping contract; they're part of the Protobuf standard library, shipped in every language's generated-code runtime, including protobuf-java. The next slide shows the Java side of the first two: a Route whose Leg carries real departs_at and arrives_at Timestamps, and a Money whose amount is a decimal string, never a binary float, the same convention the sibling REST site's JSON Schema enforces for the identical shape.");
 }
 
 {
@@ -196,10 +196,10 @@ divider("01", "Well-known types in Java",
     ],
     "Fixed, deterministic instants, not Instant.now(), so both the Quarkus and Python stacks render byte-identical JSON for the same request.",
     { fontSize: 12 });
-  addNotes(s, "Two decisions in this one class carry the whole well-known-types lesson. First, toTimestamp converts a java.time.Instant into com.google.protobuf.Timestamp by hand, seconds and nanos, because that conversion is exactly what the well-known type is: a message with two int64/int32 fields and a documented JSON mapping, RFC 3339 on the wire, nothing more exotic. Second, Money.amount is a string, '4200.00', not a double, the same decimal-as-string convention this book's contract uses everywhere money appears, because a binary float cannot represent currency amounts exactly and every language's JSON number type has different precision guarantees. The instants here are fixed, not Instant.now(), so this chapter's verify.sh can assert an exact RFC 3339 string in the response and so the Python stack's identical RouteBuilder equivalent produces byte-identical output for the same request: one contract, two independent implementations, proven identical by the test, not just by inspection.");
+  addNotes(s, "Two decisions in this one class carry the whole well-known-types lesson. First, toTimestamp converts a java.time.Instant into com.google.protobuf.Timestamp by hand, seconds and nanos, because that conversion is exactly what the well-known type is: a message with two int64/int32 fields and a documented JSON mapping, RFC 3339 on the wire, nothing more exotic. Second, Money.amount is a string, '4200.00', not a double, the same decimal-as-string convention the shipping contract uses everywhere money appears, because a binary float cannot represent currency amounts exactly and every language's JSON number type has different precision guarantees. The instants here are fixed, not Instant.now(), so the example's verify.sh can assert an exact RFC 3339 string in the response and so the Python stack's identical RouteBuilder equivalent produces byte-identical output for the same request: one contract, two independent implementations, proven identical by the test, not just by inspection.");
 }
 
-/* ======================= DIVIDER 02 — UNARY ======================= */
+/* ======================= DIVIDER 02, UNARY ======================= */
 divider("02", "Unary RPCs & the generated stub",
   "The generated Mutiny interface, implemented as a @GrpcService bean: the shape every later chapter builds on.",
   "GetQuote is this book's anchor RPC: unary request, unary response, implemented identically in every chapter that doesn't change it, so a diff between chapters shows exactly what that chapter adds.");
@@ -236,7 +236,7 @@ divider("02", "Unary RPCs & the generated stub",
   addNotes(s, "RoutingService here is not hand-written: it's the interface quarkus-grpc generated from the shared .proto in the previous section, one method per RPC, each returning a Mutiny Uni or Multi depending on the RPC's shape. @GrpcService is the only annotation needed to register this class as that interface's implementation; there's no manual server registration, no manual port binding beyond what application.properties already configured. Uni.createFrom().item(response) is the simplest possible Uni: it resolves immediately, synchronously, with the one response value: no thread hop, no I/O wait. Every later chapter that touches GetQuote changes only the body of this method; the four other RoutingService methods declared on the same proto, FindOptimalRoute, ListRoutes, NegotiateRoute, RecomputeRoutes, return UNIMPLEMENTED here and pick up real implementations in later chapters, so each chapter's diff against this one shows exactly what it adds.");
 }
 
-/* ======================= DIVIDER 03 — STREAMING ======================= */
+/* ======================= DIVIDER 03, STREAMING ======================= */
 divider("03", "Streaming: server, client & bidi",
   "Multi for everything that isn't one response: built from a fixed sequence, folded from an inbound stream, or mapped 1:1.",
   "The same generated-interface, same-@GrpcService shape extends naturally to streaming: Multi<T> in either direction, composed with Mutiny's operators instead of hand-rolled iterator or callback code.");
@@ -247,7 +247,7 @@ divider("03", "Streaming: server, client & bidi",
     "08-server-streaming",
     "Multi.createFrom().items(...) emits events as DATA frames on the one HTTP/2 stream the call opened; completing the Multi is the server's half-close.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "WatchShipment is this chapter's server-streaming anchor: one WatchShipmentRequest in, a Multi of WatchShipmentResponse out. The server builds a fixed, four-event tracking sequence and returns Multi.createFrom().items(...).map(...): no explicit 'end of stream' call is needed, because the Multi completing is exactly what signals the server's half-close to the HTTP/2 stream underneath. Ten lines of Java are the entire implementation; everything about framing, flow control, and stream lifecycle is Mutiny's and grpc-java's problem, not this method's. The next slide shows the other two shapes: client streaming folds many requests into one response, and bidirectional streaming maps each inbound item to an outbound one without buffering the whole stream first.");
+  addNotes(s, "WatchShipment is the example's server-streaming anchor: one WatchShipmentRequest in, a Multi of WatchShipmentResponse out. The server builds a fixed, four-event tracking sequence and returns Multi.createFrom().items(...).map(...): no explicit 'end of stream' call is needed, because the Multi completing is exactly what signals the server's half-close to the HTTP/2 stream underneath. Ten lines of Java are the entire implementation; everything about framing, flow control, and stream lifecycle is Mutiny's and grpc-java's problem, not this method's. The next slide shows the other two shapes: client streaming folds many requests into one response, and bidirectional streaming maps each inbound item to an outbound one without buffering the whole stream first.");
 }
 
 {
@@ -265,7 +265,7 @@ divider("03", "Streaming: server, client & bidi",
       "                    .build());",
       "}",
       "",
-      "// Bidirectional: 1:1 map — N requests in produces N responses out, in order,",
+      "// Bidirectional: 1:1 map, N requests in produces N responses out, in order,",
       "// WITHOUT buffering the whole stream first (unlike reportPositions above).",
       "@Override",
       "public Multi<SyncResponse> sync(Multi<SyncRequest> request) {",
@@ -278,7 +278,7 @@ divider("03", "Streaming: server, client & bidi",
   addNotes(s, "Two different Mutiny operators for two different shapes, and the contrast is the lesson. reportPositions is client-streaming, one response for the whole call, so request.collect().asList() is exactly right: it subscribes to the inbound Multi, buffers every ReportPositionsRequest until the client half-closes its side (no more coming), and completes the returned Uni with the full list at that point, exactly the 'count what arrived, ack once' shape the proto describes. sync is bidirectional, a response per request, interleaved, so request.onItem().transform(...) is the correct operator instead: it's a 1:1 mapping that preserves arrival order and emits each SyncResponse the moment its SyncRequest arrives, without waiting for the stream to finish. A response can go out before the next request arrives; nothing is buffered. Getting these backwards, folding a bidi stream, or mapping a client-streaming one, is a common mistake this pairing makes obvious once you see them side by side.");
 }
 
-/* ======================= DIVIDER 04 — DEADLINES, ERRORS, INTERCEPTORS ======================= */
+/* ======================= DIVIDER 04, DEADLINES, ERRORS, INTERCEPTORS ======================= */
 divider("04", "Deadlines, rich errors & interceptors",
   "One shared clock across a downstream hop, a machine-readable error model, and one bean for every cross-cutting concern.",
   "Three patterns that only matter once a service calls another service, or a client needs more than a status code: deadline propagation, google.rpc.Status detail objects, and a single ServerInterceptor bean wired to every RPC.");
@@ -306,7 +306,7 @@ divider("04", "Deadlines, rich errors & interceptors",
       "        : DEFAULT_DOWNSTREAM_BUDGET_MS;",
       "",
       "if (downstreamBudgetMs <= 0) {",
-      "    // Budget already gone — fail fast, no network round trip at all.",
+      "    // Budget already gone, fail fast, no network round trip at all.",
       "    return Uni.createFrom().failure(Status.DEADLINE_EXCEEDED",
       "            .withDescription(\"no budget remaining to call QuoteService.GetQuote\")",
       "            .asRuntimeException());",
@@ -327,7 +327,7 @@ divider("04", "Deadlines, rich errors & interceptors",
     "11-rich-error-model",
     "google.rpc.Status pairs one canonical code with a typed detail (BadRequest, ErrorInfo, RetryInfo) in the gRPC trailers.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "A bare gRPC status code tells a caller whether to retry, but not what went wrong or how to fix it. The google.rpc.Status model layered on top, from com.google.api.grpc:proto-google-common-protos, a runtime library, not something this chapter's .proto invents, carries both: the canonical Code for the retry-or-don't decision, and one or more typed Any details (BadRequest.FieldViolation for a validation failure, ErrorInfo for a structured reason code, RetryInfo for exactly how long to wait) for the specifics. The next slide shows the three deterministic cases this chapter's GetQuote triggers by input, so grpcurl -v (or any client library that knows this convention) can read the rich detail straight out of the trailers.");
+  addNotes(s, "A bare gRPC status code tells a caller whether to retry, but not what went wrong or how to fix it. The google.rpc.Status model layered on top, from com.google.api.grpc:proto-google-common-protos, a runtime library, not something the example's .proto invents, carries both: the canonical Code for the retry-or-don't decision, and one or more typed Any details (BadRequest.FieldViolation for a validation failure, ErrorInfo for a structured reason code, RetryInfo for exactly how long to wait) for the specifics. The next slide shows the three deterministic cases the example's GetQuote triggers by input, so grpcurl -v (or any client library that knows this convention) can read the rich detail straight out of the trailers.");
 }
 
 {
@@ -374,7 +374,7 @@ divider("04", "Deadlines, rich errors & interceptors",
       "            call.close(Status.UNAUTHENTICATED.withDescription(\"missing 'authorization'\"), new Metadata());",
       "            return new ServerCall.Listener<>() { };   // handler never runs",
       "        }",
-      "        // Wrap the CALL (not the handler) — close() is the one place every",
+      "        // Wrap the CALL (not the handler), close() is the one place every",
       "        // RPC shape reports its final status.",
       "        ServerCall<ReqT, RespT> timedCall = new ForwardingServerCall.SimpleForwardingServerCall<>(call) {",
       "            @Override public void close(Status status, Metadata trailers) {",
@@ -391,7 +391,7 @@ divider("04", "Deadlines, rich errors & interceptors",
   addNotes(s, "@GlobalInterceptor is the Quarkus-specific part: it registers this one CDI bean against every gRPC service in the application, RoutingService included, a second @GrpcService added later would run through this exact interceptor with no extra wiring at all. Everything else is plain grpc-java. Two concerns, in order: an auth hook that reads the authorization header out of the call's Metadata, gRPC's header map, before a single byte of the request message is deserialized, and closes the call with UNAUTHENTICATED right here if it's absent, so the handler GetQuote or an UNIMPLEMENTED stub never runs at all. The server reflection service is explicitly exempted, because grpcurl list and describe need to work with no token at all. The second concern wraps the ServerCall itself, not the handler, via ForwardingServerCall: close(status, trailers) is the one place every RPC shape, unary or streaming, successful or not, reports its final status, making it the single correct place to log method, status, and elapsed time for every call.");
 }
 
-/* ======================= DIVIDER 05 — SCHEMA DESIGN & EVOLUTION ======================= */
+/* ======================= DIVIDER 05, SCHEMA DESIGN & EVOLUTION ======================= */
 divider("05", "Schema design & the evolution gate",
   "FieldMask projection on a paginated list, and buf breaking as the CI gate that keeps a contract change compatible.",
   "ListRoutes pages through a catalog and projects each result through the caller's FieldMask; buf breaking is what stops an incompatible change from ever reaching main.");
@@ -446,7 +446,7 @@ divider("05", "Schema design & the evolution gate",
   addNotes(s, "This is the one slide in the section that isn't Quarkus code, because the evolution gate lives in the shared contract's CI, ahead of any one stack's build, exactly the point: an incompatible schema change should never even reach the Quarkus or Python example that would have to work around it. contracts/buf.yaml configures breaking: use: FILE, the strictest of buf's breaking-change categories, meaning a changed field type, a reused field number, or a removed field on an existing message all fail the check. The GitHub Actions workflow runs three steps in order: buf lint for style, buf build -o /dev/null to confirm every import resolves, and buf breaking --against the main branch's version of contracts/proto, skipped only on the very first introduction of a proto file, when main has no baseline yet to compare against. Every chapter's own Quarkus or Python build regenerates its stubs from whatever passed this gate; no stack re-validates compatibility on its own.");
 }
 
-/* ======================= DIVIDER 06 — CONCURRENCY ======================= */
+/* ======================= DIVIDER 06, CONCURRENCY ======================= */
 divider("06", "Concurrency: three models, one method",
   "@Blocking, pinned to one event loop, and a virtual thread: the same ~400ms of I/O, three different threading costs.",
   "The same simulated blocking lookup, dispatched three different ways from one method, makes the cost of getting Quarkus's execution model wrong directly observable.");
@@ -457,7 +457,7 @@ divider("06", "Concurrency: three models, one method",
     "15-jvm-execution-models",
     "The default @Blocking worker pool, the Vert.x event loop, and a JDK virtual thread: three ways one gRPC method can run.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "This figure lays out the three threading models this chapter's one method switches between. The correct default for any method doing blocking I/O, a JDBC call, a blocking file read, the simulated ~400ms lookup this chapter uses, is @Blocking, which dispatches the invocation onto Quarkus's default Vert.x worker pool before a single line of the method body runs; eight concurrent calls in that mode use eight of the worker pool's threads (default size 20) and overlap in time. The event loop is the opposite case: a small, fixed pool (2x the host's CPU count by default) meant for non-blocking work only: running blocking I/O directly on it is the literal 'thread starvation' failure mode this chapter names. Virtual threads are a third, illustrative model: a fresh platform-independent thread per call, reproducing by hand what @RunOnVirtualThread does automatically when it's the sole execution-model annotation on a method.");
+  addNotes(s, "This figure lays out the three threading models the example's one method switches between. The correct default for any method doing blocking I/O, a JDBC call, a blocking file read, the simulated ~400ms lookup the example uses, is @Blocking, which dispatches the invocation onto Quarkus's default Vert.x worker pool before a single line of the method body runs; eight concurrent calls in that mode use eight of the worker pool's threads (default size 20) and overlap in time. The event loop is the opposite case: a small, fixed pool (2x the host's CPU count by default) meant for non-blocking work only: running blocking I/O directly on it is the literal 'thread starvation' failure mode the example names. Virtual threads are a third, illustrative model: a fresh platform-independent thread per call, reproducing by hand what @RunOnVirtualThread does automatically when it's the sole execution-model annotation on a method.");
 }
 
 {
@@ -497,7 +497,7 @@ divider("06", "Concurrency: three models, one method",
   addNotes(s, "@Blocking on the method itself is what makes the default branch correct without any extra code in the body: quarkus-grpc has already dispatched this invocation onto the Vert.x worker pool before the switch statement runs, so Uni.createFrom().item(work) in the default case runs the lookup right where it's called, no further hop needed. The 'starving' mode exists purely to demonstrate the failure this annotation prevents: Context.runOnContext schedules the identical blocking lookup onto one fixed, shared event-loop context, the same context across every starving call, rather than each call's own current context, which is what makes the serialization reproducible regardless of how many CPU cores the host has. The virtual-thread path, not shown in full here, calls Thread.ofVirtual().start(...) directly, reproducing by hand what the real @RunOnVirtualThread annotation does automatically when it's a method's only execution-model annotation: this demo can't just add that annotation to a second method, because one shared method needs to switch models at request time based on a demo-only mode flag.");
 }
 
-/* ======================= DIVIDER 07 — ASYNC OPERATIONS ======================= */
+/* ======================= DIVIDER 07, ASYNC OPERATIONS ======================= */
 divider("07", "Async operations: poll, watch, cancel",
   "A server-owned Operation record on its own service, shared by the job that advances it and the RPCs that read it.",
   "RecomputeRoutes kicks off a long-running job; a separate OperationsService exposes GetOperation, WatchOperation, and CancelOperation against the same shared state.");
@@ -534,7 +534,7 @@ divider("07", "Async operations: poll, watch, cancel",
       "@Override",
       "public Uni<Types.Operation> cancelOperation(CancelOperationRequest request) {",
       "    OperationState state = registry.get(request.getOperationId());",
-      "    boolean cancelledNow = state.cancel();   // synchronized — races the background job safely",
+      "    boolean cancelledNow = state.cancel();   // synchronized, races the background job safely",
       "    return Uni.createFrom().item(state.snapshot());",
       "}",
     ],
@@ -543,7 +543,7 @@ divider("07", "Async operations: poll, watch, cancel",
   addNotes(s, "getOperation is the simplest lookup: a snapshot of whatever OperationState currently holds, or NOT_FOUND if the id is unknown. watchOperation is a server-streaming RPC built from an emitter, not a fixed list: streamSnapshots loops, emitting a snapshot every WATCH_POLL_MS and completing the Multi the instant the operation reports done, so a caller gets a live progress feed without polling client-side at all. emitOn(Infrastructure.getDefaultExecutor()) matters here specifically because the loop inside streamSnapshots calls Thread.sleep between emissions, exactly the blocking call the previous section's concurrency chapter warned about, so emitOn moves every emission onto the worker pool, never the event loop that accepted this stream. cancelOperation calls state.cancel(), a synchronized method on OperationState that returns true only if this call is the one that moved the operation to terminal: the mutual-exclusion that keeps a background job and a concurrent cancel from both believing they own the final transition. The full OperationState listing is in the appendix.");
 }
 
-/* ======================= DIVIDER 08 — STREAMING AT SCALE & PERFORMANCE ======================= */
+/* ======================= DIVIDER 08, STREAMING AT SCALE & PERFORMANCE ======================= */
 divider("08", "Streaming at scale & performance",
   "Demand-driven Multi so a slow consumer applies real backpressure, plus the knobs that trade message size, latency, and CPU.",
   "A long-lived feed exposes what a four-event demo hides: production has to be gated on demand, and the server has real tuning knobs for message size, keepalive, and compression.");
@@ -612,18 +612,18 @@ divider("08", "Streaming at scale & performance",
       "quarkus.grpc.server.netty.permit-keep-alive-time=5s",
       "quarkus.grpc.server.netty.permit-keep-alive-without-calls=true",
       "",
-      "# 3. gzip every response — a clear win for ListRoutes' padded page,",
+      "# 3. gzip every response; a clear win for ListRoutes' padded page,",
       "#    close to a wash for GetQuote's few dozen bytes.",
       "quarkus.grpc.server.compression=gzip",
     ],
     "Verified against the installed quarkus-grpc 3.40.1 config model: the 4MB-vs-256KB split between separate- and unified-server mode is explicit in its javadoc.",
     { fontSize: 13 });
-  addNotes(s, "Every one of these three knobs lives under quarkus.grpc.server because this example, like every other chapter in the book, leaves quarkus.grpc.server.use-separate-server at its default of true, which puts grpc-java's own Netty server, not the Vert.x HTTP server, in front of the gRPC service; that's also why the keepalive properties are nested one level deeper, under the Netty-specific config block, rather than the Vert.x TLS registry a unified-server setup would use. The keepalive values here, 5 seconds, are short for this example so a verify.sh script can exercise an idle gap without a slow test; a production value is typically tens of seconds to a few minutes. None of these three settings required a single line of Java to change: they're exactly the kind of tuning that should live in configuration, reviewable and environment-specific, rather than hardcoded into a servicer.");
+  addNotes(s, "Every one of these three knobs lives under quarkus.grpc.server because this example, like every other example, leaves quarkus.grpc.server.use-separate-server at its default of true, which puts grpc-java's own Netty server, not the Vert.x HTTP server, in front of the gRPC service; that's also why the keepalive properties are nested one level deeper, under the Netty-specific config block, rather than the Vert.x TLS registry a unified-server setup would use. The keepalive values here, 5 seconds, are short for this example so a verify.sh script can exercise an idle gap without a slow test; a production value is typically tens of seconds to a few minutes. None of these three settings required a single line of Java to change: they're exactly the kind of tuning that should live in configuration, reviewable and environment-specific, rather than hardcoded into a servicer.");
 }
 
-/* ======================= DIVIDER 09 — SECURITY: TLS, MTLS, AUTHN & AUTHZ ======================= */
+/* ======================= DIVIDER 09, SECURITY: TLS, MTLS, AUTHN & AUTHZ ======================= */
 divider("09", "Security: transport and identity",
-  "mTLS terminated in the gRPC Java server, and a JWT-plus-scopes interceptor layered on top of Chapter 12's shape.",
+  "mTLS terminated in the gRPC Java server, and a JWT-plus-scopes interceptor layered on top of the logging interceptor's shape.",
   "Transport security and caller identity are two separable layers: certificates prove the connection, a verified token with scopes decides what that caller may do.");
 
 {
@@ -632,7 +632,7 @@ divider("09", "Security: transport and identity",
     "19-mtls-mutual-verification",
     "client-auth=REQUIRED means the handshake fails without a client certificate the server's trust-store recognizes, before any RPC runs.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "Plain TLS proves the server's identity to the client; mTLS adds the reverse, and this chapter's server runs in REQUIRED mode, its steady state. The rejection, when it happens, is a transport-layer event, a connection reset, not a gRPC status code the application chose, because it happens in the TLS handshake itself, before a single byte of any request is deserialized and before grpc-java's own status machinery is even reachable. The next slide shows exactly how that's configured for the gRPC Java server specifically, which is a different configuration surface than the Vert.x-based alternative server mode would use.");
+  addNotes(s, "Plain TLS proves the server's identity to the client; mTLS adds the reverse, and the example's server runs in REQUIRED mode, its steady state. The rejection, when it happens, is a transport-layer event, a connection reset, not a gRPC status code the application chose, because it happens in the TLS handshake itself, before a single byte of any request is deserialized and before grpc-java's own status machinery is even reachable. The next slide shows exactly how that's configured for the gRPC Java server specifically, which is a different configuration surface than the Vert.x-based alternative server mode would use.");
 }
 
 {
@@ -642,18 +642,18 @@ divider("09", "Security: transport and identity",
       "# examples/19-tls-mtls/quarkus/src/main/resources/application.properties",
       "#",
       "# This is the gRPC JAVA server (use-separate-server defaults to true), so",
-      "# TLS lives under quarkus.grpc.server.ssl.* — NOT quarkus.http.ssl.* or the",
+      "# TLS lives under quarkus.grpc.server.ssl.*, NOT quarkus.http.ssl.* or the",
       "# quarkus.tls.<name>.* registry, which apply to the Vert.x-based server.",
       "quarkus.grpc.server.plain-text=false",
       "quarkus.grpc.server.ssl.certificate=/certs/server.crt",
       "quarkus.grpc.server.ssl.key=/certs/server.key",
       "",
       "# This gRPC Java server's trust-store loads through Vert.x's KeyStoreHelper",
-      "# and needs an actual Java keystore — a plain PEM CA is rejected outright.",
+      "# and needs an actual Java keystore; a plain PEM CA is rejected outright.",
       "quarkus.grpc.server.ssl.trust-store=/certs/ca-truststore.jks",
       "quarkus.grpc.server.ssl.trust-store-password=changeit",
       "",
-      "# NONE / REQUEST / REQUIRED — this example's steady state is REQUIRED.",
+      "# NONE / REQUEST / REQUIRED, this example's steady state is REQUIRED.",
       "quarkus.grpc.server.ssl.client-auth=${GRPC_CLIENT_AUTH:REQUIRED}",
     ],
     "Confirmed against the installed quarkus-grpc 3.40.1 reference guide, not assumed: PEM for cert/key, a Java keystore for the trust-store.",
@@ -667,7 +667,7 @@ divider("09", "Security: transport and identity",
     "20-jwt-in-metadata-flow",
     "The interceptor verifies signature and expiry, then checks a per-method scope, all before RoutingServiceImpl ever runs.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "Authentication and authorization are two separable questions, and this chapter's interceptor answers both, in order, before the handler runs. First: is this token signed by a key this server trusts, and has it not expired, a question JwtVerifier answers with dependency-light HMAC verification, no OIDC client or JWKS fetch needed because this chapter's token uses one fixed, baked-in HS256 secret with no identity provider in the loop. Second, only once that's settled: does the token's scope claim contain whatever scope this specific method requires, a question this deck's AuthzInterceptor answers with a small static map. Both failures close the call before RoutingServiceImpl.getQuote or listRoutes ever executes; the method itself never has to know authorization exists.");
+  addNotes(s, "Authentication and authorization are two separable questions, and the example's interceptor answers both, in order, before the handler runs. First: is this token signed by a key this server trusts, and has it not expired, a question JwtVerifier answers with dependency-light HMAC verification, no OIDC client or JWKS fetch needed because the example's token uses one fixed, baked-in HS256 secret with no identity provider in the loop. Second, only once that's settled: does the token's scope claim contain whatever scope this specific method requires, a question this deck's AuthzInterceptor answers with a small static map. Both failures close the call before RoutingServiceImpl.getQuote or listRoutes ever executes; the method itself never has to know authorization exists.");
 }
 
 {
@@ -699,10 +699,10 @@ divider("09", "Security: transport and identity",
     ],
     "JwtVerifier does signature + exp with the JDK's own Mac and a constant-time MessageDigest.isEqual comparison: full listing in the appendix.",
     { fontSize: 11 });
-  addNotes(s, "METHOD_SCOPES is the whole per-method authorization policy, expressed as one map keyed on MethodDescriptor.getFullMethodName()'s 'pkg.Service/Method' format: a method with no entry is treated as 'authenticated only.' ListRoutes is gated on routes:admin, a scope the demo tokens never carry, so calling it gets PERMISSION_DENIED before RoutingServiceImpl.listRoutes ever runs; that method would also answer UNIMPLEMENTED if it were ever reached, but that's a separate, later fact about this example's scope, not the authorization decision made here. jwtVerifier.verify does the heavy lifting the appendix shows in full: split the token into three dot-separated segments, recompute an HMAC-SHA256 over the first two with the JDK's own javax.crypto.Mac, and compare using MessageDigest.isEqual, a constant-time comparison chosen over a short-circuiting one, because a signature check that returns early on the first mismatched byte leaks how many leading bytes were correct through timing, the textbook side channel for MAC verification. Server reflection is exempted from all of this, exactly as Chapter 12's interceptor exempted it, so grpcurl can still list and describe the service with no token.");
+  addNotes(s, "METHOD_SCOPES is the whole per-method authorization policy, expressed as one map keyed on MethodDescriptor.getFullMethodName()'s 'pkg.Service/Method' format: a method with no entry is treated as 'authenticated only.' ListRoutes is gated on routes:admin, a scope the demo tokens never carry, so calling it gets PERMISSION_DENIED before RoutingServiceImpl.listRoutes ever runs; that method would also answer UNIMPLEMENTED if it were ever reached, but that's a separate, later fact about this example's scope, not the authorization decision made here. jwtVerifier.verify does the heavy lifting the appendix shows in full: split the token into three dot-separated segments, recompute an HMAC-SHA256 over the first two with the JDK's own javax.crypto.Mac, and compare using MessageDigest.isEqual, a constant-time comparison chosen over a short-circuiting one, because a signature check that returns early on the first mismatched byte leaks how many leading bytes were correct through timing, the textbook side channel for MAC verification. Server reflection is exempted from all of this, exactly as the logging interceptor exempted it, so grpcurl can still list and describe the service with no token.");
 }
 
-/* ======================= DIVIDER 10 — OBSERVABILITY ======================= */
+/* ======================= DIVIDER 10, OBSERVABILITY ======================= */
 divider("10", "Observability & health",
   "Zero-code trace propagation across a loopback hop, Prometheus metrics, and the built-in grpc.health.v1 service.",
   "quarkus-opentelemetry instruments the gRPC client and server automatically; quarkus-micrometer-registry-prometheus and the built-in health service need nothing beyond being on the classpath.");
@@ -733,17 +733,17 @@ divider("10", "Observability & health",
       "            .onItem().transform(resp -> buildResponse(origin, destination, resp.getQuote()));",
       "}",
       "",
-      "// application.properties — no code needed for any of these three:",
+      "// application.properties; no code needed for any of these three:",
       "//   quarkus-opentelemetry        -> traces, auto-instrumented gRPC client + server",
       "//   quarkus-micrometer-registry-prometheus -> gRPC server metrics at /q/metrics",
       "//   grpc.health.v1.Health        -> registered automatically for every @GrpcService",
     ],
     "The same traceId logged here and in QuoteServiceImpl is verify.sh's trace-continuity assertion.",
     { fontSize: 12 });
-  addNotes(s, "Span.current() here is already a child span by the time this method runs, whether the caller was grpcurl hitting this RPC directly or BookingResource's REST handler calling it over its own loopback @GrpcClient, either path's W3C traceparent arrived on the inbound call's metadata and was extracted automatically. Logging the trace id here is half of what this chapter's trace-continuity check verifies; QuoteServiceImpl logs the matching other half, and a passing test means one real trace id threads through a REST call, a gRPC hop, and a second gRPC hop, not three disconnected spans that happen to look related. The three free surfaces in the comment block are the chapter's other half: quarkus-micrometer-registry-prometheus publishes gRPC server metrics at /q/metrics the moment it's on the classpath, and quarkus-grpc registers the built-in grpc.health.v1.Health service automatically for every @GrpcService bean present: no separate dependency, no enable flag, and no code in this file for either one.");
+  addNotes(s, "Span.current() here is already a child span by the time this method runs, whether the caller was grpcurl hitting this RPC directly or BookingResource's REST handler calling it over its own loopback @GrpcClient, either path's W3C traceparent arrived on the inbound call's metadata and was extracted automatically. Logging the trace id here is half of what the example's trace-continuity check verifies; QuoteServiceImpl logs the matching other half, and a passing test means one real trace id threads through a REST call, a gRPC hop, and a second gRPC hop, not three disconnected spans that happen to look related. The three free surfaces in the comment block are the chapter's other half: quarkus-micrometer-registry-prometheus publishes gRPC server metrics at /q/metrics the moment it's on the classpath, and quarkus-grpc registers the built-in grpc.health.v1.Health service automatically for every @GrpcService bean present: no separate dependency, no enable flag, and no code in this file for either one.");
 }
 
-/* ======================= DIVIDER 11 — MESH & LOAD BALANCING ======================= */
+/* ======================= DIVIDER 11, MESH & LOAD BALANCING ======================= */
 divider("11", "Load balancing on a real cluster",
   "A reused HTTP/2 channel meets three replicas: the pinned-pod baseline, the headless + round-robin fix, and the mesh fix.",
   "This is the one example in the book that runs on a live minikube cluster rather than Docker Compose, because the failure mode it demonstrates only exists once a service has more than one replica.");
@@ -754,7 +754,7 @@ divider("11", "Load balancing on a real cluster",
     "22-grpc-lb-problem",
     "A plain ClusterIP Service resolves to one virtual IP; kube-proxy picks a backend pod once per connection, not once per RPC: all 30 calls over one reused channel land on the same pod.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "Three replicas of the same GetQuote server, fronted by an entirely ordinary ClusterIP Service: nothing misconfigured, nothing a toy example of bad YAML. The real recorded run against it: 30 GetQuote calls over one reused channel, all 30 answered by the exact same pod, while kubectl get pods confirmed the other two replicas were Running and ready the whole time. pick_first, grpc-core's default load-balancing policy, does exactly what its name says: a ClusterIP Service resolves to exactly one address, so there's only ever one thing to pick first. This is the identical discipline Chapter 7 taught, build one channel, reuse it for the life of the process, colliding with a Kubernetes primitive that makes its routing decision once per TCP connection, not once per request. Every chapter before this one ran against one server process, so this choice was never visible; the moment a service has more than one replica, it becomes one.");
+  addNotes(s, "Three replicas of the same GetQuote server, fronted by an entirely ordinary ClusterIP Service: nothing misconfigured, nothing a toy example of bad YAML. The real recorded run against it: 30 GetQuote calls over one reused channel, all 30 answered by the exact same pod, while kubectl get pods confirmed the other two replicas were Running and ready the whole time. pick_first, grpc-core's default load-balancing policy, does exactly what its name says: a ClusterIP Service resolves to exactly one address, so there's only ever one thing to pick first. This is the identical discipline the unary section taught, build one channel, reuse it for the life of the process, colliding with a Kubernetes primitive that makes its routing decision once per TCP connection, not once per request. Every chapter before this one ran against one server process, so this choice was never visible; the moment a service has more than one replica, it becomes one.");
 }
 
 {
@@ -766,7 +766,7 @@ divider("11", "Load balancing on a real cluster",
   addNotes(s, "The headless + round-robin fix changes nothing about the client's code path and everything about what DNS tells it: a headless Service (clusterIP: None) resolves to one DNS A record per ready pod instead of one virtual IP standing in for all of them, and a channel built with a dns:/// target and round_robin as its LB policy opens a persistent subchannel to each address and cycles through all three. The real recorded tally over the identical 30-call client: a clean 10/10/10 split across the same three pods the pinned baseline collapsed onto one of. The mesh fix is different in kind, not degree: Istio's sidecar redirects outbound traffic through a local Envoy proxy before kube-proxy's Service-VIP rewrite ever runs, and that proxy, which already knows every pod behind the Service from Istio's control plane, picks a backend per individual HTTP/2 stream, not once per connection. Running the unchanged client against the same plain ClusterIP Service the baseline pinned to one pod, with STRICT mTLS and retry/timeout policy from a DestinationRule and VirtualService layered on top, produces the identical 10/10/10 split: with zero client code change at all.");
 }
 
-/* ======================= DIVIDER 12 — GRPC-WEB & TRANSCODING ======================= */
+/* ======================= DIVIDER 12, GRPC-WEB & TRANSCODING ======================= */
 divider("12", "grpc-web & JSON/HTTP transcoding",
   "Envoy, in front of the unmodified Quarkus service, unwraps grpc-web framing and transcodes plain JSON into native gRPC.",
   "The Quarkus service never knows a browser or a plain JSON client exists: Envoy's filter chain is the entire seam.");
@@ -777,7 +777,7 @@ divider("12", "grpc-web & JSON/HTTP transcoding",
     "23-grpc-web-transcoding-seam",
     "grpc_web unwraps a grpc-web-framed call; grpc_json_transcoder decodes plain JSON against the baked-in proto descriptor, both forward to the same gRPC cluster.",
     { x: 1.30, y: 1.72, w: 10.73, h: 4.55 });
-  addNotes(s, "Nothing about RoutingServiceImpl changes for this chapter: the Quarkus server still speaks native gRPC/HTTP2 on its own port, exactly as every prior chapter left it. Envoy sits in front of it and runs one HTTP connection manager with two gRPC-aware filters, in order: grpc_web first, which unwraps a grpc-web-framed POST, application/grpc-web+proto, into a native gRPC call; a plain JSON request's content-type doesn't match that filter's trigger, so it passes through untouched. grpc_json_transcoder runs next, and acts only on anything not already application/grpc, a plain JSON POST, decoding its body against a baked-in compiled proto descriptor and re-encoding it as a native gRPC call; a request the grpc_web filter already converted passes through this second filter untouched too, because it's no longer JSON. The router filter forwards the now-uniformly-native-gRPC call to the Quarkus cluster over HTTP/2.");
+  addNotes(s, "Nothing about RoutingServiceImpl changes for this example: the Quarkus server still speaks native gRPC/HTTP2 on its own port, exactly as every prior chapter left it. Envoy sits in front of it and runs one HTTP connection manager with two gRPC-aware filters, in order: grpc_web first, which unwraps a grpc-web-framed POST, application/grpc-web+proto, into a native gRPC call; a plain JSON request's content-type doesn't match that filter's trigger, so it passes through untouched. grpc_json_transcoder runs next, and acts only on anything not already application/grpc, a plain JSON POST, decoding its body against a baked-in compiled proto descriptor and re-encoding it as a native gRPC call; a request the grpc_web filter already converted passes through this second filter untouched too, because it's no longer JSON. The router filter forwards the now-uniformly-native-gRPC call to the Quarkus cluster over HTTP/2.");
 }
 
 {
@@ -811,7 +811,7 @@ divider("12", "grpc-web & JSON/HTTP transcoding",
   addNotes(s, "Filter order is the whole mechanism here, and it's not arbitrary: a request passes through grpc_web, then grpc_json_transcoder, then router, and each filter only acts on content it recognizes, so a given request is transformed by at most one of the first two. explicit_http_config with http2_protocol_options on the app cluster is what tells Envoy to speak HTTP/2 to the upstream Quarkus service, required because gRPC is an HTTP/2-only protocol regardless of what the downstream client spoke. auto_mapping lets the transcoder derive a JSON-to-RPC mapping from the proto descriptor directly, without a separate google.api.http annotation on every method, and convert_grpc_status is what turns a gRPC status code like NOT_FOUND back into the HTTP status code a plain JSON/REST client actually expects. The descriptor itself, descriptor.binpb, is a compiled binary form of the same shared .proto every chapter in this book already generates from; nothing about the contract changes to support this.");
 }
 
-/* ======================= DIVIDER 13 — TESTING & DEBUGGING ======================= */
+/* ======================= DIVIDER 13, TESTING & DEBUGGING ======================= */
 divider("13", "Testing & debugging",
   "@QuarkusTest with an auto-wired @GrpcClient as the hard CI gate, and a configurable delay for reproducing DEADLINE_EXCEEDED on demand.",
   "A real in-process test server that gates every build, and one knob that turns a transient timeout into something you can reproduce reliably.");
@@ -853,7 +853,7 @@ divider("13", "Testing & debugging",
     ],
     "'In the case of using a client to test an exposed service that does not use TLS, there is no need to provide any configuration': the Quarkus gRPC guide, confirmed against 3.40.1.",
     { fontSize: 11 });
-  addNotes(s, "@QuarkusTest boots the full application for the test JVM, including the real gRPC server this module wires up in application.properties, on its own port, exactly as it runs in production. @GrpcClient then injects a client typed to the same generated Mutiny RoutingService interface RoutingServiceImpl implements: no manual channel, no manual stub, no host or port configuration, because a client with no client-specific config in a @QuarkusTest self-wires to the test server's own address automatically. client.getQuote(request).await().atMost(...) blocks this test thread for exactly one reply, with a tight explicit timeout so a hung server fails the test instead of hanging the build forever. This is the hard gate every chapter in the book relies on: the Containerfile's build stage runs mvn verify, not -DskipTests, so if this one assertion goes red, the Maven build fails, the container image build fails, and verify.sh fails before a single grpcurl call ever runs against a broken image.");
+  addNotes(s, "@QuarkusTest boots the full application for the test JVM, including the real gRPC server this module wires up in application.properties, on its own port, exactly as it runs in production. @GrpcClient then injects a client typed to the same generated Mutiny RoutingService interface RoutingServiceImpl implements: no manual channel, no manual stub, no host or port configuration, because a client with no client-specific config in a @QuarkusTest self-wires to the test server's own address automatically. client.getQuote(request).await().atMost(...) blocks this test thread for exactly one reply, with a tight explicit timeout so a hung server fails the test instead of hanging the build forever. This is the hard gate every example relies on: the Containerfile's build stage runs mvn verify, not -DskipTests, so if this one assertion goes red, the Maven build fails, the container image build fails, and verify.sh fails before a single grpcurl call ever runs against a broken image.");
 }
 
 {
@@ -868,21 +868,21 @@ divider("13", "Testing & debugging",
       "public Uni<GetQuoteResponse> getQuote(GetQuoteRequest request) {",
       "    GetQuoteResponse response = /* same formula every unary chapter uses */;",
       "    // A client deadline shorter than quoteDelayMs cannot be met; one longer",
-      "    // than it succeeds normally — same request, same server, either way.",
+      "    // than it succeeds normally, same request, same server, either way.",
       "    return Uni.createFrom().item(response)",
       "            .onItem().delayIt().by(Duration.ofMillis(quoteDelayMs));",
       "}",
       "",
       "// FindOptimalRoute/ListRoutes/NegotiateRoute/RecomputeRoutes stay",
-      "// UNIMPLEMENTED here — this chapter's UNIMPLEMENTED repro",
+      "// UNIMPLEMENTED here; the example's UNIMPLEMENTED repro",
       "// calls FindOptimalRoute for exactly that reason.",
     ],
     "delayIt().by() schedules the emission on Mutiny's worker pool rather than Thread.sleep: other requests keep flowing while this one waits.",
     { fontSize: 13 });
-  addNotes(s, "QUOTE_DELAY_MS stands in for a slow downstream dependency without actually adding one: the deadlines chapter earlier in this deck wired a real downstream hop for the same lesson; this chapter only needs a deadline to have something to race against, so an artificial, configurable delay is simpler. A client deadline set shorter than quoteDelayMs cannot be met and reproduces DEADLINE_EXCEEDED reliably, on demand, against the exact same request and server that succeeds fine with a longer deadline, the kind of reliable repro that's hard to get from a flaky downstream dependency. onItem().delayIt().by(...) is the detail to note: it schedules the delayed emission on Mutiny's default worker pool, not a blocking Thread.sleep, so this one slow call doesn't tie up the event loop thread and stall every other request the server is handling concurrently. The UNIMPLEMENTED repro this chapter also teaches calls FindOptimalRoute, which is why that method, and three others, are left exactly as declared in the proto and never given a real implementation in this chapter's example.");
+  addNotes(s, "QUOTE_DELAY_MS stands in for a slow downstream dependency without actually adding one: the deadlines chapter earlier in this deck wired a real downstream hop for the same lesson; the example only needs a deadline to have something to race against, so an artificial, configurable delay is simpler. A client deadline set shorter than quoteDelayMs cannot be met and reproduces DEADLINE_EXCEEDED reliably, on demand, against the exact same request and server that succeeds fine with a longer deadline, the kind of reliable repro that's hard to get from a flaky downstream dependency. onItem().delayIt().by(...) is the detail to note: it schedules the delayed emission on Mutiny's default worker pool, not a blocking Thread.sleep, so this one slow call doesn't tie up the event loop thread and stall every other request the server is handling concurrently. The UNIMPLEMENTED repro the example also teaches calls FindOptimalRoute, which is why that method, and three others, are left exactly as declared in the proto and never given a real implementation in the example.");
 }
 
-/* ======================= DIVIDER 14 — THE FINAL PROJECT ======================= */
+/* ======================= DIVIDER 14, THE FINAL PROJECT ======================= */
 divider("14", "The Final Project",
   "Every pattern in this deck, in one process: mTLS, JWT scopes, OTel tracing, three gRPC services, and a REST front door.",
   "RoutingService, QuoteService, TrackingService, and the built-in Health service all run behind one mTLS-required, JWT-gated port, with internal loopback calls presenting the same client certificate and a service-minted bearer token.");
@@ -915,7 +915,7 @@ divider("14", "The Final Project",
       "public void start(Listener<RespT> responseListener, Metadata headers) {",
       "    headers.put(AUTHORIZATION, \"Bearer \" + InternalTokenIssuer.token());",
       "    // Hand-built channel, NOT a Quarkus-managed @GrpcClient, so OTel never",
-      "    // sees it automatically — inject the trace context into metadata by hand.",
+      "    // sees it automatically, inject the trace context into metadata by hand.",
       "    GlobalOpenTelemetry.getPropagators().getTextMapPropagator()",
       "            .inject(Context.current(), headers, (carrier, k, v) -> carrier.put(...));",
       "    super.start(responseListener, headers);",
@@ -988,7 +988,7 @@ divider("A", "Appendix",
       "quarkus.grpc.server.host=0.0.0.0",
       "quarkus.grpc.server.enable-reflection-service=true",
       "",
-      "# mTLS (Ch19 shape, unchanged)",
+      "# mTLS (same shape as the TLS section, unchanged)",
       "quarkus.grpc.server.plain-text=false",
       "quarkus.grpc.server.ssl.certificate=/certs/server.crt",
       "quarkus.grpc.server.ssl.key=/certs/server.key",
@@ -996,11 +996,11 @@ divider("A", "Appendix",
       "quarkus.grpc.server.ssl.trust-store-password=changeit",
       "quarkus.grpc.server.ssl.client-auth=REQUIRED",
       "",
-      "# REST front door — POST /booking/quote; also serves /q/metrics",
+      "# REST front door, POST /booking/quote; also serves /q/metrics",
       "quarkus.http.host=0.0.0.0",
       "quarkus.http.port=8080",
       "",
-      "# OTel — always-on for this chapter",
+      "# OTel, always-on for the example",
       "quarkus.otel.exporter.otlp.endpoint=${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}",
       "quarkus.otel.service.name=ch27-final-project-quarkus",
     ],
@@ -1055,7 +1055,7 @@ divider("A", "Appendix",
       "    byte[] expectedSignature = hmacSha256(parts[0] + \".\" + parts[1], SECRET);",
       "    byte[] actualSignature = Base64.getUrlDecoder().decode(pad(parts[2]));",
       "    // Constant-time comparison: a short-circuiting check leaks how many",
-      "    // leading bytes matched via timing — the textbook MAC side channel.",
+      "    // leading bytes matched via timing; the textbook MAC side channel.",
       "    if (!MessageDigest.isEqual(expectedSignature, actualSignature)) {",
       "        throw new TokenError(\"signature verification failed\");",
       "    }",
@@ -1071,7 +1071,7 @@ divider("A", "Appendix",
     ],
     "HmacSHA256 via the JDK's own javax.crypto.Mac: no OIDC client, no JWKS fetch, for a token this example mints itself.",
     { fontSize: 11 });
-  addNotes(s, "The body deck's AuthzInterceptor slide called jwtVerifier.verify and moved on; this is what that call actually does. Three dot-separated segments are required, or the token is rejected outright as malformed. The signing input is the first two segments joined by a dot, and the expected signature is an HMAC-SHA256 over that input using the JDK's own javax.crypto.Mac with a fixed, shared secret: no OIDC client, no JWKS endpoint, no network round trip, because this chapter's token has no real identity provider behind it and a production service authenticating real tokens would use quarkus-oidc or SmallRye JWT instead, never hand-rolled verification like this. MessageDigest.isEqual is deliberate, not incidental: a naive byte-array equals() that returns false the moment it finds a mismatch leaks, through timing, how many leading bytes of the signature were actually correct, a real and exploitable side channel against MAC verification, and isEqual is specifically designed to take constant time regardless of where the first difference falls.");
+  addNotes(s, "The body deck's AuthzInterceptor slide called jwtVerifier.verify and moved on; this is what that call actually does. Three dot-separated segments are required, or the token is rejected outright as malformed. The signing input is the first two segments joined by a dot, and the expected signature is an HMAC-SHA256 over that input using the JDK's own javax.crypto.Mac with a fixed, shared secret: no OIDC client, no JWKS endpoint, no network round trip, because the example's token has no real identity provider behind it and a production service authenticating real tokens would use quarkus-oidc or SmallRye JWT instead, never hand-rolled verification like this. MessageDigest.isEqual is deliberate, not incidental: a naive byte-array equals() that returns false the moment it finds a mismatch leaks, through timing, how many leading bytes of the signature were actually correct, a real and exploitable side channel against MAC verification, and isEqual is specifically designed to take constant time regardless of where the first difference falls.");
 }
 
 {

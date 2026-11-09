@@ -55,7 +55,7 @@ public final class RouteBuilder {
     }
 
     // com.google.protobuf.Timestamp ships inside protobuf-java itself (the
-    // compiled well-known-type classes, not a separate dependency) — the
+    // compiled well-known-type classes, not a separate dependency), the
     // same jar quarkus-grpc already pulls in to generate Leg/Money/Route.
     private static Timestamp toTimestamp(Instant instant) {
         return Timestamp.newBuilder()

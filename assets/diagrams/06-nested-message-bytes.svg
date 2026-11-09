@@ -3,7 +3,7 @@
 <rect x="20" y="20" width="1080" height="170" rx="12" fill="#fafafa" stroke="#ddd"/>
 <text x="32" y="40" font-size="12" font-weight="700" fill="#1d1d1d">the nesting relationship: Money sits inside GetQuoteResponse, Route is a sibling field</text>
 <rect x="20" y="210" width="1080" height="270" rx="12" fill="#fafafa" stroke="#ddd"/>
-<text x="32" y="230" font-size="12" font-weight="700" fill="#1d1d1d">serialized bytes on the wire (17 bytes): bytes 2–15 are the nested Money, byte-for-byte what Ch. 3 decoded standalone</text>
+<text x="32" y="230" font-size="12" font-weight="700" fill="#1d1d1d">serialized bytes on the wire (17 bytes): bytes 2 to 15 are the nested Money, byte for byte the standalone encoding</text>
 <rect x="20" y="500" width="1080" height="120" rx="12" fill="#fafafa" stroke="#ddd"/>
 <text x="32" y="520" font-size="12" font-weight="700" fill="#1d1d1d">what nesting costs, and what it doesn&#x27;t</text>
 <rect x="150" y="302" width="856" height="72" rx="12" fill="#fdf0dd" stroke="#ddd"/>
@@ -81,7 +81,7 @@
 <text x="736.0" y="69.0" font-size="11" fill="#b8650a" text-anchor="middle">recurses: same key pattern</text>
 <text x="68" y="293" font-size="11.5" fill="#1d1d1d" text-anchor="middle">outer key</text>
 <text x="128" y="293" font-size="11.5" fill="#1d1d1d" text-anchor="middle">outer len=14</text>
-<text x="578" y="293" font-size="11.5" fill="#1d1d1d" text-anchor="middle">nested Money: 14 bytes (identical to Ch. 3&#x27;s standalone decode)</text>
+<text x="578" y="293" font-size="11.5" fill="#1d1d1d" text-anchor="middle">nested Money: 14 bytes (identical to the standalone encoding)</text>
 <text x="1028" y="293" font-size="11.5" fill="#1d1d1d" text-anchor="middle">outer key (route)</text>
 <text x="44" y="420" font-size="12.5" fill="#1d1d1d" text-anchor="start" font-weight="700">key byte = (field_number &lt;&lt; 3) | wire_type: the same formula at every nesting depth</text>
 <text x="44" y="442" font-size="12" fill="#555555" text-anchor="start">0x0A = (1&lt;&lt;3)|2 -&gt; field 1, LEN     0x0E = length 14     0x12 = (2&lt;&lt;3)|2 -&gt; field 2, LEN (reused, shallower)</text>

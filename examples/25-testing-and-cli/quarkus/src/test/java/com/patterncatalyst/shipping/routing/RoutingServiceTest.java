@@ -63,7 +63,7 @@ class RoutingServiceTest {
 
         // GetQuote is unary-in/unary-out: the Uni resolves once the server
         // replies. .await().atMost(...) blocks this test thread for that one
-        // reply — a tight, explicit timeout so a hung server fails the test
+        // reply: a tight, explicit timeout so a hung server fails the test
         // instead of hanging the build forever.
         Routing.GetQuoteResponse response = client.getQuote(request)
                 .await().atMost(Duration.ofSeconds(5));

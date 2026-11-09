@@ -1,13 +1,13 @@
-# Ch16 — Async/long-running jobs: the Operation lifecycle on two services
+# Chapter 16: async and long-running jobs, the Operation lifecycle on two services
 
 The reference both-stack implementation of the server-owned `Operation`
 pattern, split across two gRPC services:
 
-- `contracts/proto/shipping/routing/v1/routing.proto` — `RoutingService`
+- `contracts/proto/shipping/routing/v1/routing.proto`: `RoutingService`
   keeps its original five RPCs, including `RecomputeRoutes` (starts the job,
-  returns an `Operation`). The three Ch16 lookup RPCs added to the contract
-  this iteration — `GetOperation` (poll), `WatchOperation` (server-stream),
-  `CancelOperation` (server-owned cancel) — live on a SEPARATE service in the
+  returns an `Operation`). The three Chapter 16 lookup RPCs added to the contract
+  this iteration, `GetOperation` (poll), `WatchOperation` (server-stream),
+  `CancelOperation` (server-owned cancel), live on a SEPARATE service in the
   same file, `OperationsService`, all three returning
   `shipping.type.v1.Operation` directly under the two scoped
   `buf:lint:ignore` exceptions visible above each declaration. They're on
@@ -17,20 +17,20 @@ pattern, split across two gRPC services:
   SOURCE-breaking for every other chapter's `RoutingServiceImpl`, which would
   suddenly have to override methods it has no routing-specific reason to
   implement. A dedicated `OperationsService` is also the AIP-151 /
-  `google.longrunning.Operations` shape — see the chapter for the full
+  `google.longrunning.Operations` shape; see the chapter for the full
   argument.
-- `contracts/proto/shipping/type/v1/types.proto` — `Operation` itself (`id`,
+- `contracts/proto/shipping/type/v1/types.proto`: `Operation` itself (`id`,
   `kind`, `done`, `progress_pct`, `message`).
 
 Quarkus (`quarkus/`, host port 9160) and Python (`python/`, host port 9161)
 each independently implement an in-memory `Operation` registry shared by two
-implementations — one per service — and the same bounded, fast job schedule,
+implementations (one per service) and the same bounded, fast job schedule,
 so the identical sequence of calls against either stack produces the
 identical shape of answers. `verify.sh` drives both stacks through all six
 claims this chapter makes.
 
 **Quarkus** has two `@GrpcService` beans in the same package:
-`RoutingServiceImpl` (implements all five `RoutingService` RPCs —
+`RoutingServiceImpl` (implements all five `RoutingService` RPCs:
 `RecomputeRoutes` implemented, the other four `UNIMPLEMENTED`) and
 `OperationsServiceImpl` (implements `OperationsService`'s three RPCs). Both
 are CDI-injected the same `@ApplicationScoped` `OperationRegistry` singleton.
@@ -51,26 +51,26 @@ This brings both services up with `docker compose`, waits for each gRPC
 server to answer reflection's `list`, then against **each** of
 `localhost:9160` (Quarkus) and `localhost:9161` (Python):
 
-1. **Start** — `RoutingService.RecomputeRoutes{reason:"reconcile"}` returns
+1. **Start**: `RoutingService.RecomputeRoutes{reason:"reconcile"}` returns
    an `Operation` with a non-empty `op_`-prefixed id and `done` not yet
    `true`.
-2. **Poll** — a bounded `OperationsService.GetOperation` loop (25 tries x
+2. **Poll**: a bounded `OperationsService.GetOperation` loop (25 tries x
    0.2s = 5s, well over this example's ~1s normal job) converges on
    `done=true`, `progress_pct=100`.
-3. **Watch** — a *fresh* operation, watched immediately via
+3. **Watch**: a *fresh* operation, watched immediately via
    `OperationsService.WatchOperation`, yields at least two `Operation`
    snapshots; the last one is terminal (`done=true`, `progress_pct=100`).
-4. **Cancel** — the `"slow"` variant (`reason` containing `slow`) runs for
+4. **Cancel**: the `"slow"` variant (`reason` containing `slow`) runs for
    several seconds; `OperationsService.CancelOperation` sent 0.3s after
    starting it lands well before natural completion. The follow-up
    `GetOperation` shows `done=true`, a `message` containing "cancelled"
-   (case-insensitive), and `progress_pct < 100` — the server-owned job
+   (case-insensitive), and `progress_pct < 100`: the server-owned job
    actually stopped, not merely a client that stopped asking.
-5. **Rerunnable reconcile** — two sequential
+5. **Rerunnable reconcile**: two sequential
    `RoutingService.RecomputeRoutes{reason:"reconcile"}` calls each produce
    their own operation id and each independently converge on
    `done=true`/`progress_pct=100`.
-6. **Still-unimplemented RPC** — `RoutingService.GetQuote` (declared for
+6. **Still-unimplemented RPC**: `RoutingService.GetQuote` (declared for
    other chapters, not this one) still answers `UNIMPLEMENTED`.
 
 Prints `PASS` only if every assertion holds for **both** stacks.
@@ -93,7 +93,7 @@ Both stacks keep an in-memory map from an `op_`-prefixed id to a mutable
 record (`OperationRegistry`/`OperationState` on both sides), shared by the
 two service implementations described above. A production service would
 back this with a durable store so an operation survives a restart; the
-client-visible contract — create, poll, watch, cancel by id — is identical
+client-visible contract (create, poll, watch, cancel by id) is identical
 either way.
 
 | Field | Meaning |
@@ -101,12 +101,12 @@ either way.
 | `id` | opaque, server-generated, `op_`-prefixed |
 | `kind` | what the operation is doing (`"recompute_routes"` here) |
 | `done` | the single terminal signal; proto3 omits it from JSON while `false` |
-| `progress_pct` | best-effort 0–100; proto3 omits it from JSON while `0` |
+| `progress_pct` | best-effort 0 to 100; proto3 omits it from JSON while `0` |
 | `message` | human-readable status, or the reason a cancelled job stopped |
 
 **`RecomputeRoutes`** creates the record and hands the actual work to a
-background executor — `Infrastructure.getDefaultExecutor()` (Mutiny's worker
-pool) on Quarkus, `asyncio.create_task(...)` on Python — then returns the
+background executor (`Infrastructure.getDefaultExecutor()`, Mutiny's worker
+pool, on Quarkus; `asyncio.create_task(...)` on Python), then returns the
 fresh, non-terminal snapshot immediately, without waiting on that work.
 
 **The job** advances in a few fixed, bounded steps (5 steps x ~200ms for the
@@ -114,9 +114,9 @@ ordinary `reason`, 20 steps x ~200ms for the `"slow"` variant), checking
 whether the record has already gone terminal before each step and bailing out
 early if a `CancelOperation` beat it there.
 
-**`WatchOperation`** streams by polling the same record the job mutates —
-`Multi.createFrom().emitter(...)` on Quarkus, an `async def` generator on
-Python — emitting a fresh snapshot on a short interval and completing the
+**`WatchOperation`** streams by polling the same record the job mutates
+(`Multi.createFrom().emitter(...)` on Quarkus, an `async def` generator on
+Python), emitting a fresh snapshot on a short interval and completing the
 stream (half-close) the moment a snapshot comes back `done`.
 
 **`GetOperation`** and **`CancelOperation`** are single synchronous reads or
@@ -146,7 +146,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/proto/`,
-`python/generated/`) are gitignored (see `./.gitignore`) — build-time-only,
+`python/generated/`) are gitignored (see `./.gitignore`): build-time-only,
 never committed.
 
 ## On the wire
@@ -171,10 +171,3 @@ start -> poll -> watch -> cancel sequence with sample JSON.
 call that created it; polling versus watching; and server-owned cancellation
 versus closing a watch stream, plus the rerunnable reconcile. All three are
 embedded in the chapter.
-
-## Verification status
-
-**Verified** by an actual run of `./verify.sh` against both stacks, built and
-executed in this iteration — see the chapter's "Build, run, observe" section.
-All six assertion groups above passed on both `localhost:9160` (Quarkus) and
-`localhost:9161` (Python).

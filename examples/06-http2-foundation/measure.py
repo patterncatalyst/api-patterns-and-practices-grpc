@@ -32,14 +32,14 @@ from shipping.routing.v1 import routing_pb2
 
 
 def fail(msg):
-    print(f"FAIL — {msg}", file=sys.stderr)
+    print(f"FAIL, {msg}", file=sys.stderr)
     sys.exit(1)
 
 
 def check(condition, context):
     if not condition:
         fail(context)
-    print(f"ok — {context}")
+    print(f"ok, {context}")
 
 
 def read_varint(data, pos):
@@ -146,7 +146,7 @@ def main():
 
     print()
     print(
-        f"PASS — protobuf ({proto_len}B) beat proto3 JSON ({json_len}B) by "
+        f"PASS: protobuf ({proto_len}B) beat proto3 JSON ({json_len}B) by "
         f"{ratio:.2f}x on the same GetQuoteResponse, and the tag-number math "
         "from Chapter 3 decoded the real bytes at every level: the outer "
         "message's quote field, Money's own currency field one level down, "

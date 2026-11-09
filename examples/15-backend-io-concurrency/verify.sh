@@ -69,10 +69,10 @@ import sys
 actual, bound = float(sys.argv[1]), float(sys.argv[2])
 sys.exit(0 if actual < bound else 1)
 ' "$actual" "$bound"; then
-    echo "lib.sh: FAIL — ${context}: ${actual}s is not < ${bound}s" >&2
+    echo "lib.sh: FAIL, ${context}: ${actual}s is not < ${bound}s" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${actual}s < ${bound}s" >&2
+  echo "lib.sh: ok, ${context}: ${actual}s < ${bound}s" >&2
 }
 
 # assert_scaled_lt <a> <factor> <b> <context> — float-aware "a * factor < b",
@@ -84,10 +84,10 @@ import sys
 a, factor, b = float(sys.argv[1]), float(sys.argv[2]), float(sys.argv[3])
 sys.exit(0 if a * factor < b else 1)
 ' "$a" "$factor" "$b"; then
-    echo "lib.sh: FAIL — ${context}: ${a}s * ${factor} is not < ${b}s" >&2
+    echo "lib.sh: FAIL, ${context}: ${a}s * ${factor} is not < ${b}s" >&2
     return 1
   fi
-  echo "lib.sh: ok — ${context}: ${a}s * ${factor} < ${b}s" >&2
+  echo "lib.sh: ok, ${context}: ${a}s * ${factor} < ${b}s" >&2
 }
 
 # request_json <mode> — builds a FindOptimalRouteRequest. `mode` is "" for
@@ -132,7 +132,7 @@ run_concurrent() {
   end="$(now_s)"
 
   if (( rc != 0 )); then
-    echo "lib.sh: FAIL — one or more concurrent FindOptimalRoute calls (mode='$mode') failed:" >&2
+    echo "lib.sh: FAIL, one or more concurrent FindOptimalRoute calls (mode='$mode') failed:" >&2
     cat "$outdir"/err-*.log >&2
     rm -rf "$outdir"
     return 1
@@ -172,14 +172,14 @@ run_stack_tests() {
   # --- 2 + 3. Eight concurrent correct-model calls: correct AND overlapped -
   local correct_elapsed
   correct_elapsed="$(run_concurrent "$target" "" "$CONCURRENCY")"
-  echo "lib.sh: info — $stack: $CONCURRENCY concurrent correct-model calls took ${correct_elapsed}s" >&2
+  echo "lib.sh: info, $stack: $CONCURRENCY concurrent correct-model calls took ${correct_elapsed}s" >&2
   assert_lt "$correct_elapsed" "$OVERLAP_BOUND_S" \
     "$stack $CONCURRENCY concurrent correct-model calls overlap (well under ${CONCURRENCY}x0.4s serial)"
 
   # --- 4. Starve-vs-scale: starving takes at least 2x the correct total ----
   local starving_elapsed
   starving_elapsed="$(run_concurrent "$target" "starving" "$CONCURRENCY")"
-  echo "lib.sh: info — $stack: $CONCURRENCY concurrent STARVING calls took ${starving_elapsed}s" >&2
+  echo "lib.sh: info, $stack: $CONCURRENCY concurrent STARVING calls took ${starving_elapsed}s" >&2
   assert_scaled_lt "$correct_elapsed" "$STARVE_FACTOR" "$starving_elapsed" \
     "$stack starve-vs-scale (correct_total * ${STARVE_FACTOR} < starving_total)"
 
@@ -187,7 +187,7 @@ run_stack_tests() {
   if [[ "$stack" == "quarkus" ]]; then
     local virtual_elapsed
     virtual_elapsed="$(run_concurrent "$target" "virtual" "$CONCURRENCY")"
-    echo "lib.sh: info — $stack: $CONCURRENCY concurrent virtual-thread-mode calls took ${virtual_elapsed}s" >&2
+    echo "lib.sh: info, $stack: $CONCURRENCY concurrent virtual-thread-mode calls took ${virtual_elapsed}s" >&2
     assert_lt "$virtual_elapsed" "$OVERLAP_BOUND_S" \
       "$stack $CONCURRENCY concurrent virtual-thread-mode calls overlap (well under ${CONCURRENCY}x0.4s serial)"
   fi
@@ -204,7 +204,7 @@ run_stack_tests "quarkus" "localhost:9150"
 run_stack_tests "python" "localhost:9151"
 
 echo
-echo "PASS — Ch15 backend-io-concurrency anchor: on BOTH the Quarkus and the" \
+echo "PASS: Ch15 backend-io-concurrency anchor: on BOTH the Quarkus and the" \
      "Python stack, FindOptimalRoute's correct, default execution model" \
      "(Quarkus: the @Blocking worker pool; Python: asyncio.to_thread) serves" \
      "$CONCURRENCY concurrent ~400ms-blocking calls correctly and overlapped" \

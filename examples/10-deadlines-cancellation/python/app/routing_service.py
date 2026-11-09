@@ -71,7 +71,7 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
             downstream_timeout = remaining - _DOWNSTREAM_MARGIN_S
             if downstream_timeout <= 0:
                 # The budget was already gone before this method could even start
-                # the downstream call — failing fast here, with no network round
+                # the downstream call. Failing fast here, with no network round
                 # trip at all, is cheaper than letting grpc.aio discover the same
                 # thing a few milliseconds later over the wire.
                 logger.info(

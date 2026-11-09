@@ -76,7 +76,7 @@ public class RoutingServiceImpl implements RoutingService {
 
         if (downstreamBudgetMs <= 0) {
             // The budget was already gone before this method could even start the
-            // downstream call — failing fast here, with no network round trip at
+            // downstream call. Failing fast here, with no network round trip at
             // all, is cheaper than letting grpc-java discover the same thing a few
             // milliseconds later over the wire.
             LOG.infof("GetQuote: %s -> %s, no budget left to call QuoteService (inbound deadline already expired)",

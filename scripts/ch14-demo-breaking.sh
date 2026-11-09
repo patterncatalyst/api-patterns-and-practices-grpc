@@ -60,14 +60,14 @@ EOF
 
 require_git_repo() {
   if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    echo "ch14-demo-breaking: FAIL — not inside a git repository" >&2
+    echo "ch14-demo-breaking: FAIL, not inside a git repository" >&2
     exit 1
   fi
 }
 
 require_clean_tree() {
   if [[ -n "$(git status --porcelain)" ]]; then
-    echo "ch14-demo-breaking: FAIL — working tree is not clean." >&2
+    echo "ch14-demo-breaking: FAIL, working tree is not clean." >&2
     echo "Commit, stash, or discard your changes first — this script switches" >&2
     echo "branches and will not run against uncommitted work." >&2
     exit 1
@@ -130,14 +130,14 @@ do_run() {
   git checkout -b "$BRANCH" "$REMOTE/main"
 
   if [[ ! -f "$PROTO_FILE" ]]; then
-    echo "ch14-demo-breaking: FAIL — $PROTO_FILE not found on $REMOTE/main" >&2
+    echo "ch14-demo-breaking: FAIL, $PROTO_FILE not found on $REMOTE/main" >&2
     git checkout "$start_branch"
     git branch -D "$BRANCH"
     exit 1
   fi
 
   if ! grep -qF "$OLD_LINE" "$PROTO_FILE"; then
-    echo "ch14-demo-breaking: FAIL — expected line not found in $PROTO_FILE:" >&2
+    echo "ch14-demo-breaking: FAIL, expected line not found in $PROTO_FILE:" >&2
     echo "  $OLD_LINE" >&2
     echo "The real routing.proto has moved on since this script was written —" >&2
     echo "update OLD_LINE/NEW_LINE here to match its current shape." >&2
@@ -165,7 +165,7 @@ with scripts/ch14-demo-breaking.sh --cleanup."
   git checkout "$start_branch"
 
   echo
-  echo "PASS — demo/ch14-breaking pushed. Open the repository's Actions tab" \
+  echo "PASS: demo/ch14-breaking pushed. Open the repository's Actions tab" \
        "and watch the 'contracts' workflow run for this branch: the 'buf" \
        "breaking (vs main)' step is expected to fail. This branch exists" \
        "only to be watched failing and must never be merged — run" \

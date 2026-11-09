@@ -1,23 +1,23 @@
-# Ch9 — Client-streaming and bidirectional: TrackingService.{ReportPositions,Sync}
+# Chapter 9, client-streaming and bidirectional: TrackingService.{ReportPositions,Sync}
 
 The reference both-stack implementation of `shipping.tracking.v1.TrackingService`'s
-two remaining RPC shapes — client streaming and bidirectional streaming. The
-contract — not either codebase — is the source of truth:
+two remaining RPC shapes: client streaming and bidirectional streaming. The
+contract, not either codebase, is the source of truth:
 
-- `contracts/proto/shipping/tracking/v1/tracking.proto` — `TrackingService`
+- `contracts/proto/shipping/tracking/v1/tracking.proto`: `TrackingService`
   and its three RPCs. This example implements `ReportPositions` (client
   streaming) and `Sync` (bidirectional); `WatchShipment` (server streaming,
-  Ch8's RPC) returns `UNIMPLEMENTED` here, kept out of scope so this chapter
+  Chapter 8's RPC) returns `UNIMPLEMENTED` here, kept out of scope so this chapter
   registers one service and builds reliably on both stacks.
-- `contracts/proto/shipping/type/v1/types.proto` — the shared `TrackingEvent`
+- `contracts/proto/shipping/type/v1/types.proto`: the shared `TrackingEvent`
   payload the request/response messages carry.
 
 Quarkus (`quarkus/`, host port 9090) and Python (`python/`, host port 9091)
 independently implement both RPCs identically, generated from the **same**
 `.proto` files. `verify.sh` drives **both** stacks over `grpcurl`'s stream
 support (`-d @`, reading newline-delimited JSON request messages from
-stdin) and asserts **response field semantics** — the folded count, the
-number of streamed responses — not just a gRPC `OK` status.
+stdin) and asserts **response field semantics** (the folded count, the
+number of streamed responses), not just a gRPC `OK` status.
 
 ## Run it
 
@@ -54,7 +54,7 @@ printf '%s\n' \
 docker compose down -v
 ```
 
-Swap `9090` for `9091` to hit the Python stack instead — same requests, same
+Swap `9090` for `9091` to hit the Python stack instead: same requests, same
 response shapes, same counts.
 
 The Grafana LGTM observability stack is opt-in and off by default (both
@@ -80,7 +80,7 @@ no more requests are coming) and then sends exactly one
 `ReportPositionsResponse`. `Sync` buffers nothing at all: each
 `SyncResponse` goes out as soon as its matching `SyncRequest` arrives,
 preserving arrival order, so N requests in produce N responses out in the
-same order — proven by `verify.sh`'s `json_stream_count` assertion.
+same order, which `verify.sh`'s `json_stream_count` assertion checks.
 
 ## The other RPC
 
@@ -88,18 +88,18 @@ same order — proven by `verify.sh`'s `json_stream_count` assertion.
 
 | RPC | Status in this example |
 |---|---|
-| `WatchShipment` (server streaming) | `UNIMPLEMENTED` — Ch8's RPC |
+| `WatchShipment` (server streaming) | `UNIMPLEMENTED` (Chapter 8's RPC) |
 | `ReportPositions` (client streaming) | implemented (this chapter) |
 | `Sync` (bidirectional) | implemented (this chapter) |
 
 On Quarkus, the generated Mutiny `TrackingService` interface declares all
 three RPCs as abstract methods, so `TrackingServiceImpl` implements all
-three explicitly — `watchShipment` just returns
+three explicitly; `watchShipment` just returns
 `Multi.createFrom().failure(Status.UNIMPLEMENTED...)`. On Python, the
 generated `TrackingServiceServicer` base class already sets `UNIMPLEMENTED`
 and raises for any method a subclass doesn't override, so the Python side
-only defines `ReportPositions` and `Sync` — `WatchShipment` falls through
-to that generated default (the same pattern Ch5/Ch7's `RoutingServiceServicer`
+only defines `ReportPositions` and `Sync`; `WatchShipment` falls through
+to that generated default (the same pattern the `RoutingServiceServicer` of Chapters 5 and 7
 uses for its own unimplemented methods).
 
 ## Proto code generation: `contracts/` is the only source of truth
@@ -107,7 +107,7 @@ uses for its own unimplemented methods).
 Neither module commits generated or copied `.proto`/stub files. Each
 `Containerfile` builds with the **repo root** as its Docker build context
 (see `compose.yaml`) specifically so it can `COPY` the two proto files this
-service needs straight from `contracts/proto/` at build time — the same
+service needs straight from `contracts/proto/` at build time, with the same
 mechanics `examples/05-contract-first` established:
 
 - **Quarkus**: the Containerfile copies `types.proto` and `tracking.proto`
@@ -142,7 +142,7 @@ cd python && uv sync --group dev && \
 ```
 
 Both copy destinations (`quarkus/src/main/proto/`, `python/generated/`,
-`python/proto/`) are gitignored (see `../.gitignore`) — they are
+`python/proto/`) are gitignored (see `../.gitignore`); they are
 build-time-only, never committed.
 
 ## On the wire
@@ -167,7 +167,7 @@ grpcurl -plaintext localhost:9090 describe shipping.tracking.v1.TrackingService
 | `Sync` (2 requests) | 2 streamed responses, one per request |
 
 grpcurl's JSON output uses the proto's original (snake_case) field names,
-not camelCase — `accepted_count`, not `acceptedCount` — which is why the
+not camelCase (`accepted_count`, not `acceptedCount`), which is why the
 assertion reads `.accepted_count`.
 
 ## Diagram

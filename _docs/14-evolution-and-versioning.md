@@ -2,8 +2,8 @@
 title: "Evolution and versioning"
 order: 14
 part: "Schema Evolution & the Living Contract"
-description: "Field numbers as the contract, reserved, backward/forward compatibility, package versioning from shipping.routing.v1 to v2, the buf breaking gate with a deliberate-drift test, and the Buf Schema Registry."
-duration: "24 min read"
+description: "Field numbers as the contract, reserved, backward and forward compatibility, package versioning from shipping.routing.v1 to v2, the buf breaking gate, and the Buf Schema Registry."
+duration: "17 min read"
 ---
 
 ## Learning objectives
@@ -12,39 +12,36 @@ By the end of this chapter you can:
 
 - Explain why a field's number, not its name, is the part of a protobuf contract that can never move once a message ships.
 - Classify a schema change as safe (add a field or RPC, widen a numeric type, rename) or breaking (renumber, reuse a number, retype, remove a field a reader needs).
-- State precisely what `reserved` does and does not buy: it blocks reuse of a retired number, it does not make the deletion itself safe.
-- Decide when an additive change is enough and when a change needs a new package version (`v1` to `v2`) instead.
-- Read a `buf breaking` failure and explain why `FILE`'s `FIELD_NO_DELETE` rejects a deletion even when the field was `reserved` first.
+- State what `reserved` does and does not buy: it blocks reuse of a retired number, and it does not make the deletion safe.
+- Decide when an additive change is enough and when a change needs a new package version (`v1` to `v2`).
+- Read a `buf breaking` failure and explain why the `FILE` category's `FIELD_NO_DELETE` rejects a deletion even when the field was `reserved` first.
 
 ## Why this matters
 
-`shipping.routing.v1.GetQuoteRequest` has shipped. Contract-first work built it, deadlines put a clock on calling it, the error model taught it to fail with a code a client can act on. None of that matters if the next change to `routing.proto` quietly changes what field 3 means to a client compiled against last week's version of the file. gRPC's wire format doesn't carry field names; it carries field numbers, and a message that's valid Protobuf only means one thing if every reader and every writer agrees on what those numbers stand for. This chapter is about keeping that agreement intact as the schema moves: what changes a field number tolerates, what `reserved` actually buys you, when a package needs a new major version instead of a new field, and the `buf breaking` gate that turns all of this from a code-review discipline into a command that exits non-zero when someone gets it wrong.
+`shipping.routing.v1.GetQuoteRequest` has shipped, and clients are compiled against it. The wire format carries field numbers, not names, so a message means one thing only if every reader and writer agrees what each number stands for. A careless edit to `routing.proto` can change what field 3 means to a client built last week. The rules below cover which edits are safe, what `reserved` buys, and when a change needs a new package version. The `buf breaking` gate turns the discipline into a command that exits non-zero when someone gets it wrong.
 
 ## Field numbers are the contract
 
-A Protobuf message on the wire is a sequence of `(field number, wire type, value)` tuples, nothing else. `shipping.type.v1.Money { currency = "USD"; amount = "1250.00" }` serializes to bytes that encode "field 1, length-delimited, these 3 bytes" followed by "field 2, length-delimited, these 7 bytes." The field *names* `currency` and `amount` exist only in the `.proto` source and the generated code; they never touch the wire. A reader with a different generated class, built from a different `.proto` revision, decodes those same bytes by field number alone: that's what makes `GetQuote`'s identical behavior on Quarkus and Python possible in the first place, and exactly what a careless schema edit can break.
+A message on the wire is a sequence of `(field number, wire type, value)` tuples. `shipping.type.v1.Money { currency = "USD"; amount = "1250.00" }` becomes "field 1, length-delimited, these 3 bytes" followed by "field 2, length-delimited, these 7 bytes." The names `currency` and `amount` live only in the `.proto` source and generated code. A reader built from a different `.proto` revision decodes the same bytes by number alone, which is what lets Quarkus and Python answer `GetQuote` identically and what a careless edit breaks.
 
-This is why renaming a field is always safe and changing its number almost never is. `string origin_un_locode = 1;` renamed to `string origin = 1;` changes nothing on the wire: byte 0 is still "field 1, LEN," and every existing client's generated code already binds field 1 to whatever local name it compiled with. Renumbering the same field from `1` to `6` is different: an old binary still emits field 1, a new binary now expects field 6, and the two stop understanding each other the moment both run in production at once, which, during any rolling deploy, they do. The field number is the part of the contract that can never move once a message has shipped; the name is a detail for the humans reading the source.
+So renaming a field is always safe and changing its number almost never is. Renaming `string origin_un_locode = 1;` to `string origin = 1;` changes no bytes. Renumbering it from `1` to `6` means an old binary still emits field 1 while a new one expects field 6, and during any rolling deploy both are running.
 
-Three changes are safe by construction, because none of them alter what an existing reader already does with an existing number:
+| Change | Verdict | Why |
+| --- | --- | --- |
+| Rename a field | Safe | The number is unchanged and names never reach the wire |
+| Add a field at an unused number | Safe | An old reader skips unknown fields; proto3 doesn't reject the message |
+| Add an RPC | Safe | An old client has no stub for it; a server that hasn't built it returns `UNIMPLEMENTED` |
+| Widen a numeric type (`int32` to `int64`) | Safe | Both use the varint wire type, so the value decodes correctly as long as it fits |
+| Reuse a field number for a different field | Breaking | The new bytes land where the old reader expects the old type, and it silently produces a wrong answer |
+| Change a field's type to a different wire type (`double` to `string`) | Breaking | The old reader misreads the bytes; the same wire type with different meaning (`weight_kg` becoming `weight_lb`) breaks it silently |
+| Remove a field a reader depends on | Breaking | The bytes stop arriving, and a reader that can't tell "unset" from zero draws a wrong conclusion |
+| Renumber a field | Breaking | The old number stops arriving and the new one means nothing to old code |
 
-- **Adding a new field** at an unused number. An old reader built before the field existed never looks for it and drops the bytes on the floor: proto3 skips unknown fields instead of rejecting the message, which is the property every safe change below leans on.
-- **Adding a new RPC** to a service. A client generated from the old `.proto` has no stub method for it and never calls it; a server that hasn't implemented it yet returns `UNIMPLEMENTED`, which the contract already relies on for `RoutingService`'s four not-yet-built methods.
-- **Widening certain numeric types** proto3 treats as wire-compatible: `int32` to `int64`, for instance, both encode as the `varint` wire type, so an old reader decoding a value a new writer sent as the wider type still gets the right number back, as long as it fits.
+{% include excalidraw.html file="14-evolution-compatibility" alt="A matrix of schema changes under buf breaking's FILE category. Safe: rename a field, add a field, add an RPC, widen a numeric type. Breaking: renumber a field, reuse a number, change a field's type, remove a field a reader needs. A dashed line connects rename to renumber: the number, not the name, can never move once a message ships." caption="Figure 14.1: Safe changes leave the meaning of every existing field number untouched. Breaking changes move, reuse, retype or remove one a reader still depends on." %}
 
-Three changes are breaking, because each one makes an old reader misinterpret bytes a new writer sends, or a new reader misinterpret bytes an old writer already sent:
+## `reserved`: what it buys
 
-- **Reusing a field number** for a different field. The new field's bytes land exactly where the old field's reader expects the old field's type, and nothing in the wire format tells it otherwise; it just produces a wrong answer, silently.
-- **Changing a field's type** to something with a different wire type, such as `double` to `string`, or even to a same-wire-type value whose meaning differs, such as `double weight_kg` becoming `double weight_lb` at the same number.
-- **Removing a field a reader still depends on.** The bytes simply stop arriving; a reader that doesn't handle absence as a real case (treating a missing optional as "zero" rather than "unset," for example) draws a wrong conclusion from silence.
-
-The two lists line up column for column: renaming a field is safe because the number never moves, renumbering it is breaking for the same reason in reverse.
-
-{% include excalidraw.html file="14-evolution-compatibility" alt="A matrix of schema changes under buf breaking's FILE category. Safe row: rename a field (origin_un_locode to origin, number 1 unchanged), add a field (cargo_count at an unused number), add an RPC (ListRoutes, an old stub never calls it), widen a numeric type (int32 to int64, same varint wire type). Breaking row, aligned under it: renumber a field (field 1 to field 6, an old binary still sends field 1), reuse a number (a new field lands on an old number and is read as the wrong type), change a field's type (double to string, a different wire type), remove a field a reader needs (bytes stop arriving). A dashed line connects rename to renumber, calling out that the field number, not the name, is what can never move once a message has shipped." caption="Figure 14.1: safe changes leave every existing field number's meaning untouched; breaking changes move, reuse, retype, or remove one a reader still depends on." %}
-
-## `reserved`: what it actually buys you
-
-Protobuf's `reserved` keyword blocks the compiler from accepting a field declaration that reuses a given number or name:
+`reserved` makes the compiler reject a field declaration that reuses a number or name:
 
 ```protobuf
 message GetQuoteRequest {
@@ -57,25 +54,47 @@ message GetQuoteRequest {
 }
 ```
 
-This is easy to overstate. `reserved` does not make deleting a field safe: a field that mattered to any reader still goes missing the moment it's removed, `reserved` or not. What it prevents is a second, unrelated mistake: a future engineer, with no memory of what field 4 used to mean, adds a new field and lets the compiler hand them the first free number, which happens to be 4. Without the reservation that compiles cleanly, and any service still running the pre-removal binary (plausible for a rolling deploy, or an old client nobody's redeployed in a year) decodes the new field's bytes as the old field's type. `reserved` turns that into a compile error instead of a production incident, a real and durable benefit. It just isn't the benefit of "now this deletion is safe," because the deletion itself already broke anyone who still read it.
+It does not make deleting a field safe. A field some reader needed is missing the moment it's removed, reserved or not. What `reserved` prevents is the second mistake: an engineer who doesn't remember what field 4 meant adds a field, takes the first free number, which is 4, and any service still on the pre-removal binary (a rolling deploy, or a client nobody redeployed in a year) decodes the new bytes as the old type. With the reservation that is a compile error rather than a production incident. A durable benefit, but not "this deletion is now safe."
 
-`examples/14-evolution/candidate-breaking/` proves the distinction directly: it deletes `legacy_notes` (field 4), and `buf breaking` rejects the deletion whether or not the field is marked `reserved` on the way out. "The `buf breaking` gate" below walks through why, and what the real escape hatch looks like.
+## Backward and forward compatibility
 
-## Backward and forward compatibility, named precisely
+**Backward compatibility** is what a new reader needs: it correctly reads a message built against the old schema. **Forward compatibility** is the reverse: an old reader correctly reads a message built against the new schema, by ignoring fields it doesn't recognize. A rolling deploy needs both, because old and new binaries serve side by side. An old server must tolerate a new client's extra field, and a new server must make sense of an old client's message that lacks a field the new schema added. Proto3's rules, unknown fields skipped and absent fields read as zero, make both directions hold for every safe change above. The breaking changes each collapse one of them.
 
-**Backward compatibility** is the property a *new* reader needs: it correctly interprets a message a client built against the *old* schema sends. **Forward compatibility** is the opposite direction: an *old* reader correctly interprets a message built against the *new* schema, typically by ignoring fields it doesn't recognize rather than rejecting the message outright. A rolling deploy of `RoutingServiceImpl` needs both at once, since old and new binaries serve traffic side by side for the length of the rollout: an old server must tolerate a new client's extra field (forward compatibility), and a new server must keep making sense of an old client's message missing a field the new schema added (backward compatibility). Proto3's "unknown fields are skipped, absent fields read as the zero value" design is what makes both directions hold simultaneously for every *safe* change above, and why the three breaking changes collapse one direction or the other.
+## Pattern: Package Versioning
 
-## Package versioning: `shipping.routing.v1` to `v2`
+### The problem
 
-Every safe change named so far is additive: new field, new RPC, wider type. Eventually a schema needs a change that isn't additive at all: `weight_kg` really should have been `weight_grams`, or `GetQuoteRequest` needs a shape no amount of careful addition can produce. That's what a new package version is for. `shipping.routing.v1` becomes `shipping.routing.v2` as a new `package` statement in a new file at a new path, `shipping/routing/v2/routing.proto` beside the untouched `v1/routing.proto`, not an edit to the v1 file in place. The two packages coexist on disk and at runtime: `RoutingServiceImpl` for v1 keeps serving `shipping.routing.v1.RoutingService` exactly as before, while a second implementation serves `shipping.routing.v2.RoutingService`, and existing v1 clients never notice v2 exists until someone migrates them, on their own schedule.
+Eventually a schema needs a change that isn't additive: `weight_kg` should have been `weight_grams`, or `GetQuoteRequest` needs a shape no addition can produce. Editing the file in place breaks every client compiled against it.
 
-This is the second, more durable use for `reserved`: when v2 drops a field v1 carried (`legacy_notes`, say), carrying `reserved 4; reserved "legacy_notes";` forward into the v2 message costs nothing and buys the same protection v1 would have wanted. No tool requires it; it's the same discipline applied one version later, so a v3 can't reuse the number for something a long-lived v1-era payload might still carry through code that doesn't distinguish the packages carefully.
+### The solution
 
-{% include excalidraw.html file="14-package-versioning-v2" alt="shipping.routing.v1 and shipping.routing.v2 coexisting during a rolling deploy. RoutingServiceImpl v1 keeps serving old clients still generated from the v1 package; a second RoutingServiceImpl v2, in a new file at shipping/routing/v2/routing.proto, serves new clients that have migrated. The v2 message reserves field 4 and the name legacy_notes, the same field v1 still carries, so a future v3 cannot reuse it. A dashed boundary around buf breaking shows the v1-against-baseline diff never crossing into the v2 file, because the two packages live at different paths and the tool only ever compares files at a matching path." caption="Figure 14.2: v1 and v2 coexist on disk and at runtime; old clients keep talking to v1 while new clients move to v2, and the new package path is invisible to buf breaking by construction." %}
+**Publish the incompatible schema as a new package version at a new path, and keep serving the old one until its clients migrate.**
+
+`shipping.routing.v2` is a new `package` statement in `shipping/routing/v2/routing.proto`, beside the untouched `v1/routing.proto`. Both packages coexist on disk and at runtime. The v1 implementation keeps serving `shipping.routing.v1.RoutingService` and v1 clients never notice v2 until they migrate, on their own schedule.
+
+When v2 drops a field v1 carried, carry the reservation forward. No tool requires it, and it stops a later version reusing the number for something a long-lived v1-era payload might still carry:
+
+{% include excalidraw.html file="14-package-versioning-v2" alt="shipping.routing.v1 and v2 coexisting during a rolling deploy. The v1 service keeps serving clients generated from v1. A second service from shipping/routing/v2/routing.proto serves migrated clients; its message reserves field 4 and legacy_notes. A dashed boundary shows buf breaking never crossing from the v1 diff into the v2 file, because it compares only files at a matching path." caption="Figure 14.2: v1 and v2 coexist on disk and at runtime. Old clients keep using v1 while new clients move to v2, and the new path is invisible to buf breaking by construction." %}
+
+```protobuf
+message GetQuoteRequest {
+  reserved 4;
+  reserved "legacy_notes";
+
+  string origin_un_locode = 1;
+  string destination_un_locode = 2;
+  double weight_kg = 3;
+  int32 cargo_count = 5;
+}
+```
+
+### How Quarkus and Python model it
+
+Each stack generates its stubs from the package it is built against, so a v2 service is a second implementation registered next to the first, with no change to either stack's v1 code.
 
 ## The `buf breaking` gate
 
-Contract-first work introduced `contracts/buf.yaml`'s three gates without spelling out what `buf breaking` actually enforces:
+The contract's `buf.yaml` selects one rule category:
 
 ```yaml
 version: v2
@@ -89,12 +108,11 @@ breaking:
     - FILE
 ```
 
-`breaking: use: [FILE]` picks one of several rule categories Buf ships, and the choice matters more than it looks. `FILE` means no field, message, enum, or RPC may ever be deleted from a file: reserving the field first changes nothing, because `FILE`'s `FIELD_NO_DELETE` rule doesn't check for a reservation before firing. Buf does ship a more permissive rule, `FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED`, granting exactly the exception a reader might expect `reserved` to earn, but it lives in the `WIRE_JSON` category, not `FILE`. This book's contract chooses `FILE`, the stricter of the two: this gate never lets a field quietly disappear from an existing package. The only way to retire a field here is a new package, a new file, a new path `buf breaking` has nothing on the old side to compare against.
+`FILE` forbids deleting any field, message, enum or RPC from a file, and reserving the field first changes nothing: `FIELD_NO_DELETE` doesn't look for a reservation. Buf ships a more permissive rule, `FIELD_NO_DELETE_UNLESS_NUMBER_RESERVED`, that grants the exception a reader might expect `reserved` to earn, but it lives in the `WIRE_JSON` category, not `FILE`. The contract chooses `FILE`, the stricter, so a field never quietly disappears from an existing package. The way to retire a field is a new package at a new path, which `buf breaking` has nothing on the old side to compare against.
 
-`examples/14-evolution/` proves all three outcomes with real `buf` output, against a standalone schema that never touches `contracts/`:
+`examples/14-evolution/` runs `buf breaking <candidate> --against baseline` on a standalone schema that never touches `contracts/`. The safe candidate adds a field and an RPC and reserves numbers nothing has used:
 
 ```protobuf
-// candidate-safe/shipping/routing/v1/routing.proto
 message GetQuoteRequest {
   reserved 10, 11;
   reserved "internal_only";
@@ -103,69 +121,74 @@ message GetQuoteRequest {
   string destination_un_locode = 2;
   double weight_kg = 3;
   string legacy_notes = 4;
-  int32 cargo_count = 5;       // new field, unused number
+  int32 cargo_count = 5;
 }
 ```
 
+The breaking candidate deletes two fields and retypes a third:
+
 ```protobuf
-// candidate-breaking/shipping/routing/v1/routing.proto
 message GetQuoteRequest {
   string origin_un_locode = 1;
-  int32 weight_kg = 3;         // destination_un_locode (2) and
-}                               // legacy_notes (4) are simply gone;
-                                // weight_kg changed double -> int32
+  int32 weight_kg = 3;
+}
 ```
 
-`verify.sh` runs `buf breaking <candidate> --against baseline` against each, plus a fourth, `candidate-breaking-reserved/`, that reserves the same field it deletes, and a fifth, `v2-migration/`, that drops the same field inside a new `shipping.routing.v2` package:
-
 ```text
-=== Step 2: SAFE candidate (add field, add RPC, defensive reserved) ===
-ok — buf breaking candidate-safe --against baseline: exit 0 (no breaking changes)
-
-=== Step 3: BREAKING candidate (delete fields, change a field's type) ===
-ok — buf breaking candidate-breaking --against baseline: exit 100 (breaking changes found)
 candidate-breaking/shipping/routing/v1/routing.proto:13:1:Previously present field "2" with name "destination_un_locode" on message "GetQuoteRequest" was deleted.
 candidate-breaking/shipping/routing/v1/routing.proto:13:1:Previously present field "4" with name "legacy_notes" on message "GetQuoteRequest" was deleted.
 candidate-breaking/shipping/routing/v1/routing.proto:15:3:Field "3" with name "weight_kg" on message "GetQuoteRequest" changed type from "double" to "int32".
-
-=== Step 4: BREAKING-AND-RESERVED candidate (delete a field, reserve its number anyway) ===
-ok — buf breaking candidate-breaking-reserved --against baseline: exit 100 (reserved field 4 still can't be deleted)
-candidate-breaking-reserved/shipping/routing/v1/routing.proto:14:1:Previously present field "4" with name "legacy_notes" on message "GetQuoteRequest" was deleted.
-
-=== Step 5: v2-migration (new package carries the retired field as reserved) ===
-ok — buf breaking v2-migration --against baseline: exit 0 (shipping.routing.v2 is a new file; v1 is untouched)
 ```
 
-Each line names the field, the message, and the exact violation, which is what turns a CI failure into something a reviewer can act on without re-deriving the diff by hand. The safe candidate's `reserved 10, 11` block passes because nothing on the baseline side ever used those numbers; the breaking candidate's deletions fail regardless of whether they'd been reserved first, and `candidate-breaking-reserved/` makes that claim self-demonstrating rather than asserted: it deletes `legacy_notes` *and* marks field 4 and its name `reserved` on the way out, and `buf breaking` reports the identical `FIELD_NO_DELETE`-style violation anyway, for the reason the `reserved` section above already gave. The v2 package's drop of field 4 passes for a different reason: `buf breaking` only ever diffs a file against the file at the *same path* on the other side, and `shipping/routing/v2/routing.proto` has no counterpart in `baseline/`. See `examples/14-evolution/README.md` for the full walkthrough.
+| Candidate | Change | `buf breaking` |
+| --- | --- | --- |
+| Safe | Add `cargo_count`, add `ListRoutes`, reserve unused numbers | Exit 0 |
+| Breaking | Delete fields 2 and 4, retype field 3 | Exit 100, one line per violation |
+| Breaking and reserved | Delete field 4 and reserve its number and name | Exit 100, `FIELD_NO_DELETE` anyway |
+| v2 migration | Drop field 4 inside `shipping.routing.v2` | Exit 0 |
 
-{% include excalidraw.html file="14-buf-breaking-gate" alt="The buf breaking gate as verify.sh runs it: a safe candidate compared against baseline exits 0 and the candidate merges; a breaking candidate compared against the same baseline exits 100, naming destination_un_locode deleted and weight_kg retyped from double to int32; a third comparison shows the same deletion with the field marked reserved still exits 100, proving reservation does not excuse a deletion under the FILE breaking category." caption="Figure 14.3: the buf breaking gate: baseline compared against each candidate, safe passes at exit 0, breaking (reserved or not) fails at exit 100 naming the violation." %}
+Each line names the field, the message and the violation, so a reviewer can act on a CI failure without re-deriving the diff. The v2 drop passes because `buf breaking` diffs a file only against the file at the same path on the other side, and `shipping/routing/v2/routing.proto` has no counterpart in the baseline.
 
-This example lives entirely outside `contracts/`: a proto built to fail `buf breaking` has no business near the module every stack in this book compiles against. To see the real consequence (the real `contracts.yml` CI job turning red against the real `shipping.routing.v1.routing.proto`), run the on-demand script `scripts/ch14-demo-breaking.sh`. It forks a throwaway branch off the current `main`, renumbers a real field in `routing.proto`, pushes the branch, and lets the reader watch the real `buf breaking --against main` job fail in GitHub Actions, on a contract that was never actually merged. The branch stays red: it exists to be watched failing, not to be fixed or merged, and `--cleanup` deletes both the local and the remote copy once the point has been made:
+{% include excalidraw.html file="14-buf-breaking-gate" alt="The buf breaking gate: a safe candidate compared against baseline exits 0 and merges. A breaking candidate exits 100, naming destination_un_locode deleted and weight_kg retyped from double to int32. The same deletion with the field marked reserved still exits 100." caption="Figure 14.3: The buf breaking gate. Safe passes at exit 0, and breaking, reserved or not, fails at exit 100 naming the violation." %}
+
+The standalone schema lives outside `contracts/` because a proto built to fail has no place in the module every stack compiles against. To watch the real gate fail, `scripts/ch14-demo-breaking.sh` forks a throwaway branch from `main`, renumbers a field in the real `routing.proto`, and pushes it so the real `buf breaking --against main` job in the `contracts.yml` workflow goes red. The branch exists to be watched failing, never to be fixed or merged:
 
 ```bash
 scripts/ch14-demo-breaking.sh              # fork, seed the break, push
 scripts/ch14-demo-breaking.sh --cleanup    # delete the local and remote demo branch
 ```
 
-The script refuses to run against a dirty working tree, re-derives the branch from `main` on every run so it can never go stale, and never checks out or merges anything into `main` itself; it only ever pushes a disposable sibling branch for CI to evaluate.
+The script refuses a dirty working tree, re-derives the branch from `main` on every run so it never goes stale, and never checks out or merges anything into `main`.
 
-## The Buf Schema Registry: remote packages and generated SDKs
+## The Buf Schema Registry
 
-Every stack in this book so far generates its stubs from a local copy of `contracts/proto/`, fetched at build time by each `Containerfile`'s own `COPY`. That works well inside one repository with a handful of consuming services, because every consumer already has filesystem access to the same `contracts/` checkout. It stops working as cleanly once a schema has consumers outside that repository (a partner team, a different organization, a client SDK shipped to external developers), none of whom should clone this repository just to get `shipping.routing.v1`'s generated types.
+Inside one repository every stack generates stubs from a local copy of `contracts/proto/`. That stops working once a schema has consumers outside the repository, such as a partner team or a client SDK for external developers, none of whom should clone it to get `shipping.routing.v1`.
 
-The **Buf Schema Registry (BSR)** is Buf's hosted answer to that gap: `buf push` publishes a module to a registry, versioned and content-addressed, and consumers either `buf generate` against the published module directly or pull a BSR-hosted generated SDK: a package built from that module in a target language, versioned the same way, published to that language's normal package manager or to BSR's own plugin-generated artifacts. A Java consumer adds a BSR-backed Maven dependency; a Python consumer adds a BSR-backed PyPI dependency; neither touches `protoc` or clones `contracts/` to get there. `contracts/buf.gen.yaml` already uses BSR's remote plugins for local inspection (`buf.build/protocolbuffers/python` and `buf.build/grpc/python`), the same mechanism a hosted SDK pipeline runs on a schedule instead of on demand.
+The **Buf Schema Registry (BSR)** is Buf's hosted answer. `buf push` publishes a versioned, content-addressed module. Consumers run `buf generate` against it, or pull a BSR-hosted generated SDK: a Maven dependency for Java, a PyPI dependency for Python, with no `protoc` and no clone. `contracts/buf.gen.yaml` already uses BSR remote plugins (`buf.build/protocolbuffers/python`, `buf.build/grpc/python`) for local inspection. A live module needs a Buf account, so the mechanism is described here, not run.
 
-This book does not stand up a live BSR module for `shipping.routing.v1`: a real module needs a Buf account and a registry to push to, which a runnable, self-contained example in this repository cannot set up for a reader with nothing but a clone and a terminal. The mechanism above is accurate to how BSR works; it's described, not demonstrated live, the same boundary this book draws around any managed service it can name but can't run without an account somewhere.
+<div class="callout callout--safe"><p class="callout__title">Decision</p><p>A monorepo with every consumer in it gets nothing from the BSR that a <code>COPY</code> at build time doesn't, and avoids depending on an external registry's uptime for every build. The BSR earns its cost when a consumer sits outside that boundary: a partner integration, a public client SDK, a second repository. There its versioning and hosted SDK generation replace a <code>.proto</code> file passed around by hand, the failure contract-first exists to eliminate, recurring one organizational boundary further out. Use a filesystem contract for internal services and the BSR once a consumer is outside.</p></div>
 
-<div class="callout callout--safe"><p class="callout__title">Decision</p><p>A monorepo with every consumer inside it (this book's own shape, one <code>contracts/</code> directory, a handful of services in the same checkout) gets nothing from the BSR that a <code>COPY</code> at build time doesn't already provide, and it avoids a dependency on an external registry's uptime for every build. The BSR earns its cost the moment a schema has a consumer outside that boundary: a partner integration, a public client SDK, a second repository that shouldn't need to clone this one to generate stubs. At that point, the registry's versioning and its hosted SDK generation replace what would otherwise be a brittle, manually-copied <code>.proto</code> file passed around over chat or committed into someone else's repository by hand: the exact failure mode contract-first was adopted to eliminate inside this repository, recurring one organizational boundary further out. Choose a local, filesystem-based contract for an internal multi-service repository; reach for the BSR the moment a consumer sits outside it.</p></div>
+> **🤖 Explore with your agent**
+>
+> "In `examples/14-evolution`, review `candidate-safe` and `candidate-breaking` against the rule that a field's number never moves and a deletion is never safe under `buf breaking`'s `FILE` category. Then add a `candidate-rename` directory that renames `origin_un_locode` to `origin` at field 1 and nothing else, and report what `buf breaking candidate-rename --against baseline` returns."
+>
+> Check: `cd examples/14-evolution && buf breaking candidate-rename --against baseline; echo $?`. Judge the reply by the rule: a rename at an unchanged number should be reported as safe.
 
-## Where this goes next
+## Build, run, observe
 
-The gate this chapter wires stays in force for every later change to `routing.proto`, `types.proto`, `quote.proto`, and `tracking.proto`: any field the async methods add, any message the streaming chapters extend, passes through the same `buf breaking --against main` check before it reaches a stack that generates code from it. Contract-first work already depended on this gate existing without spelling out its rules; this chapter is the one that makes the dependency precise. A reader who wants to watch the gate fail against the actual contract this book ships runs `scripts/ch14-demo-breaking.sh` and sees the CI run turn red, then deletes the branch it made and moves on, since that branch was never meant to merge.
+`examples/14-evolution/verify.sh` needs no stack and no ports. It uses `buf` from `PATH` or downloads a pinned binary, lints and builds the baseline, then checks all four candidates against it and expects each exit code in the table above. The reserved candidate and the v2 package are the two lines worth reading:
 
-## On the wire
+```text
+=== Step 4: BREAKING-AND-RESERVED candidate (delete a field, reserve its number anyway) ===
+ok, buf breaking candidate-breaking-reserved --against baseline: exit 100 (reserved field 4 still can't be deleted)
+candidate-breaking-reserved/shipping/routing/v1/routing.proto:14:1:Previously present field "4" with name "legacy_notes" on message "GetQuoteRequest" was deleted.
+ok, found expected violation: name "legacy_notes" on message "GetQuoteRequest" was deleted
 
-A field renumber is the mistake `buf breaking` exists to catch before it ever reaches a generated stub. Here it is against the real contract, the same seeded edit `scripts/ch14-demo-breaking.sh` applies on its disposable branch:
+=== Step 5: v2-migration (new package carries the retired field as reserved) ===
+ok, buf breaking v2-migration --against baseline: exit 0 (shipping.routing.v2 is a new file; v1 is untouched)
+```
+
+The mistake `buf breaking` exists to catch, against the real contract:
 
 ```bash
 cd contracts
@@ -178,11 +201,17 @@ buf breaking --against '.git#branch=main,subdir=contracts'
 proto/shipping/routing/v1/routing.proto:14:1:Previously present field "3" with name "cargo" on message "GetQuoteRequest" was deleted.
 ```
 
-Field 3 didn't get a new type or a new name here: the same `cargo` field moved to a new number, which `buf breaking` reports identically to a deletion, because from an old reader's point of view that's exactly what happened. Whatever a new writer now sends at number 7, nothing at number 3 arrives anymore, and number 7 means nothing to code still compiled against the old file. The fix in a real schema is never "renumber it back" under time pressure; it's deciding, with the two compatibility directions from this chapter in mind, whether the change belongs in a new field at a new number or in a new package altogether.
+A renumber reports as a deletion because that is what an old reader sees: nothing arrives at number 3, and number 7 means nothing to code built against the old file. The fix is never to renumber back under time pressure. Decide whether the change belongs in a new field at a new number or in a new package.
+
+Experiments:
+
+- Compare `candidate-breaking-reserved` with `candidate-breaking`: reserving field 4 on the way out changes nothing, and both exit 100.
+- Compare `v2-migration` with the baseline: it drops field 4 too and exits 0, because the v2 path has no counterpart to diff against.
+- Run `scripts/ch14-demo-breaking.sh` from a clean checkout and watch the `buf breaking` job fail on the pushed branch, then run it with `--cleanup`.
 
 ## For deeper coverage
 
-- [Protocol Buffers: Updating a message type](https://protobuf.dev/programming-guides/proto3/#updating): the official list of safe and unsafe schema edits this chapter's two lists are built from.
-- Buf: breaking-change detection (`buf breaking`, the `FILE` vs. `WIRE_JSON` rule categories), the gate `contracts/buf.yaml` wires in.
-- Cloud Native Design Patterns, Appendix B, "Versioning & Evolution": the same compatibility rules applied across REST, protobuf, and GraphQL.
+- [Protocol Buffers: Updating a message type](https://protobuf.dev/programming-guides/proto3/#updating): the official list of safe and unsafe schema edits.
+- Buf: breaking-change detection (`buf breaking`, the `FILE` and `WIRE_JSON` rule categories), as wired into `contracts/buf.yaml`.
+- Cloud Native Design Patterns, Appendix B, "Versioning & Evolution": the same compatibility rules applied across REST, protobuf and GraphQL.
 - Clément Jean, *gRPC Go for Professionals*, Packt, 2023: schema evolution, covered as its own topic.

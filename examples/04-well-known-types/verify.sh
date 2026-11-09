@@ -63,7 +63,7 @@ run_stack_tests "quarkus" "localhost:9007"
 run_stack_tests "python" "localhost:9008"
 
 echo
-echo "PASS — Ch4 well-known-types anchor: Quarkus and Python both render the" \
+echo "PASS: Ch4 well-known-types anchor: Quarkus and Python both render the" \
      "same google.protobuf.Timestamp as the same RFC 3339 string and the" \
      "same Money as the same decimal string — one proto3 JSON mapping," \
      "two independently-generated implementations."

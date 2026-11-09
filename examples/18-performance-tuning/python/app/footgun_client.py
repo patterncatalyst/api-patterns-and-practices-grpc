@@ -60,7 +60,7 @@ async def run(target: str, calls: int) -> int:
     elapsed = time.monotonic() - start
 
     if len(set(amounts)) != 1:
-        print(f"footgun_client: FAIL — responses disagree across calls: {amounts}", file=sys.stderr)
+        print(f"footgun_client: FAIL, responses disagree across calls: {amounts}", file=sys.stderr)
         return 1
 
     print(f"footgun_client: {calls} calls, one new channel per call, target={target}, "

@@ -118,7 +118,7 @@ class RoutingServiceServicer(routing_pb2_grpc.RoutingServiceServicer):
         detail: any_pb2.Any,
     ) -> None:
         """Builds a google.rpc.Status (canonical code + one rich detail) and hands it to
-        context.abort_with_status so it lands in the gRPC trailers — the same place
+        context.abort_with_status so it lands in the gRPC trailers, the same place
         grpcurl, or any client library, looks for it. Raises grpc.aio.AbortError;
         callers do not need to return afterwards."""
         rich_status = status_pb2.Status(code=code, message=message, details=[detail])
